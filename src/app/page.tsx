@@ -1,73 +1,52 @@
 "use client";
 
-import { useState } from "react";
-import type { Event } from "@/lib/types";
-import { AddEventForm } from "@/components/add-event-form";
-import { EventList } from "@/components/event-list";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const initialEvents: Event[] = [
-  {
-    id: "1",
-    name: "Sessão Ordinária",
-    date: new Date(2024, 6, 25),
-    location: "Plenário Getulino Artiaga",
-    transmission: "youtube",
-  },
-  {
-    id: "2",
-    name: "Audiência Pública - Saúde",
-    date: new Date(2024, 6, 26),
-    location: "Auditório Solon Amaral",
-    transmission: "tv",
-  },
-  {
-    id: "3",
-    name: "Comissão de Constituição e Justiça",
-    date: new Date(2024, 6, 27),
-    location: "Sala de Comissões",
-    transmission: "youtube",
-  },
-];
-
-export default function Home() {
-  const [events, setEvents] = useState<Event[]>(initialEvents);
-
-  const handleAddEvent = (event: Omit<Event, "id">) => {
-    setEvents((prevEvents) => [
-      ...prevEvents,
-      { ...event, id: crypto.randomUUID() },
-    ]);
-  };
-
+export default function LoginPage() {
   return (
-    <main className="container mx-auto p-4 md:p-8">
-      <header className="text-center mb-8">
-        <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary-foreground/90">
-          Agenda Alego
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Acompanhe os próximos eventos da Assembleia Legislativa.
-        </p>
-      </header>
-
-      <div className="grid gap-12">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline">Adicionar Novo Evento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AddEventForm onAddEvent={handleAddEvent} />
-          </CardContent>
-        </Card>
-
-        <section>
-          <h2 className="font-headline text-3xl font-bold mb-6 text-primary-foreground/90">
-            Próximos Eventos
-          </h2>
-          <EventList events={events} />
-        </section>
-      </div>
-    </main>
+    <div className="flex items-center justify-center min-h-screen bg-background">
+      <Card className="mx-auto max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>
+            Entre com seu email para acessar o dashboard
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Senha</Label>
+              </div>
+              <Input id="password" type="password" required />
+            </div>
+            <Link href="/dashboard" passHref>
+              <Button type="submit" className="w-full">
+                Login
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
