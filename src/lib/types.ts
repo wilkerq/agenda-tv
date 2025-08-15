@@ -8,4 +8,5 @@ export interface Event {
   location: string;
   transmission: TransmissionType;
   color: string;
+  operator: string;
 }

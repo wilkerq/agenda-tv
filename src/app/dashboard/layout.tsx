@@ -7,6 +7,7 @@ import {
   Calendar,
   CircleUser,
   Home,
+  LineChart,
   Menu,
   Package,
   Package2,
@@ -32,12 +33,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 md:block">
@@ -56,10 +61,23 @@ export default function DashboardLayout({
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                  pathname === "/dashboard" && "bg-muted text-primary"
+                )}
               >
                 <Calendar className="h-4 w-4" />
                 Eventos
+              </Link>
+              <Link
+                href="/dashboard/reports"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                  pathname === "/dashboard/reports" && "bg-muted text-primary"
+                )}
+              >
+                <LineChart className="h-4 w-4" />
+                Relatórios
               </Link>
             </nav>
           </div>
@@ -89,16 +107,31 @@ export default function DashboardLayout({
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
+                  className={cn(
+                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-foreground hover:text-foreground",
+                    pathname === "/dashboard" && "bg-muted"
+                  )}
                 >
                   <Calendar className="h-5 w-5" />
                   Eventos
+                </Link>
+                <Link
+                  href="/dashboard/reports"
+                  className={cn(
+                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-foreground hover:text-foreground",
+                    pathname === "/dashboard/reports" && "bg-muted"
+                  )}
+                >
+                  <LineChart className="h-5 w-5" />
+                  Relatórios
                 </Link>
               </nav>
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1">
-            <h1 className="text-lg font-semibold md:text-2xl">Eventos</h1>
+            <h1 className="text-lg font-semibold md:text-2xl">
+              {pathname === "/dashboard" ? "Eventos" : "Relatórios"}
+            </h1>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

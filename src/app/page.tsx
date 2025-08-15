@@ -35,6 +35,7 @@ export default function HomePage() {
           transmission: data.transmission,
           date: (data.date as Timestamp).toDate(),
           color: data.color || getRandomColor(),
+          operator: data.operator,
         };
       });
       setAllEvents(eventsData);

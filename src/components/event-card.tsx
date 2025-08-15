@@ -1,7 +1,7 @@
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Clock, MapPin, Tv, Youtube } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Tv, User, Youtube } from "lucide-react";
 
 import {
   Card,
@@ -43,6 +43,10 @@ export function EventCard({ event }: EventCardProps) {
         <div className="flex items-center text-card-foreground/90">
           <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
           <span>{format(event.date, "HH:mm")}</span>
+        </div>
+        <div className="flex items-center text-card-foreground/90">
+          <User className="mr-2 h-4 w-4 flex-shrink-0" />
+          <span>{event.operator}</span>
         </div>
       </CardContent>
       <CardFooter>

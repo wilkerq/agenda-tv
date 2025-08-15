@@ -43,6 +43,13 @@ const locations = [
   "Sala Julio da Retifica \"CCJ\""
 ];
 
+const operators = [
+  "Bruno Michel",
+  "Mário Augusto",
+  "Rodrigo Sousa",
+  "Ovidio Dias"
+];
+
 const formSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
   location: z.string({ required_error: "O local do evento é obrigatório." }),
@@ -53,6 +60,7 @@ const formSchema = z.object({
   transmission: z.enum(["youtube", "tv"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
+  operator: z.string({ required_error: "O operador é obrigatório." }),
 });
 
 type AddEventFormProps = {
@@ -69,6 +77,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       location: undefined,
       time: "",
       transmission: "youtube",
+      operator: undefined,
     },
   });
 
@@ -86,6 +95,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       location: values.location,
       date: eventDate,
       transmission: values.transmission as TransmissionType,
+      operator: values.operator,
     });
     
     form.reset({
@@ -94,6 +104,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       date: undefined,
       time: "",
       transmission: "youtube",
+      operator: undefined,
     });
     setIsSubmitting(false);
   }
@@ -101,7 +112,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <FormField
             control={form.control}
             name="name"
@@ -134,6 +145,33 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                     {locations.map((location) => (
                       <SelectItem key={location} value={location}>
                         {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="operator"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Operador</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o operador" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {operators.map((operator) => (
+                      <SelectItem key={operator} value={operator}>
+                        {operator}
                       </SelectItem>
                     ))}
                   </SelectContent>
