@@ -40,8 +40,7 @@ const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
-  "Sala Julio da Retifica \"CCJ\"",
-  "Auditório Solon Amaral"
+  "Sala Julio da Retifica \"CCJ\""
 ];
 
 const formSchema = z.object({
