@@ -13,8 +13,8 @@ export function EventList({ events, onDeleteEvent }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="text-center py-16 px-4 bg-card rounded-lg shadow-sm">
-        <p className="text-muted-foreground">Nenhum evento agendado no momento.</p>
-        <p className="text-sm text-muted-foreground/80">Volte em breve para mais atualizações.</p>
+        <p className="text-muted-foreground">Nenhum evento agendado para esta data.</p>
+        <p className="text-sm text-muted-foreground/80">Selecione outro dia no calendário.</p>
       </div>
     );
   }
