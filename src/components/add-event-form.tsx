@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,6 +41,7 @@ const locations = [
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
   "Sala Julio da Retifica \"CCJ\"",
+  "Auditório Solon Amaral"
 ];
 
 const formSchema = z.object({
@@ -55,7 +57,7 @@ const formSchema = z.object({
 });
 
 type AddEventFormProps = {
-  onAddEvent: (event: Omit<Event, "id">) => void;
+  onAddEvent: (event: Omit<Event, "id" | "color">) => void;
 };
 
 export function AddEventForm({ onAddEvent }: AddEventFormProps) {

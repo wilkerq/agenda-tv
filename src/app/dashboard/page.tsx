@@ -1,28 +1,27 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Event } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EventList } from "@/components/event-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getRandomColor } from "@/lib/utils";
 
-const initialEvents: Event[] = [
+const initialEvents: Omit<Event, "id" | "color">[] = [
   {
-    id: "1",
     name: "Sessão Ordinária",
     date: new Date(2024, 6, 25, 15, 0),
     location: "Plenário Iris Rezende Machado",
     transmission: "youtube",
   },
   {
-    id: "2",
     name: "Audiência Pública - Saúde",
     date: new Date(2024, 6, 26, 10, 0),
     location: "Auditório Solon Amaral",
     transmission: "tv",
   },
   {
-    id: "3",
     name: "Comissão de Constituição e Justiça",
     date: new Date(2024, 6, 27, 9, 30),
     location: "Sala Julio da Retifica \"CCJ\"",
@@ -31,12 +30,22 @@ const initialEvents: Event[] = [
 ];
 
 export default function DashboardPage() {
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [events, setEvents] = useState<Event[]>([]);
 
-  const handleAddEvent = (event: Omit<Event, "id">) => {
+  useEffect(() => {
+    const eventsWithIdsAndColors = initialEvents.map((event, index) => ({
+      ...event,
+      id: `${index + 1}`,
+      color: getRandomColor(),
+    }));
+    setEvents(eventsWithIdsAndColors);
+  }, []);
+
+
+  const handleAddEvent = (event: Omit<Event, "id" | "color">) => {
     setEvents((prevEvents) => [
       ...prevEvents,
-      { ...event, id: crypto.randomUUID() },
+      { ...event, id: crypto.randomUUID(), color: getRandomColor() },
     ]);
   };
 

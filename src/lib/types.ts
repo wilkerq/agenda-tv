@@ -1,3 +1,4 @@
+
 export type TransmissionType = "youtube" | "tv";
 
 export interface Event {
@@ -6,4 +7,5 @@ export interface Event {
   date: Date;
   location: string;
   transmission: TransmissionType;
+  color: string;
 }

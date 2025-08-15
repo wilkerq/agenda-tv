@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -80,7 +81,7 @@ export default function DashboardLayout({
             <SheetContent side="left" className="flex flex-col">
               <nav className="grid gap-2 text-lg font-medium">
                 <Link
-                  href="#"
+                  href="/"
                   className="flex items-center gap-2 text-lg font-semibold"
                 >
                   <Package2 className="h-6 w-6" />
@@ -107,13 +108,13 @@ export default function DashboardLayout({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>Configurações</DropdownMenuItem>
+              <DropdownMenuItem>Suporte</DropdownMenuItem>
               <DropdownMenuSeparator />
-               <Link href="/" passHref>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+               <Link href="/login" passHref>
+                <DropdownMenuItem>Sair</DropdownMenuItem>
               </Link>
             </DropdownMenuContent>
           </DropdownMenu>

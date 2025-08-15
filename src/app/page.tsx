@@ -1,52 +1,62 @@
+
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import type { Event } from "@/lib/types";
+import { EventList } from "@/components/event-list";
+import { getRandomColor } from "@/lib/utils";
+import { CalendarDays, Tv, Youtube } from "lucide-react";
 
-export default function LoginPage() {
+const initialEvents: Event[] = [
+  {
+    id: "1",
+    name: "Sessão Ordinária",
+    date: new Date(2024, 6, 25, 15, 0),
+    location: "Plenário Iris Rezende Machado",
+    transmission: "youtube",
+    color: "",
+  },
+  {
+    id: "2",
+    name: "Audiência Pública - Saúde",
+    date: new Date(2024, 6, 26, 10, 0),
+    location: "Auditório Solon Amaral",
+    transmission: "tv",
+    color: "",
+  },
+  {
+    id: "3",
+    name: "Comissão de Constituição e Justiça",
+    date: new Date(2024, 6, 27, 9, 30),
+    location: "Sala Julio da Retifica \"CCJ\"",
+    transmission: "youtube",
+    color: "",
+  },
+];
+
+export default function HomePage() {
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    const eventsWithColors = initialEvents.map((event) => ({
+      ...event,
+      color: getRandomColor(),
+    }));
+    setEvents(eventsWithColors);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="mx-auto max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Entre com seu email para acessar o dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Senha</Label>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
-            <Link href="/dashboard" passHref>
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="bg-gray-100 min-h-screen">
+      <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4 shadow-md flex items-center justify-between">
+        <div className="flex items-center">
+          <CalendarDays className="text-2xl mr-2" />
+          <h1 className="text-2xl font-bold">Agenda de Eventos</h1>
+        </div>
+      </header>
+
+      <main className="p-4 md:p-8">
+        <EventList events={events} />
+      </main>
     </div>
   );
 }
