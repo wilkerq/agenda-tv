@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import * as React from "react";
 
@@ -34,7 +35,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType } from "@/lib/types";
-import { useToast } from "@/hooks/use-toast";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -57,12 +57,11 @@ const formSchema = z.object({
 });
 
 type AddEventFormProps = {
-  onAddEvent: (event: Omit<Event, "id" | "color">) => void;
+  onAddEvent: (event: Omit<Event, "id" | "color">) => Promise<void>;
 };
 
 export function AddEventForm({ onAddEvent }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -80,19 +79,16 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
     const [hours, minutes] = values.time.split(":").map(Number);
     const eventDate = new Date(values.date);
     eventDate.setHours(hours, minutes);
+    eventDate.setSeconds(0);
+    eventDate.setMilliseconds(0);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    onAddEvent({
+    await onAddEvent({
       name: values.name,
       location: values.location,
       date: eventDate,
       transmission: values.transmission as TransmissionType,
     });
-    toast({
-      title: "Sucesso!",
-      description: "O evento foi adicionado à agenda.",
-    });
+    
     form.reset({
       name: "",
       location: undefined,
@@ -167,7 +163,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {field.value ? (
-                          format(field.value, "PPP", { locale: require("date-fns/locale/pt-BR") })
+                          format(field.value, "PPP", { locale: ptBR })
                         ) : (
                           <span>Escolha uma data</span>
                         )}
@@ -179,7 +175,6 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date < new Date()}
                       initialFocus
                     />
                   </PopoverContent>

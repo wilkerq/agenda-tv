@@ -2,47 +2,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { collection, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
 import { EventList } from "@/components/event-list";
 import { getRandomColor } from "@/lib/utils";
-import { CalendarDays, Tv, Youtube } from "lucide-react";
-
-const initialEvents: Event[] = [
-  {
-    id: "1",
-    name: "Sessão Ordinária",
-    date: new Date(2024, 6, 25, 15, 0),
-    location: "Plenário Iris Rezende Machado",
-    transmission: "youtube",
-    color: "",
-  },
-  {
-    id: "2",
-    name: "Audiência Pública - Saúde",
-    date: new Date(2024, 6, 26, 10, 0),
-    location: "Auditório Solon Amaral",
-    transmission: "tv",
-    color: "",
-  },
-  {
-    id: "3",
-    name: "Comissão de Constituição e Justiça",
-    date: new Date(2024, 6, 27, 9, 30),
-    location: "Sala Julio da Retifica \"CCJ\"",
-    transmission: "youtube",
-    color: "",
-  },
-];
+import { CalendarDays } from "lucide-react";
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
 
   useEffect(() => {
-    const eventsWithColors = initialEvents.map((event) => ({
-      ...event,
-      color: getRandomColor(),
-    }));
-    setEvents(eventsWithColors);
+    const eventsCollection = collection(db, "events");
+    const q = query(eventsCollection, orderBy("date", "desc"));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          location: data.location,
+          transmission: data.transmission,
+          date: (data.date as Timestamp).toDate(),
+          color: data.color || getRandomColor(),
+        };
+      });
+      setEvents(eventsData);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
