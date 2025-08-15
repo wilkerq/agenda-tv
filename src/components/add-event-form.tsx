@@ -22,20 +22,33 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
+const locations = [
+  "Auditório Francisco Gedda",
+  "Auditório Carlos Vieira",
+  "Plenário Iris Rezende Machado",
+  "Sala Julio da Retifica \"CCJ\"",
+];
+
 const formSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
-  location: z
-    .string()
-    .min(3, "O local do evento deve ter pelo menos 3 caracteres."),
+  location: z.string({ required_error: "O local do evento é obrigatório." }),
   date: z.date({
     required_error: "A data do evento é obrigatória.",
   }),
+  time: z.string({ required_error: "A hora do evento é obrigatória." }),
   transmission: z.enum(["youtube", "tv"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
@@ -53,24 +66,38 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      location: "",
+      location: undefined,
+      time: "",
       transmission: "youtube",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+
+    const [hours, minutes] = values.time.split(":").map(Number);
+    const eventDate = new Date(values.date);
+    eventDate.setHours(hours, minutes);
+
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
     onAddEvent({
-      ...values,
+      name: values.name,
+      location: values.location,
+      date: eventDate,
       transmission: values.transmission as TransmissionType,
     });
     toast({
       title: "Sucesso!",
       description: "O evento foi adicionado à agenda.",
     });
-    form.reset();
+    form.reset({
+      name: "",
+      location: undefined,
+      date: undefined,
+      time: "",
+      transmission: "youtube",
+    });
     setIsSubmitting(false);
   }
 
@@ -97,18 +124,29 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Local</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Ex: Plenário Getulino Artiaga"
-                    {...field}
-                  />
-                </FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o local do evento" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {locations.map((location) => (
+                      <SelectItem key={location} value={location}>
+                        {location}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
           <FormField
             control={form.control}
             name="date"
@@ -127,7 +165,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {field.value ? (
-                          format(field.value, "PPP")
+                          format(field.value, "PPP", { locale: require("date-fns/locale/pt-BR") })
                         ) : (
                           <span>Escolha uma data</span>
                         )}
@@ -150,6 +188,19 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
           />
           <FormField
             control={form.control}
+            name="time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hora do Evento</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="transmission"
             render={({ field }) => (
               <FormItem className="space-y-3">
@@ -158,7 +209,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                   <RadioGroup
                     onValueChange={field.onChange}
                     defaultValue={field.value}
-                    className="flex items-center space-x-4"
+                    className="flex items-center space-x-4 pt-2"
                   >
                     <FormItem className="flex items-center space-x-2 space-y-0">
                       <FormControl>

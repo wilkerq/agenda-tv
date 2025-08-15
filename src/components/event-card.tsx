@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, MapPin, Tv, Youtube } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Tv, Youtube } from "lucide-react";
 
 import {
   Card,
@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Event } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 type EventCardProps = {
   event: Event;
@@ -32,10 +31,14 @@ export function EventCard({ event }: EventCardProps) {
           {format(event.date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow space-y-2">
         <div className="flex items-center text-card-foreground/90">
-          <MapPin className="mr-2 h-4 w-4" />
+          <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
           <span>{event.location}</span>
+        </div>
+        <div className="flex items-center text-card-foreground/90">
+          <Clock className="mr-2 h-4 w-4 flex-shrink-0" />
+          <span>{format(event.date, "HH:mm")}</span>
         </div>
       </CardContent>
       <CardFooter>

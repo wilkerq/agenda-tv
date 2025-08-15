@@ -15,8 +15,8 @@ export function EventList({ events }: EventListProps) {
     );
   }
 
-  // Sort events by date, from oldest to newest
-  const sortedEvents = [...events].sort((a, b) => a.date.getTime() - b.date.getTime());
+  // Sort events by date, from newest to oldest
+  const sortedEvents = [...events].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

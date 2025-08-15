@@ -10,22 +10,22 @@ const initialEvents: Event[] = [
   {
     id: "1",
     name: "Sessão Ordinária",
-    date: new Date(2024, 6, 25),
-    location: "Plenário Getulino Artiaga",
+    date: new Date(2024, 6, 25, 15, 0),
+    location: "Plenário Iris Rezende Machado",
     transmission: "youtube",
   },
   {
     id: "2",
     name: "Audiência Pública - Saúde",
-    date: new Date(2024, 6, 26),
+    date: new Date(2024, 6, 26, 10, 0),
     location: "Auditório Solon Amaral",
     transmission: "tv",
   },
   {
     id: "3",
     name: "Comissão de Constituição e Justiça",
-    date: new Date(2024, 6, 27),
-    location: "Sala de Comissões",
+    date: new Date(2024, 6, 27, 9, 30),
+    location: "Sala Julio da Retifica \"CCJ\"",
     transmission: "youtube",
   },
 ];
