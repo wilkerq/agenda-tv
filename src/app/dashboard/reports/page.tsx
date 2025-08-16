@@ -14,6 +14,7 @@ import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { summarizeReports, type ReportDataInput } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type OperatorReport = {
   count: number;
@@ -94,10 +95,7 @@ export default function ReportsPage() {
         }
 
         // Transmission Report
-        if (event.transmission) {
-            if (!newTransmissionReport[event.transmission]) {
-              newTransmissionReport[event.transmission] = 0;
-            }
+        if (event.transmission === 'youtube' || event.transmission === 'tv') {
             newTransmissionReport[event.transmission]++;
         }
       });
@@ -108,10 +106,18 @@ export default function ReportsPage() {
       setLocationReport(newLocationReport);
       setTransmissionReport(newTransmissionReport);
       setLoading(false);
+    }, (error) => {
+        console.error("Error fetching reports: ", error);
+        toast({
+            title: "Erro ao carregar relatórios",
+            description: "Não foi possível buscar os dados dos eventos.",
+            variant: "destructive"
+        });
+        setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
   const handleGenerateSummary = async () => {
     setIsAiSummaryLoading(true);
@@ -148,7 +154,60 @@ export default function ReportsPage() {
   const sortedLocations = Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]);
 
   if (loading) {
-      return <div>Carregando relatórios...</div>
+      return (
+        <div className="grid gap-6">
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-10 w-48" />
+                </CardContent>
+            </Card>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, i) => (
+                    <Card key={i} className="shadow-lg">
+                        <CardHeader>
+                            <Skeleton className="h-5 w-3/4" />
+                        </CardHeader>
+                        <CardContent>
+                            <Skeleton className="h-8 w-1/2" />
+                            <Skeleton className="h-4 w-full mt-2" />
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+             <div className="grid gap-6 md:grid-cols-2">
+                <Card className="shadow-lg">
+                    <CardHeader>
+                         <Skeleton className="h-6 w-1/2" />
+                         <Skeleton className="h-4 w-3/4" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                           <Skeleton className="h-12 w-full" />
+                           <Skeleton className="h-12 w-full" />
+                           <Skeleton className="h-12 w-full" />
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card className="shadow-lg">
+                    <CardHeader>
+                         <Skeleton className="h-6 w-1/2" />
+                         <Skeleton className="h-4 w-3/4" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                           <Skeleton className="h-12 w-full" />
+                           <Skeleton className="h-12 w-full" />
+                           <Skeleton className="h-12 w-full" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+      );
   }
 
   return (
