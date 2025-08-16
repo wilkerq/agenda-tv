@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Bell,
   Calendar,
@@ -12,6 +13,7 @@ import {
   Package,
   Package2,
   Search,
+  LogOut,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +35,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getAuth, signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { app } from "@/lib/firebase";
 
 export default function DashboardLayout({
   children,
@@ -42,6 +46,27 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = getAuth(app);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logout realizado com sucesso!",
+        description: "Você será redirecionado para a página de login.",
+      });
+      router.push("/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout: ", error);
+      toast({
+        title: "Erro!",
+        description: "Não foi possível fazer o logout.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -146,9 +171,10 @@ export default function DashboardLayout({
               <DropdownMenuItem>Configurações</DropdownMenuItem>
               <DropdownMenuItem>Suporte</DropdownMenuItem>
               <DropdownMenuSeparator />
-               <Link href="/login" passHref>
-                <DropdownMenuItem>Sair</DropdownMenuItem>
-              </Link>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sair</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
