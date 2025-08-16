@@ -1,20 +1,22 @@
 
+
 import type { Event } from "@/lib/types";
 import { EventCard } from "./event-card";
 import { Button } from "./ui/button";
-import { Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 
 type EventListProps = {
   events: Event[];
   onDeleteEvent?: (eventId: string) => void;
+  onEditEvent?: (event: Event) => void;
 };
 
-export function EventList({ events, onDeleteEvent }: EventListProps) {
+export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {
     return (
       <div className="text-center py-16 px-4 bg-card rounded-lg shadow-sm">
         <p className="text-muted-foreground">Nenhum evento agendado para esta data.</p>
-        <p className="text-sm text-muted-foreground/80">Selecione outro dia no calendário.</p>
+        <p className="text-sm text-muted-foreground/80">Selecione outro dia no calendário ou adicione um novo evento.</p>
       </div>
     );
   }
@@ -26,15 +28,27 @@ export function EventList({ events, onDeleteEvent }: EventListProps) {
           <EventCard
             event={event}
           />
-          {onDeleteEvent && (
-             <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => onDeleteEvent(event.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+          {onDeleteEvent && onEditEvent && (
+             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+               <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 bg-background/80 hover:bg-background"
+                  onClick={() => onEditEvent(event)}
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Editar Evento</span>
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onDeleteEvent(event.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Excluir Evento</span>
+                </Button>
+             </div>
           )}
         </div>
       ))}

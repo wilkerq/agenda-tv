@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // This ensures that new Date() is only called on the client-side after hydration.
@@ -45,6 +47,9 @@ export default function HomePage() {
         };
       });
       setAllEvents(eventsData);
+      setLoading(false);
+    }, () => {
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -115,7 +120,25 @@ export default function HomePage() {
       </header>
 
       <main className="p-4 md:p-8">
-        <EventList events={filteredEvents} />
+        {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                        <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
+                        <CardContent className="space-y-3">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-2/3" />
+                            <Skeleton className="h-4 w-1/2" />
+                        </CardContent>
+                        <CardFooter>
+                           <Skeleton className="h-6 w-1/4" />
+                        </CardFooter>
+                    </Card>
+                ))}
+             </div>
+        ) : (
+            <EventList events={filteredEvents} />
+        )}
       </main>
 
       <Link href="/login" passHref>

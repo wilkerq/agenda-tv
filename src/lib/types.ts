@@ -1,4 +1,5 @@
 
+
 export type TransmissionType = "youtube" | "tv";
 
 export interface Event {
@@ -10,3 +11,5 @@ export interface Event {
   color: string;
   operator: string;
 }
+
+export type EventFormData = Omit<Event, "id" | "color">;

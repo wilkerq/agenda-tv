@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,7 +48,8 @@ const operators = [
   "Bruno Michel",
   "Mário Augusto",
   "Rodrigo Sousa",
-  "Ovidio Dias"
+  "Ovidio Dias",
+  "Wilker Quirino"
 ];
 
 const formSchema = z.object({
@@ -56,7 +58,7 @@ const formSchema = z.object({
   date: z.date({
     required_error: "A data do evento é obrigatória.",
   }),
-  time: z.string({ required_error: "A hora do evento é obrigatória." }),
+  time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
   transmission: z.enum(["youtube", "tv"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),

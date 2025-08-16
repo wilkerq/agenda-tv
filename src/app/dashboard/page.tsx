@@ -1,11 +1,13 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import type { Event } from "@/lib/types";
+import type { Event, EventFormData } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
+import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -98,6 +101,35 @@ export default function DashboardPage() {
     }
   }, [toast]);
 
+  const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
+    try {
+      const eventRef = doc(db, "events", eventId);
+      await updateDoc(eventRef, eventData);
+      toast({
+        title: "Sucesso!",
+        description: "O evento foi atualizado.",
+      });
+      setEditingEvent(null);
+    } catch (error) {
+      console.error("Error updating event: ", error);
+      toast({
+        title: "Erro!",
+        description: "Não foi possível atualizar o evento.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+
+  const handleOpenEditModal = (event: Event) => {
+    setEditingEvent(event);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingEvent(null);
+  };
+
+
   if (loading) {
      return (
         <div className="grid gap-12">
@@ -123,7 +155,9 @@ export default function DashboardPage() {
             </Card>
 
             <section>
-                <Skeleton className="h-9 w-1/4 mb-6" />
+                <h2 className="font-headline text-3xl font-bold mb-6 text-primary-foreground/90">
+                  Próximos Eventos
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                    {[...Array(6)].map((_, i) => (
                       <Card key={i}>
@@ -134,7 +168,7 @@ export default function DashboardPage() {
                               <Skeleton className="h-4 w-1/2" />
                           </CardContent>
                           <CardFooter>
-                              <Skeleton className="h-6 w-1/4" />
+                              <Skeleton className="h-10 w-full" />
                           </CardFooter>
                       </Card>
                    ))}
@@ -160,8 +194,16 @@ export default function DashboardPage() {
         <h2 className="font-headline text-3xl font-bold mb-6 text-primary-foreground/90">
           Próximos Eventos
         </h2>
-        <EventList events={events} onDeleteEvent={handleDeleteEvent} />
+        <EventList events={events} onDeleteEvent={handleDeleteEvent} onEditEvent={handleOpenEditModal} />
       </section>
+
+      {editingEvent && (
+        <EditEventForm 
+          event={editingEvent}
+          onEditEvent={handleEditEvent}
+          onClose={handleCloseEditModal}
+        />
+      )}
     </div>
   );
 }

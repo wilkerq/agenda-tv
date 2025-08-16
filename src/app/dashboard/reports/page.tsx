@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { BarChart, Moon, Tv, Users, Youtube, MapPin } from "lucide-react";
+import { Moon, Tv, Users, Youtube } from "lucide-react";
 
 type OperatorReport = {
   count: number;
@@ -36,6 +37,7 @@ export default function ReportsPage() {
   const [totalNightEvents, setTotalNightEvents] = useState(0);
   const [locationReport, setLocationReport] = useState<LocationReport>({});
   const [transmissionReport, setTransmissionReport] = useState<TransmissionReport>({ youtube: 0, tv: 0 });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const eventsCollection = collection(db, "events");
@@ -96,6 +98,7 @@ export default function ReportsPage() {
       setTotalNightEvents(nightEventsCount);
       setLocationReport(newLocationReport);
       setTransmissionReport(newTransmissionReport);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -103,6 +106,10 @@ export default function ReportsPage() {
 
   const sortedOperators = Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count);
   const sortedLocations = Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]);
+
+  if (loading) {
+      return <div>Carregando relatórios...</div>
+  }
 
   return (
     <div className="grid gap-6">
