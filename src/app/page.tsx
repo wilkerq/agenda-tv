@@ -14,7 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -81,10 +81,10 @@ export default function HomePage() {
   const formattedDay = selectedDate ? format(selectedDate, "EEE, dd", { locale: ptBR }) : "";
 
   return (
-    <div className="bg-gray-100 min-h-screen">
-      <header className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-4 shadow-md flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center">
-          <CalendarDays className="text-2xl mr-3" />
+    <div className="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen">
+      <header className="bg-white/10 backdrop-blur-lg text-white p-4 shadow-md flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="h-7 w-7" />
           <h1 className="text-2xl font-bold">Agenda de Eventos</h1>
         </div>
         <div className="flex items-center space-x-2 bg-white/20 p-2 rounded-lg">

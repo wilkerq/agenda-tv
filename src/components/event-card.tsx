@@ -25,7 +25,7 @@ const transmissionIcons = {
 export function EventCard({ event }: EventCardProps) {
   return (
     <Card 
-      className="flex flex-col h-full shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-xl border-l-4"
+      className="flex flex-col h-full shadow-md transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl border-l-4 bg-card/80 backdrop-blur-sm"
       style={{ borderLeftColor: event.color }}
     >
       <CardHeader>
@@ -33,7 +33,7 @@ export function EventCard({ event }: EventCardProps) {
           <CalendarDays className="mr-2 h-4 w-4" />
           {format(event.date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </CardDescription>
-        <CardTitle className="font-headline text-xl">{event.name}</CardTitle>
+        <CardTitle className="font-headline text-xl text-card-foreground">{event.name}</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
         <div className="flex items-center text-card-foreground/90">

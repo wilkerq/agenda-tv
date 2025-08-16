@@ -4,6 +4,7 @@ import type { Event } from "@/lib/types";
 import { EventCard } from "./event-card";
 import { Button } from "./ui/button";
 import { Edit, Trash2 } from "lucide-react";
+import { CalendarSearch } from "lucide-react";
 
 type EventListProps = {
   events: Event[];
@@ -14,9 +15,10 @@ type EventListProps = {
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {
     return (
-      <div className="text-center py-16 px-4 bg-card rounded-lg shadow-sm">
-        <p className="text-muted-foreground">Nenhum evento agendado para esta data.</p>
-        <p className="text-sm text-muted-foreground/80">Selecione outro dia no calendário ou adicione um novo evento.</p>
+      <div className="text-center py-16 px-4 bg-card/60 backdrop-blur-sm rounded-lg shadow-sm border border-white/20">
+        <CalendarSearch className="mx-auto h-12 w-12 text-foreground/50 mb-4" />
+        <p className="text-lg font-medium text-foreground">Nenhum evento agendado para esta data.</p>
+        <p className="text-sm text-foreground/70">Selecione outro dia no calendário ou adicione um novo evento no painel.</p>
       </div>
     );
   }
