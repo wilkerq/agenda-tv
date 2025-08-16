@@ -6,11 +6,14 @@ import { useState, useEffect } from "react";
 import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Moon, Tv, Users, Youtube } from "lucide-react";
+import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { summarizeReports, type ReportDataInput } from "@/ai/flows/summarize-reports-flow";
+import { useToast } from "@/hooks/use-toast";
 
 type OperatorReport = {
   count: number;
@@ -38,13 +41,16 @@ export default function ReportsPage() {
   const [locationReport, setLocationReport] = useState<LocationReport>({});
   const [transmissionReport, setTransmissionReport] = useState<TransmissionReport>({ youtube: 0, tv: 0 });
   const [loading, setLoading] = useState(true);
+  const [isAiSummaryLoading, setIsAiSummaryLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     const eventsCollection = collection(db, "events");
     const q = query(eventsCollection, orderBy("date", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eventsData = snapshot.docs.map(doc => {
+      const eventsData: Event[] = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
@@ -89,6 +95,9 @@ export default function ReportsPage() {
 
         // Transmission Report
         if (event.transmission) {
+            if (!newTransmissionReport[event.transmission]) {
+              newTransmissionReport[event.transmission] = 0;
+            }
             newTransmissionReport[event.transmission]++;
         }
       });
@@ -104,6 +113,37 @@ export default function ReportsPage() {
     return () => unsubscribe();
   }, []);
 
+  const handleGenerateSummary = async () => {
+    setIsAiSummaryLoading(true);
+    setAiSummary("");
+
+    const reportToSummarize: ReportDataInput = {
+        totalEvents,
+        totalNightEvents,
+        reportData: Object.entries(reportData).reduce((acc, [key, value]) => {
+            acc[key] = { count: value.count, nightCount: value.nightCount };
+            return acc;
+        }, {} as Record<string, { count: number; nightCount: number;}>),
+        locationReport,
+        transmissionReport,
+    };
+
+    try {
+        const result = await summarizeReports(reportToSummarize);
+        setAiSummary(result.summary);
+    } catch (error) {
+        console.error("Error generating AI summary: ", error);
+        toast({
+            title: "Erro ao gerar resumo",
+            description: "Não foi possível conectar com o serviço de IA.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsAiSummaryLoading(false);
+    }
+  };
+
+
   const sortedOperators = Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count);
   const sortedLocations = Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]);
 
@@ -113,6 +153,38 @@ export default function ReportsPage() {
 
   return (
     <div className="grid gap-6">
+       <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Resumo com Inteligência Artificial
+            </CardTitle>
+            <CardDescription>Clique no botão para gerar uma análise dos dados desta página com o Gemini.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isAiSummaryLoading && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Analisando dados e gerando insights...</span>
+                </div>
+            )}
+            {aiSummary && (
+                <div className="prose prose-sm max-w-full text-foreground">
+                    <p>{aiSummary}</p>
+                </div>
+            )}
+          </CardContent>
+          <CardFooter>
+             <Button onClick={handleGenerateSummary} disabled={isAiSummaryLoading}>
+              {isAiSummaryLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Bot className="mr-2 h-4 w-4" />
+              )}
+              Gerar Resumo com IA
+            </Button>
+          </CardFooter>
+        </Card>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -187,7 +259,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Eventos por Local</CardTitle>
             <CardDescription>Locais mais utilizados para eventos.</CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <Table>
                 <TableHeader>
