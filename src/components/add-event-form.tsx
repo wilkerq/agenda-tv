@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -266,14 +265,16 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
             )}
           />
         </div>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isSubmitting ? "Adicionando..." : "Adicionar Evento"}
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Adicionando..." : "Adicionar Evento"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

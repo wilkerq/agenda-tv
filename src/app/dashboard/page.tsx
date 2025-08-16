@@ -8,18 +8,26 @@ import type { Event, EventFormData } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { startOfDay } from "date-fns";
+import { add, format, startOfDay, endOfDay } from 'date-fns';
+import { ptBR } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { PlusCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isAddModalOpen, setAddModalOpen] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -27,48 +35,52 @@ export default function DashboardPage() {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user) {
         router.push("/login");
-      } else {
-        const eventsCollection = collection(db, "events");
-        
-        // --- Otimização: Buscar apenas eventos futuros ou do dia atual ---
-        const today = startOfDay(new Date());
-        const q = query(
-            eventsCollection, 
-            where("date", ">=", Timestamp.fromDate(today)),
-            orderBy("date", "asc")
-        );
-        
-        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-          const eventsData = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              name: data.name,
-              location: data.location,
-              transmission: data.transmission,
-              date: (data.date as Timestamp).toDate(),
-              color: data.color || getRandomColor(),
-              operator: data.operator,
-            };
-          });
-          setEvents(eventsData);
-          setLoading(false);
-        }, (error) => {
-          console.error("Error fetching events: ", error);
-          toast({
-            title: "Erro ao buscar eventos",
-            description: "Não foi possível carregar a lista de eventos.",
-            variant: "destructive"
-          });
-          setLoading(false);
-        });
-
-        return () => unsubscribeSnapshot();
       }
     });
-
     return () => unsubscribeAuth();
-  }, [router, toast]);
+  }, [router]);
+
+  useEffect(() => {
+    setLoading(true);
+    const eventsCollection = collection(db, "events");
+    
+    const startOfSelectedDay = startOfDay(selectedDate);
+    const endOfSelectedDay = endOfDay(selectedDate);
+
+    const q = query(
+        eventsCollection, 
+        where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
+        where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
+        orderBy("date", "asc")
+    );
+    
+    const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          location: data.location,
+          transmission: data.transmission,
+          date: (data.date as Timestamp).toDate(),
+          color: data.color || getRandomColor(),
+          operator: data.operator,
+        };
+      });
+      setEvents(eventsData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching events: ", error);
+      toast({
+        title: "Erro ao buscar eventos",
+        description: "Não foi possível carregar a lista de eventos.",
+        variant: "destructive"
+      });
+      setLoading(false);
+    });
+
+    return () => unsubscribeSnapshot();
+  }, [selectedDate, toast]);
 
 
   const handleAddEvent = async (event: Omit<Event, "id" | "color">) => {
@@ -81,6 +93,7 @@ export default function DashboardPage() {
         title: "Sucesso!",
         description: "O evento foi adicionado à agenda.",
       });
+      setAddModalOpen(false); // Close modal on success
     } catch (error) {
       console.error("Error adding event: ", error);
       toast({
@@ -135,76 +148,77 @@ export default function DashboardPage() {
   const handleCloseEditModal = () => {
     setEditingEvent(null);
   };
-
-
-  if (loading) {
-     return (
-        <div className="grid gap-12">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <Skeleton className="h-8 w-1/3" />
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-8">
-                        <div className="grid md:grid-cols-3 gap-8">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </div>
-                        <div className="grid md:grid-cols-3 gap-8">
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                            <Skeleton className="h-10 w-full" />
-                        </div>
-                        <Skeleton className="h-10 w-32" />
-                    </div>
-                </CardContent>
-            </Card>
-
-            <section>
-                <h2 className="font-headline text-3xl font-bold mb-6 text-primary-foreground/90">
-                  Próximos Eventos
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {[...Array(6)].map((_, i) => (
-                      <Card key={i}>
-                          <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
-                          <CardContent className="space-y-3">
-                              <Skeleton className="h-4 w-full" />
-                              <Skeleton className="h-4 w-2/3" />
-                              <Skeleton className="h-4 w-1/2" />
-                          </CardContent>
-                          <CardFooter>
-                              <Skeleton className="h-10 w-24" />
-                          </CardFooter>
-                      </Card>
-                   ))}
-                </div>
-            </section>
-        </div>
-    );
-  }
+  
+  const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
 
   return (
-    <div className="grid gap-12">
-      <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="font-headline">Adicionar Novo Evento</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AddEventForm onAddEvent={handleAddEvent} />
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-1 space-y-6">
+         <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+          <DialogTrigger asChild>
+             <Button size="lg" className="w-full">
+                <PlusCircle className="mr-2 h-5 w-5" />
+                Adicionar Novo Evento
+              </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[825px]">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Evento</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <AddEventForm onAddEvent={handleAddEvent} />
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        <Card>
+           <CardHeader>
+             <CardTitle>Selecionar Data</CardTitle>
+           </CardHeader>
+           <CardContent className="p-0">
+             <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setSelectedDate(date)}
+                className="p-0"
+                classNames={{
+                    root: "w-full",
+                    months: "w-full",
+                    month: "w-full",
+                    table: "w-full border-collapse",
+                    head_row: "flex justify-around",
+                    row: "flex justify-around mt-2 w-full",
+                    caption: "flex justify-center items-center relative mb-4 px-4",
+                    caption_label: "text-lg font-medium",
+                }}
+                locale={ptBR}
+              />
+           </CardContent>
+         </Card>
+      </div>
+      <div className="lg:col-span-2">
+         <Card className="h-full">
+           <CardHeader>
+             <CardTitle>Eventos para {formattedDate}</CardTitle>
+           </CardHeader>
+           <CardContent>
+            {loading ? (
+                <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                </div>
+            ) : (
+                <EventList 
+                  events={events} 
+                  onDeleteEvent={handleDeleteEvent} 
+                  onEditEvent={handleOpenEditModal} 
+                />
+            )}
+           </CardContent>
+         </Card>
+      </div>
 
-      <section>
-        <h2 className="font-headline text-3xl font-bold mb-6 text-primary-foreground/90">
-          Próximos Eventos
-        </h2>
-        <EventList events={events} onDeleteEvent={handleDeleteEvent} onEditEvent={handleOpenEditModal} />
-      </section>
-
-      {editingEvent && (
+       {editingEvent && (
         <EditEventForm 
           event={editingEvent}
           onEditEvent={handleEditEvent}
