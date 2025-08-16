@@ -7,7 +7,7 @@ import { db, auth } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EventList } from "@/components/event-list";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
