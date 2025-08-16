@@ -68,13 +68,13 @@ const formSchema = z.object({
   repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repeatCount: z.coerce.number().int().min(1).optional(),
 }).refine(data => {
-    if (data.repeats && (!data.repeatFrequency || !data.repeatCount)) {
-        return false;
+    if (data.repeats) {
+        return !!data.repeatFrequency && !!data.repeatCount;
     }
     return true;
 }, {
-    message: "Frequência e contagem de repetição são obrigatórias se a repetição estiver ativa.",
-    path: ["repeatFrequency"], 
+    message: "Frequência e contagem de repetição são obrigatórias.",
+    path: ["repeatFrequency"],
 });
 
 
@@ -102,40 +102,44 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    try {
+      const [hours, minutes] = values.time.split(":").map(Number);
+      const eventDate = new Date(values.date);
+      eventDate.setHours(hours, minutes);
+      eventDate.setSeconds(0);
+      eventDate.setMilliseconds(0);
 
-    const [hours, minutes] = values.time.split(":").map(Number);
-    const eventDate = new Date(values.date);
-    eventDate.setHours(hours, minutes);
-    eventDate.setSeconds(0);
-    eventDate.setMilliseconds(0);
+      const baseEvent = {
+          name: values.name,
+          location: values.location,
+          date: eventDate,
+          transmission: values.transmission as TransmissionType,
+          operator: values.operator,
+      };
 
-    const baseEvent = {
-        name: values.name,
-        location: values.location,
-        date: eventDate,
-        transmission: values.transmission as TransmissionType,
-        operator: values.operator,
-    };
+      const repeatSettings = values.repeats ? {
+          frequency: values.repeatFrequency!,
+          count: values.repeatCount!,
+      } : undefined;
 
-    const repeatSettings = values.repeats ? {
-        frequency: values.repeatFrequency!,
-        count: values.repeatCount!,
-    } : undefined;
-
-    await onAddEvent(baseEvent, repeatSettings);
-    
-    form.reset({
-      name: "",
-      location: undefined,
-      date: undefined,
-      time: "",
-      transmission: "youtube",
-      operator: undefined,
-      repeats: false,
-      repeatFrequency: undefined,
-      repeatCount: 1,
-    });
-    setIsSubmitting(false);
+      await onAddEvent(baseEvent, repeatSettings);
+      
+      form.reset({
+        name: "",
+        location: undefined,
+        date: undefined,
+        time: "",
+        transmission: "youtube",
+        operator: undefined,
+        repeats: false,
+        repeatFrequency: undefined,
+        repeatCount: 1,
+      });
+    } catch (error) {
+        console.error("Failed to submit event:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   return (
