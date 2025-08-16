@@ -125,7 +125,7 @@ export default function DashboardPage() {
             <section>
                 <Skeleton className="h-9 w-1/4 mb-6" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {[...Array(3)].map((_, i) => (
+                   {[...Array(6)].map((_, i) => (
                       <Card key={i}>
                           <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
                           <CardContent className="space-y-3">
