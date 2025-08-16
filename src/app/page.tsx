@@ -3,13 +3,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { collection, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
 import { EventList } from "@/components/event-list";
 import { getRandomColor } from "@/lib/utils";
 import { Calendar as CalendarIcon, CalendarDays, UserCog } from "lucide-react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,19 +19,34 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomePage() {
-  const [allEvents, setAllEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // This ensures that new Date() is only called on the client-side after hydration.
-    setSelectedDate(new Date());
-  }, []);
+    if(!selectedDate) {
+      setSelectedDate(new Date());
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
+    if (!selectedDate) return;
+
+    setLoading(true);
+
     const eventsCollection = collection(db, "events");
-    const q = query(eventsCollection, orderBy("date", "desc"));
+    
+    // Create start and end of the selected day for the query
+    const startOfSelectedDay = startOfDay(selectedDate);
+    const endOfSelectedDay = endOfDay(selectedDate);
+
+    const q = query(
+      eventsCollection, 
+      where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
+      where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
+      orderBy("date", "asc")
+    );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eventsData = snapshot.docs.map(doc => {
@@ -46,23 +61,15 @@ export default function HomePage() {
           operator: data.operator,
         };
       });
-      setAllEvents(eventsData);
+      setEvents(eventsData);
       setLoading(false);
-    }, () => {
+    }, (error) => {
+        console.error("Error fetching events for date: ", error);
         setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (selectedDate) {
-      const eventsForDate = allEvents.filter(event => 
-        isSameDay(event.date, selectedDate)
-      );
-      setFilteredEvents(eventsForDate);
-    }
-  }, [selectedDate, allEvents]);
+  }, [selectedDate]);
 
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
@@ -100,7 +107,6 @@ export default function HomePage() {
                 className={cn(
                   "w-9 h-9 bg-transparent text-white hover:bg-white/30 hover:text-white border-white/50"
                 )}
-                disabled={!selectedDate}
               >
                 <CalendarIcon className="h-5 w-5" />
               </Button>
@@ -137,7 +143,7 @@ export default function HomePage() {
                 ))}
              </div>
         ) : (
-            <EventList events={filteredEvents} />
+            <EventList events={events} />
         )}
       </main>
 
