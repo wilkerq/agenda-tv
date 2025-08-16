@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -318,7 +317,7 @@ export default function ReportsPage() {
           <CardHeader>
             <CardTitle>Eventos por Local</CardTitle>
             <CardDescription>Locais mais utilizados para eventos.</CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent>
             <Table>
                 <TableHeader>
