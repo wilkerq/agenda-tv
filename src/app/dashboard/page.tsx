@@ -1,9 +1,8 @@
 
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import type { Event, EventFormData } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
@@ -15,6 +14,7 @@ import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { startOfDay } from "date-fns";
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -29,7 +29,14 @@ export default function DashboardPage() {
         router.push("/login");
       } else {
         const eventsCollection = collection(db, "events");
-        const q = query(eventsCollection, orderBy("date", "desc"));
+        
+        // --- Otimização: Buscar apenas eventos futuros ou do dia atual ---
+        const today = startOfDay(new Date());
+        const q = query(
+            eventsCollection, 
+            where("date", ">=", Timestamp.fromDate(today)),
+            orderBy("date", "asc")
+        );
         
         const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
           const eventsData = snapshot.docs.map(doc => {
@@ -168,7 +175,7 @@ export default function DashboardPage() {
                               <Skeleton className="h-4 w-1/2" />
                           </CardContent>
                           <CardFooter>
-                              <Skeleton className="h-10 w-full" />
+                              <Skeleton className="h-10 w-24" />
                           </CardFooter>
                       </Card>
                    ))}
