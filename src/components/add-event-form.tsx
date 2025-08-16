@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,7 +35,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { Event, TransmissionType } from "@/lib/types";
+import type { Event, TransmissionType, RepeatSettings } from "@/lib/types";
+import { Checkbox } from "./ui/checkbox";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -62,10 +64,22 @@ const formSchema = z.object({
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
   operator: z.string({ required_error: "O operador é obrigatório." }),
+  repeats: z.boolean().default(false),
+  repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
+  repeatCount: z.coerce.number().int().min(1).optional(),
+}).refine(data => {
+    if (data.repeats && (!data.repeatFrequency || !data.repeatCount)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Frequência e contagem de repetição são obrigatórias se a repetição estiver ativa.",
+    path: ["repeatFrequency"], 
 });
 
+
 type AddEventFormProps = {
-  onAddEvent: (event: Omit<Event, "id" | "color">) => Promise<void>;
+  onAddEvent: (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => Promise<void>;
 };
 
 export function AddEventForm({ onAddEvent }: AddEventFormProps) {
@@ -79,8 +93,12 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       time: "",
       transmission: "youtube",
       operator: undefined,
+      repeats: false,
+      repeatCount: 1,
     },
   });
+
+  const repeats = form.watch("repeats");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -91,13 +109,20 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
     eventDate.setSeconds(0);
     eventDate.setMilliseconds(0);
 
-    await onAddEvent({
-      name: values.name,
-      location: values.location,
-      date: eventDate,
-      transmission: values.transmission as TransmissionType,
-      operator: values.operator,
-    });
+    const baseEvent = {
+        name: values.name,
+        location: values.location,
+        date: eventDate,
+        transmission: values.transmission as TransmissionType,
+        operator: values.operator,
+    };
+
+    const repeatSettings = values.repeats ? {
+        frequency: values.repeatFrequency!,
+        count: values.repeatCount!,
+    } : undefined;
+
+    await onAddEvent(baseEvent, repeatSettings);
     
     form.reset({
       name: "",
@@ -106,6 +131,9 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       time: "",
       transmission: "youtube",
       operator: undefined,
+      repeats: false,
+      repeatFrequency: undefined,
+      repeatCount: 1,
     });
     setIsSubmitting(false);
   }
@@ -264,6 +292,70 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
               </FormItem>
             )}
           />
+        </div>
+        <div className="space-y-4 border-t pt-6">
+            <FormField
+            control={form.control}
+            name="repeats"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                     <FormControl>
+                        <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                        <FormLabel>
+                            Repetir evento
+                        </FormLabel>
+                        <FormDescription>
+                           Marque esta opção para criar eventos recorrentes.
+                        </FormDescription>
+                    </div>
+                </FormItem>
+            )}
+            />
+
+           {repeats && (
+            <div className="grid md:grid-cols-2 gap-8 p-4 border rounded-md">
+                 <FormField
+                    control={form.control}
+                    name="repeatFrequency"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Frequência</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Selecione a frequência" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="daily">Diariamente</SelectItem>
+                            <SelectItem value="weekly">Semanalmente</SelectItem>
+                            <SelectItem value="monthly">Mensalmente</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="repeatCount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Número de Repetições</FormLabel>
+                        <FormControl>
+                        <Input type="number" min="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+           )}
         </div>
         <div className="flex justify-end">
           <Button

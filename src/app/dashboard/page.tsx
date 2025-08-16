@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import type { Event, EventFormData } from "@/lib/types";
+import type { Event, EventFormData, RepeatSettings } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
@@ -83,15 +83,41 @@ export default function DashboardPage() {
   }, [selectedDate, toast]);
 
 
-  const handleAddEvent = async (event: Omit<Event, "id" | "color">) => {
+  const handleAddEvent = async (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => {
     try {
-      await addDoc(collection(db, "events"), {
-        ...event,
-        color: getRandomColor(),
-      });
+        if (!repeatSettings) {
+             await addDoc(collection(db, "events"), {
+                ...event,
+                color: getRandomColor(),
+            });
+        } else {
+            const batch = writeBatch(db);
+            const eventsCollection = collection(db, "events");
+            let currentDate = event.date;
+
+            for (let i = 0; i < repeatSettings.count; i++) {
+                const newEvent = {
+                    ...event,
+                    date: currentDate,
+                    color: getRandomColor(),
+                };
+                batch.set(doc(eventsCollection), newEvent);
+
+                // Calculate next date
+                if (repeatSettings.frequency === 'daily') {
+                    currentDate = add(currentDate, { days: 1 });
+                } else if (repeatSettings.frequency === 'weekly') {
+                    currentDate = add(currentDate, { weeks: 1 });
+                } else if (repeatSettings.frequency === 'monthly') {
+                    currentDate = add(currentDate, { months: 1 });
+                }
+            }
+            await batch.commit();
+        }
+
       toast({
         title: "Sucesso!",
-        description: "O evento foi adicionado à agenda.",
+        description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
       });
       setAddModalOpen(false); // Close modal on success
     } catch (error) {

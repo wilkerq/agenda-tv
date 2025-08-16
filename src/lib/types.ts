@@ -41,3 +41,8 @@ export const ReportSummaryOutputSchema = z.object({
   summary: z.string().describe('A concise, data-driven summary of the reports in portuguese.'),
 });
 export type ReportSummaryOutput = z.infer<typeof ReportSummaryOutputSchema>;
+
+export interface RepeatSettings {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    count: number;
+}
