@@ -15,11 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HomePage() {
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    // This ensures that new Date() is only called on the client-side after hydration.
+    setSelectedDate(new Date());
+  }, []);
 
   useEffect(() => {
     const eventsCollection = collection(db, "events");
@@ -45,10 +51,12 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const eventsForDate = allEvents.filter(event => 
-      isSameDay(event.date, selectedDate)
-    );
-    setFilteredEvents(eventsForDate);
+    if (selectedDate) {
+      const eventsForDate = allEvents.filter(event => 
+        isSameDay(event.date, selectedDate)
+      );
+      setFilteredEvents(eventsForDate);
+    }
   }, [selectedDate, allEvents]);
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -57,8 +65,8 @@ export default function HomePage() {
     }
   };
   
-  const formattedMonth = format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR });
-  const formattedDay = format(selectedDate, "EEE, dd", { locale: ptBR });
+  const formattedMonth = selectedDate ? format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR }) : "";
+  const formattedDay = selectedDate ? format(selectedDate, "EEE, dd", { locale: ptBR }) : "";
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -68,8 +76,17 @@ export default function HomePage() {
           <h1 className="text-2xl font-bold">Agenda de Eventos</h1>
         </div>
         <div className="flex items-center space-x-2 bg-white/20 p-2 rounded-lg">
-           <span className="text-sm font-medium capitalize">{formattedMonth}</span>
-           <span className="text-sm font-bold uppercase mx-2">{formattedDay}</span>
+           {selectedDate ? (
+            <>
+              <span className="text-sm font-medium capitalize">{formattedMonth}</span>
+              <span className="text-sm font-bold uppercase mx-2">{formattedDay}</span>
+            </>
+           ) : (
+            <>
+              <Skeleton className="h-5 w-24 bg-white/30" />
+              <Skeleton className="h-5 w-16 bg-white/30" />
+            </>
+           )}
            <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -78,6 +95,7 @@ export default function HomePage() {
                 className={cn(
                   "w-9 h-9 bg-transparent text-white hover:bg-white/30 hover:text-white border-white/50"
                 )}
+                disabled={!selectedDate}
               >
                 <CalendarIcon className="h-5 w-5" />
               </Button>
@@ -89,6 +107,7 @@ export default function HomePage() {
                 onSelect={handleDateSelect}
                 initialFocus
                 locale={ptBR}
+                disabled={(date) => date < new Date("1900-01-01")}
               />
             </PopoverContent>
           </Popover>
