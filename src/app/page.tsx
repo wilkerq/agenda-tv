@@ -9,7 +9,7 @@ import type { Event } from "@/lib/types";
 import { EventList } from "@/components/event-list";
 import { getRandomColor } from "@/lib/utils";
 import { Calendar as CalendarIcon, CalendarDays, UserCog } from "lucide-react";
-import { format, isSameDay, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -129,15 +129,15 @@ export default function HomePage() {
         {loading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[...Array(3)].map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader>
+                    <Card key={i} className="bg-card/80 backdrop-blur-sm border-white/20">
+                        <CardHeader><Skeleton className="h-5 w-3/4 bg-white/30" /></CardHeader>
                         <CardContent className="space-y-3">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-2/3" />
-                            <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-4 w-full bg-white/30" />
+                            <Skeleton className="h-4 w-2/3 bg-white/30" />
+                            <Skeleton className="h-4 w-1/2 bg-white/30" />
                         </CardContent>
                         <CardFooter>
-                           <Skeleton className="h-6 w-1/4" />
+                           <Skeleton className="h-6 w-1/4 bg-white/30" />
                         </CardFooter>
                     </Card>
                 ))}
