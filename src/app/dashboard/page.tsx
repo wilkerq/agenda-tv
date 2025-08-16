@@ -85,7 +85,7 @@ export default function DashboardPage() {
 
   const handleAddEvent = async (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => {
     try {
-        if (!repeatSettings) {
+        if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
              await addDoc(collection(db, "events"), {
                 ...event,
                 color: getRandomColor(),
@@ -93,7 +93,7 @@ export default function DashboardPage() {
         } else {
             const batch = writeBatch(db);
             const eventsCollection = collection(db, "events");
-            let currentDate = event.date;
+            let currentDate = new Date(event.date);
 
             for (let i = 0; i < repeatSettings.count; i++) {
                 const newEvent = {
@@ -103,7 +103,6 @@ export default function DashboardPage() {
                 };
                 batch.set(doc(eventsCollection), newEvent);
 
-                // Calculate next date
                 if (repeatSettings.frequency === 'daily') {
                     currentDate = add(currentDate, { days: 1 });
                 } else if (repeatSettings.frequency === 'weekly') {
@@ -119,7 +118,7 @@ export default function DashboardPage() {
         title: "Sucesso!",
         description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
       });
-      setAddModalOpen(false); // Close modal on success
+      setAddModalOpen(false);
     } catch (error) {
       console.error("Error adding event: ", error);
       toast({
@@ -127,6 +126,7 @@ export default function DashboardPage() {
         description: "Não foi possível adicionar o evento.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
