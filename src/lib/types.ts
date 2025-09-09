@@ -46,3 +46,24 @@ export interface RepeatSettings {
     frequency: 'daily' | 'weekly' | 'monthly';
     count: number;
 }
+
+
+// AI-related Schemas for createEventFromImage flow
+export const CreateEventFromImageInputSchema = z.object({
+  photoDataUri: z
+    .string()
+    .describe(
+      "A photo of the event flyer or details, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
+  description: z.string().describe('The user\'s specific request or context for the event.'),
+});
+export type CreateEventFromImageInput = z.infer<typeof CreateEventFromImageInputSchema>;
+
+export const CreateEventFromImageOutputSchema = z.object({
+  name: z.string().optional().describe('The extracted name of the event.'),
+  location: z.string().optional().describe('The extracted location of the event.'),
+  date: z.string().optional().describe("The extracted date and time of the event in ISO 8601 format."),
+  transmission: z.enum(["youtube", "tv"]).optional().describe('The type of transmission.'),
+  operator: z.string().optional().describe('The operator responsible for the event.'),
+});
+export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;

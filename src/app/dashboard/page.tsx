@@ -18,8 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { add, format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 
 
 export default function DashboardPage() {
@@ -28,6 +29,8 @@ export default function DashboardPage() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isAddModalOpen, setAddModalOpen] = useState(false);
+  const [isAddFromImageModalOpen, setAddFromImageModalOpen] = useState(false);
+  const [preloadedEventData, setPreloadedEventData] = useState<Partial<EventFormData> | undefined>(undefined);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -177,11 +180,22 @@ export default function DashboardPage() {
   
   const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
 
+  const handleAiSuccess = (data: Partial<EventFormData>) => {
+    setPreloadedEventData(data);
+    setAddFromImageModalOpen(false);
+    setAddModalOpen(true);
+  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1 space-y-6">
-         <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
+        <Dialog open={isAddModalOpen} onOpenChange={(isOpen) => {
+            setAddModalOpen(isOpen);
+            if (!isOpen) {
+                setPreloadedEventData(undefined); // Clear preloaded data when modal closes
+            }
+        }}>
           <DialogTrigger asChild>
              <Button size="lg" className="w-full">
                 <PlusCircle className="mr-2 h-5 w-5" />
@@ -193,9 +207,29 @@ export default function DashboardPage() {
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <AddEventForm onAddEvent={handleAddEvent} />
+              <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} />
             </div>
           </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAddFromImageModalOpen} onOpenChange={setAddFromImageModalOpen}>
+            <DialogTrigger asChild>
+                <Button size="lg" className="w-full" variant="outline">
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    Adicionar com IA
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[525px]">
+                <DialogHeader>
+                    <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
+                    <CardDescription>
+                        Faça o upload de uma imagem e descreva o que você precisa. A IA tentará preencher os detalhes do evento para você.
+                    </CardDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <AddEventFromImageForm onSuccess={handleAiSuccess} />
+                </div>
+            </DialogContent>
         </Dialog>
         
         <Card>

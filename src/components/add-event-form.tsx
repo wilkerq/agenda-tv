@@ -35,7 +35,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { Event, TransmissionType, RepeatSettings } from "@/lib/types";
+import type { Event, TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 
 const locations = [
@@ -80,9 +80,10 @@ const formSchema = z.object({
 
 type AddEventFormProps = {
   onAddEvent: (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => Promise<void>;
+  preloadedData?: Partial<EventFormData>;
 };
 
-export function AddEventForm({ onAddEvent }: AddEventFormProps) {
+export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -97,6 +98,21 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
       repeatCount: 1,
     },
   });
+
+  React.useEffect(() => {
+    if (preloadedData) {
+      form.reset({
+        name: preloadedData.name || "",
+        location: preloadedData.location || undefined,
+        date: preloadedData.date ? new Date(preloadedData.date) : undefined,
+        time: preloadedData.date ? format(new Date(preloadedData.date), "HH:mm") : "",
+        transmission: preloadedData.transmission || "youtube",
+        operator: preloadedData.operator || undefined,
+        repeats: false,
+        repeatCount: 1,
+      });
+    }
+  }, [preloadedData, form]);
 
   const repeats = form.watch("repeats");
 
@@ -167,7 +183,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                 <FormLabel>Local</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -194,7 +210,7 @@ export function AddEventForm({ onAddEvent }: AddEventFormProps) {
                 <FormLabel>Operador</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
