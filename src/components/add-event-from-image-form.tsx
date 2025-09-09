@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +23,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const processFile = (selectedFile: File) => {
     if (selectedFile) {
       setFile(selectedFile);
       const reader = new FileReader();
@@ -35,12 +34,39 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    processFile(selectedFile);
+  };
+  
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            processFile(new File([blob], "pasted-image.png", { type: blob.type }));
+          }
+          break; 
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) {
       toast({
-        title: "Nenhum arquivo selecionado",
-        description: "Por favor, selecione uma imagem para continuar.",
+        title: "Nenhuma imagem selecionada",
+        description: "Por favor, selecione ou cole uma imagem para continuar.",
         variant: "destructive",
       });
       return;
@@ -93,9 +119,9 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
                 {previewUrl ? (
                     <Image src={previewUrl} alt="Preview" width={192} height={192} className="object-contain h-full w-full p-2" />
                 ) : (
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                         <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Clique para enviar</span> ou arraste e solte</p>
+                        <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Clique para enviar</span>, cole (Ctrl+V) ou arraste</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG ou WEBP</p>
                     </div>
                 )}
