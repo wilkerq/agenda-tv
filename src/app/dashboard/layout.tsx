@@ -11,6 +11,7 @@ import {
   Package2,
   LogOut,
   LayoutDashboard,
+  Home,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,15 @@ export default function DashboardLayout({
           </div>
           <div className="flex-1">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+               <Link
+                href="/"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700"
+                )}
+              >
+                <Home className="h-4 w-4" />
+                Página Pública
+              </Link>
               <Link
                 href="/dashboard"
                 className={cn(
@@ -138,6 +148,13 @@ export default function DashboardLayout({
                 >
                   <Package2 className="h-6 w-6" />
                   <span className="sr-only">Agenda Alego</span>
+                </Link>
+                <Link
+                  href="/"
+                  className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700"
+                >
+                  <Home className="h-5 w-5" />
+                  Página Pública
                 </Link>
                 <Link
                   href="/dashboard"

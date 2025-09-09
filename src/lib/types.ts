@@ -2,6 +2,8 @@
 import { z } from 'zod';
 
 export type TransmissionType = "youtube" | "tv";
+export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
+export type EventTurn = "Manhã" | "Tarde" | "Noite" | "Madrugada";
 
 export interface Event {
   id: string;
@@ -11,9 +13,11 @@ export interface Event {
   transmission: TransmissionType;
   color: string;
   operator: string;
+  status: EventStatus;
+  turn: EventTurn;
 }
 
-export type EventFormData = Omit<Event, "id" | "color">;
+export type EventFormData = Omit<Event, "id" | "color" | "status" | "turn">;
 
 
 // AI-related Schemas for summarizeReports flow
