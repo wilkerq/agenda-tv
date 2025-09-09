@@ -122,6 +122,7 @@ export default function DashboardPage() {
         description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
       });
       setAddModalOpen(false);
+      setPreloadedEventData(undefined); // Clear preloaded data
     } catch (error) {
       console.error("Error adding event: ", error);
       toast({
@@ -197,7 +198,7 @@ export default function DashboardPage() {
             }
         }}>
           <DialogTrigger asChild>
-             <Button size="lg" className="w-full">
+             <Button size="lg" className="w-full" onClick={() => setAddModalOpen(true)}>
                 <PlusCircle className="mr-2 h-5 w-5" />
                 Adicionar Novo Evento
               </Button>
@@ -214,7 +215,7 @@ export default function DashboardPage() {
 
         <Dialog open={isAddFromImageModalOpen} onOpenChange={setAddFromImageModalOpen}>
             <DialogTrigger asChild>
-                <Button size="lg" className="w-full" variant="outline">
+                <Button size="lg" className="w-full" variant="outline" onClick={() => setAddFromImageModalOpen(true)}>
                     <Sparkles className="mr-2 h-5 w-5" />
                     Adicionar com IA
                 </Button>
@@ -288,3 +289,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
