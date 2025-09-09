@@ -26,27 +26,29 @@ const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are an expert event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image and a user description. The current year is ${new Date().getFullYear()}.
+    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image and a user description. You MUST follow all rules without deviation. The current year is ${new Date().getFullYear()}.
 
-    The user will provide an image (like a flyer or a screenshot) and a description. Your goal is to fill in as many details as possible for the event, following these specific rules:
+    From the provided image and description, you will fill in the event details according to these strict rules:
 
-    1.  **Event Name (name):** Extract the full, complete name of the event. Do not abbreviate.
-    2.  **Date and Time (date):** You MUST extract the full date and the exact time of the event. Return it in the YYYY-MM-DDTHH:mm:ss.sssZ format. This is critical.
-    3.  **Location (location):** The venue or place where the event will happen.
-    4.  **Transmission (transmission):**
-        - If the event name contains "Sessão" or "Comissão", the transmission MUST be "tv".
-        - For all other events, like "Audiência Pública", the default is "youtube".
-        - If the user specifies a different transmission in the description, their instruction overrides these rules.
-    5.  **Operator (operator):** Assign the default operator based on the time of day. This is a strict rule.
-        - **Morning events (until 12:00 PM):** The default operator is "Rodrigo Sousa".
-        - **Afternoon events (from 12:01 PM to 6:00 PM):** The default operator is "Mário Augusto" or "Ovidio Dias". You can choose one.
-        - **Night events (after 6:00 PM):** The default operator is "Bruno Michel".
-        - If the user specifies an operator in the description, their instruction takes priority.
+    1.  **Event Name (name):** You MUST extract the full, complete name of the event. Do not use abbreviations.
+    2.  **Date and Time (date):** You MUST extract the full date and the exact time of the event. The output for this field MUST be a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement.
+    3.  **Location (location):** Extract the venue or place where the event will occur.
+    4.  **Transmission (transmission):** This is a mandatory rule based on the event name.
+        - If the event name you extract contains the word "Sessão" or "Comissão", you MUST set the transmission to "tv".
+        - For ALL other events (like "Audiência Pública", "Solenidade", etc.), you MUST set the transmission to "youtube".
+        - The user's description can only override this rule if they explicitly state a different transmission type.
+    5.  **Operator (operator):** This is a mandatory rule based on the event's time of day. You MUST assign the default operator.
+        - **Morning events (from 00:00 to 12:00):** The operator MUST be "Rodrigo Sousa".
+        - **Afternoon events (from 12:01 to 18:00):** The operator MUST be "Mário Augusto" or "Ovidio Dias". You must choose one.
+        - **Night events (after 18:00):** The operator MUST be "Bruno Michel".
+        - This rule is absolute, unless the user's description explicitly names a different operator.
 
-    User's request:
+    You must process the image as the primary source and use the user's description for context or overrides. Your final output must conform to the specified JSON schema.
+
+    User's request for context:
     "{{description}}"
 
-    Image for context:
+    Image to analyze:
     {{media url=photoDataUri}}
     `,
 });
