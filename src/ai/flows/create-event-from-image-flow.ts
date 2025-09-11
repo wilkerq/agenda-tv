@@ -25,7 +25,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-pro-vision',
+    model: 'googleai/gemini-pro',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     tools: [getEventsForDay],
@@ -97,4 +97,3 @@ const createEventFromImageFlow = ai.defineFlow(
         return output!;
     }
 );
-
