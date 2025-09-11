@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -87,24 +88,27 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    try {
+        const [hours, minutes] = values.time.split(":").map(Number);
+        const eventDate = new Date(values.date);
+        eventDate.setHours(hours, minutes);
+        eventDate.setSeconds(0);
+        eventDate.setMilliseconds(0);
 
-    const [hours, minutes] = values.time.split(":").map(Number);
-    const eventDate = new Date(values.date);
-    eventDate.setHours(hours, minutes);
-    eventDate.setSeconds(0);
-    eventDate.setMilliseconds(0);
+        const eventData: EventFormData = {
+            name: values.name,
+            location: values.location,
+            date: eventDate,
+            transmission: values.transmission as TransmissionType,
+            operator: values.operator,
+        };
 
-    const eventData: EventFormData = {
-        name: values.name,
-        location: values.location,
-        date: eventDate,
-        transmission: values.transmission as TransmissionType,
-        operator: values.operator,
-    };
-
-    await onEditEvent(event.id, eventData);
-    
-    setIsSubmitting(false);
+        await onEditEvent(event.id, eventData);
+    } catch(error) {
+        // Error toast is handled by the parent component
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   return (
@@ -286,3 +290,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    

@@ -95,36 +95,37 @@ export default function DashboardPage() {
   }, [selectedDate, toast]);
 
 
-  const handleAddEvent = async (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => {
+ const handleAddEvent = async (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => {
     try {
-        if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
-             await addDoc(collection(db, "events"), {
-                ...event,
-                color: getRandomColor(),
-            });
-        } else {
-            const batch = writeBatch(db);
-            const eventsCollection = collection(db, "events");
-            let currentDate = new Date(event.date);
+      if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
+        await addDoc(collection(db, "events"), {
+          ...event,
+          date: Timestamp.fromDate(event.date), // Convert to Timestamp
+          color: getRandomColor(),
+        });
+      } else {
+        const batch = writeBatch(db);
+        const eventsCollection = collection(db, "events");
+        let currentDate = new Date(event.date);
 
-            for (let i = 0; i < repeatSettings.count; i++) {
-                const newEvent = {
-                    ...event,
-                    date: currentDate,
-                    color: getRandomColor(),
-                };
-                batch.set(doc(eventsCollection), newEvent);
+        for (let i = 0; i < repeatSettings.count; i++) {
+          const newEvent = {
+            ...event,
+            date: Timestamp.fromDate(currentDate), // Convert to Timestamp
+            color: getRandomColor(),
+          };
+          batch.set(doc(eventsCollection), newEvent);
 
-                if (repeatSettings.frequency === 'daily') {
-                    currentDate = add(currentDate, { days: 1 });
-                } else if (repeatSettings.frequency === 'weekly') {
-                    currentDate = add(currentDate, { weeks: 1 });
-                } else if (repeatSettings.frequency === 'monthly') {
-                    currentDate = add(currentDate, { months: 1 });
-                }
-            }
-            await batch.commit();
+          if (repeatSettings.frequency === 'daily') {
+            currentDate = add(currentDate, { days: 1 });
+          } else if (repeatSettings.frequency === 'weekly') {
+            currentDate = add(currentDate, { weeks: 1 });
+          } else if (repeatSettings.frequency === 'monthly') {
+            currentDate = add(currentDate, { months: 1 });
+          }
         }
+        await batch.commit();
+      }
 
       toast({
         title: "Sucesso!",
@@ -161,7 +162,10 @@ export default function DashboardPage() {
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
     try {
       const eventRef = doc(db, "events", eventId);
-      await updateDoc(eventRef, eventData);
+      await updateDoc(eventRef, {
+        ...eventData,
+        date: Timestamp.fromDate(eventData.date), // Convert to Timestamp
+      });
       toast({
         title: "Sucesso!",
         description: "O evento foi atualizado.",
@@ -307,3 +311,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
