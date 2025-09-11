@@ -28,27 +28,33 @@ const prompt = ai.definePrompt({
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     tools: [getEventsForDay],
-    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image, consult the existing schedule using tools, and assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
+    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to first extract event details from an image with high accuracy, then consult the existing schedule using tools, and finally assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
 
-From the provided image and user description, you will fill in the event details. You MUST follow all rules without deviation.
+Your final output must conform to the specified JSON schema.
 
-**Step-by-Step Process:**
+**Part 1: Data Extraction**
 
-1.  **Extract Basic Details:**
-    *   **Event Name (name):** Extract the full, complete name of the event. Do not use abbreviations.
-    *   **Date and Time (date):** Extract the full date and the exact time of the event. The output for this field MUST be a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you cannot determine the date, do not proceed.
-    *   **Location (location):** Extract the venue or place where the event will occur.
+From the provided image and user description, you will fill in the event details. You MUST follow all extraction rules without deviation.
 
-2.  **Determine Transmission Type:**
+1.  **Event Name (name):** Extract the full, complete name of the event (e.g., "Sessão Solene de Homenagem"). Do not use abbreviations.
+2.  **Location (location):** Extract the specific venue (e.g., "Plenário Iris Rezende Machado", "Auditório Carlos Vieira"). If a building name is given, infer the most important hall within it. Do not include generic phrases like "na Alego" if the location is already a specific room in the assembly.
+3.  **Date and Time (date):** Extract the full date and the exact time (24h format). You MUST combine them into a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you cannot determine the full date and time, do not proceed.
+4.  **YouTube Link:** If a YouTube URL is clearly visible, extract it. Otherwise, ignore this field.
+
+**Part 2: Business Logic and Operator Assignment**
+
+After extracting the data, you will apply the following business rules.
+
+1.  **Determine Transmission Type:**
     *   This is a mandatory rule based on the event name.
     *   If the event name contains "Sessão" or "Comissão", you MUST set the transmission to "tv".
     *   For ALL other events (e.g., "Audiência Pública", "Solenidade"), you MUST set the transmission to "youtube".
     *   Only a user's explicit instruction (e.g., "transmitir na tv") can override this rule.
 
-3.  **Check Existing Schedule:**
+2.  **Check Existing Schedule:**
     *   Using the extracted date, you MUST call the \`getEventsForDay\` tool to see if other events are already scheduled for that day. This is a mandatory step for operator assignment.
 
-4.  **Assign Operator (Operator):**
+3.  **Assign Operator (operator):**
     *   You MUST assign an operator based on the following hierarchy of rules. The first rule that matches determines the operator.
 
     *   **Rule 1: Specific Location (Highest Priority)**
@@ -70,8 +76,6 @@ From the provided image and user description, you will fill in the event details
     *   **Rule 4: User Override (Lowest Priority)**
         *   If the user's description explicitly names an operator (e.g., "O operador será o João"), this overrides all other rules.
 
-**Final Output:**
-Your final output must conform to the specified JSON schema, containing all the details you have extracted and determined.
 
 **Context from user:**
 "{{description}}"
@@ -92,3 +96,4 @@ const createEventFromImageFlow = ai.defineFlow(
         return output!;
     }
 );
+
