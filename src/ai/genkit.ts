@@ -7,5 +7,7 @@ import {googleAI} from '@genkit-ai/googleai';
 // in their own files and then imported for side-effects in dev.ts or a flow.
 
 export const ai = genkit({
-  plugins: [googleAI()],
+  plugins: [
+    googleAI(),
+  ],
 });
