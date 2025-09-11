@@ -170,7 +170,6 @@ export default function DashboardPage() {
         title: "Sucesso!",
         description: "O evento foi atualizado.",
       });
-      setEditingEvent(null);
     } catch (error) {
       console.error("Error updating event: ", error);
       toast({
@@ -178,6 +177,7 @@ export default function DashboardPage() {
         description: "Não foi possível atualizar o evento.",
         variant: "destructive",
       });
+      throw error; // Re-throw to be caught by the form
     }
   }, [toast]);
 
@@ -311,5 +311,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

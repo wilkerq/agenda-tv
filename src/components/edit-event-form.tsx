@@ -104,8 +104,10 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         };
 
         await onEditEvent(event.id, eventData);
+        onClose(); // Close the modal only on success
     } catch(error) {
-        // Error toast is handled by the parent component
+        // Error toast is handled by the parent component, so we don't need to show another one here.
+        console.error("Failed to edit event:", error);
     } finally {
         setIsSubmitting(false);
     }
@@ -290,5 +292,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    
