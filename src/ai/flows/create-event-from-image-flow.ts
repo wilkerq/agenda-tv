@@ -38,7 +38,7 @@ Your final output must conform to the specified JSON schema.
 From the provided image and user description, you will fill in the event details. You MUST follow all extraction rules without deviation.
 
 1.  **Event Name (name):** Extract the full, complete name of the event (e.g., "Sessão Solene de Homenagem"). Do not use abbreviations.
-2.  **Location (location):** Extract the specific venue (e.g., "Plenário Iris Rezende Machado", "Auditório Carlos Vieira"). If a building name is given, infer the most important hall within it. Do not include generic phrases like "na Alego" if the location is already a specific room in the assembly.
+2.  **Location (location):** Extract the specific venue (e.g., "Plenário Iris Rezende Machado", "Auditório Carlos Vieira", "Sala Julio da Retifica \"CCJR\""). If a building name is given, infer the most important hall within it. Do not include generic phrases like "na Alego" if the location is already a specific room in the assembly.
 3.  **Date and Time (date):** Extract the full date and the exact time (24h format). You MUST combine them into a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you cannot determine the full date and time, do not proceed.
 4.  **YouTube Link:** If a YouTube URL is clearly visible, extract it. Otherwise, ignore this field.
 
