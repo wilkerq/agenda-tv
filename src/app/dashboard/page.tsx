@@ -27,12 +27,18 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isAddFromImageModalOpen, setAddFromImageModalOpen] = useState(false);
   const [preloadedEventData, setPreloadedEventData] = useState<Partial<EventFormData> | undefined>(undefined);
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    // Set the initial date on the client side to avoid hydration mismatch
+    setSelectedDate(new Date());
+  }, []);
+
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -44,6 +50,9 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!selectedDate) {
+      return; // Do not fetch events if date is not set
+    }
     setLoading(true);
     const eventsCollection = collection(db, "events");
     
@@ -179,7 +188,7 @@ export default function DashboardPage() {
     setEditingEvent(null);
   };
   
-  const formattedDate = format(selectedDate, "dd 'de' MMMM", { locale: ptBR });
+  const formattedDate = selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : '...';
 
   const handleAiSuccess = (data: Partial<EventFormData>) => {
     setPreloadedEventData(data);
@@ -238,23 +247,29 @@ export default function DashboardPage() {
              <CardTitle>Selecionar Data</CardTitle>
            </CardHeader>
            <CardContent className="p-0">
-             <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
-                className="p-0"
-                classNames={{
-                    root: "w-full",
-                    months: "w-full",
-                    month: "w-full",
-                    table: "w-full border-collapse",
-                    head_row: "flex justify-around",
-                    row: "flex justify-around mt-2 w-full",
-                    caption: "flex justify-center items-center relative mb-4 px-4",
-                    caption_label: "text-lg font-medium",
-                }}
-                locale={ptBR}
-              />
+             {!selectedDate ? (
+                <div className="p-4">
+                  <Skeleton className="h-[280px] w-full" />
+                </div>
+             ) : (
+                <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    className="p-0"
+                    classNames={{
+                        root: "w-full",
+                        months: "w-full",
+                        month: "w-full",
+                        table: "w-full border-collapse",
+                        head_row: "flex justify-around",
+                        row: "flex justify-around mt-2 w-full",
+                        caption: "flex justify-center items-center relative mb-4 px-4",
+                        caption_label: "text-lg font-medium",
+                    }}
+                    locale={ptBR}
+                />
+             )}
            </CardContent>
          </Card>
       </div>
@@ -289,5 +304,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
