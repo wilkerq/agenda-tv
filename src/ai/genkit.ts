@@ -7,7 +7,7 @@ import {googleAI} from '@genkit-ai/googleai';
 // in their own files and then imported for side-effects in dev.ts or a flow.
 
 export const ai = genkit({
-  plugins: [googleAI()],
-  // By not specifying a model, Genkit will choose the most appropriate one
-  // based on the prompt (e.g., a vision model if an image is included).
+  plugins: [googleAI({
+    apiVersion: 'v1beta'
+  })],
 });
