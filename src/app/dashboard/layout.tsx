@@ -13,7 +13,7 @@ import {
   LayoutDashboard,
   Home,
 } from "lucide-react";
-
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { app } from "@/lib/firebase";
 
@@ -38,7 +38,17 @@ export default function DashboardLayout({
   const router = useRouter();
   const { toast } = useToast();
   const auth = getAuth(app);
-  const user = auth.currentUser;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+       if (!currentUser) {
+        router.push("/login");
+      }
+    });
+    return () => unsubscribe();
+  }, [auth, router]);
 
   const handleLogout = async () => {
     try {
