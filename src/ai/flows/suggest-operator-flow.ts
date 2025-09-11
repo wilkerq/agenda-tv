@@ -23,7 +23,7 @@ export async function suggestOperator(input: SuggestOperatorInput): Promise<Sugg
 
 const prompt = ai.definePrompt({
     name: 'suggestOperatorPrompt',
-    model: 'googleai/gemini-pro',
+    model: 'googleai/gemini-1.5-flash-preview',
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
