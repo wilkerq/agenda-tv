@@ -98,24 +98,27 @@ export default function DashboardPage() {
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     try {
       if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
+        // Handle single event
         await addDoc(collection(db, "events"), {
           ...eventData,
           date: Timestamp.fromDate(eventData.date),
           color: getRandomColor(),
         });
       } else {
+        // Handle recurring events
         const batch = writeBatch(db);
         const eventsCollection = collection(db, "events");
-        let currentDate = new Date(eventData.date);
+        let currentDate = new Date(eventData.date); // Use a new variable for iteration
 
         for (let i = 0; i < repeatSettings.count; i++) {
           const newEvent = {
             ...eventData,
-            date: Timestamp.fromDate(currentDate), // CRITICAL FIX: Convert date to Timestamp
+            date: Timestamp.fromDate(currentDate), // Use the iterating date
             color: getRandomColor(),
           };
           batch.set(doc(eventsCollection), newEvent);
 
+          // Increment date for the next iteration
           if (repeatSettings.frequency === 'daily') {
             currentDate = add(currentDate, { days: 1 });
           } else if (repeatSettings.frequency === 'weekly') {
