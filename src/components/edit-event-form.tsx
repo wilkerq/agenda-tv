@@ -49,6 +49,7 @@ const operators = [
   "Rodrigo Sousa",
   "Ovidio Dias",
   "Wilker Quirino",
+  "Bruno Michel",
 ];
 
 const formSchema = z.object({
@@ -169,7 +170,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Selecione o operador" />
-                            </SelectTrigger>
+                            </Trigger>
                         </FormControl>
                         <SelectContent>
                             {operators.map((operator) => (
@@ -286,3 +287,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    

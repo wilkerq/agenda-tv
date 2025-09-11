@@ -52,6 +52,7 @@ const operators = [
   "Rodrigo Sousa",
   "Ovidio Dias",
   "Wilker Quirino",
+  "Bruno Michel",
 ];
 
 const formSchema = z.object({
@@ -467,3 +468,5 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
     </Form>
   );
 }
+
+    

@@ -68,7 +68,7 @@ After extracting the data, you will apply the following business rules.
             *   Default operator is "Rodrigo Sousa".
             *   If the tool call shows another event already in the morning, you MUST assign either "Ovidio Dias" or "Mário Augusto".
         *   **Afternoon (12:01 - 18:00):**
-            *   The operator MUST be one of "Ovidio Dias" or "Mário Augusto". Choose one.
+            *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one.
         *   **Night (after 18:00):**
             *   Default operator is "Mário Augusto".
             *   If the tool call shows another event already at night, you MUST assign "Ovidio Dias".
@@ -97,3 +97,4 @@ const createEventFromImageFlow = ai.defineFlow(
     }
 );
 
+    
