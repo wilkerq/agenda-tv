@@ -7,7 +7,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { getEventsForDay } from '@/lib/tools';
 import { 
     CreateEventFromImageInput, 
     CreateEventFromImageInputSchema, 
@@ -26,7 +25,7 @@ const prompt = ai.definePrompt({
     model: 'googleai/gemini-pro-vision',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to first extract event details from an image with high accuracy, then consult the existing schedule using tools, and finally assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
+    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image with high accuracy and assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
 
 Your final output must conform to the specified JSON schema.
 
@@ -49,27 +48,22 @@ After extracting the data, you will apply the following business rules.
     *   For ALL other events (e.g., "Audiência Pública", "Solenidade"), you MUST set the transmission to "youtube".
     *   Only a user's explicit instruction (e.g., "transmitir na tv") can override this rule.
 
-2.  **Check Existing Schedule:**
-    *   Using the extracted date, you MUST call the \`getEventsForDay\` tool to see if other events are already scheduled for that day. This is a mandatory step for operator assignment.
-
-3.  **Assign Operator (operator):**
+2.  **Assign Operator (operator):**
     *   You MUST assign an operator based on the following hierarchy of rules. The first rule that matches determines the operator.
 
     *   **Rule 1: Specific Location (Highest Priority)**
         *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto", regardless of any other rule.
 
     *   **Rule 2: Weekend Rotation**
-        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"].
+        *   If the event is on a Saturday or Sunday, you MUST assign one operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"]. Pick one at random.
 
     *   **Rule 3: Weekday Shifts (Default Logic)**
         *   **Morning (00:00 - 12:00):**
             *   Default operator is "Rodrigo Sousa".
-            *   If the tool call shows another event already in the morning, you MUST assign either "Ovidio Dias" or "Mário Augusto".
         *   **Afternoon (12:01 - 18:00):**
             *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one.
         *   **Night (after 18:00):**
             *   Default operator is "Mário Augusto".
-            *   If the tool call shows another event already at night, you MUST assign "Ovidio Dias".
 
     *   **Rule 4: User Override (Lowest Priority)**
         *   If the user's description explicitly names an operator (e.g., "O operador será o João"), this overrides all other rules.
@@ -94,3 +88,4 @@ const createEventFromImageFlow = ai.defineFlow(
         return output!;
     }
 );
+
