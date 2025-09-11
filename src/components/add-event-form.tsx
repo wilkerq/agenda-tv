@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
+import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
+import { useToast } from "@/hooks/use-toast";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -86,6 +88,8 @@ type AddEventFormProps = {
 
 export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSuggesting, setIsSuggesting] = React.useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,6 +120,46 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
   }, [preloadedData, form]);
 
   const repeats = form.watch("repeats");
+  const selectedDate = form.watch("date");
+  const selectedTime = form.watch("time");
+  const selectedLocation = form.watch("location");
+
+  const handleSuggestOperator = React.useCallback(async () => {
+    if (!selectedDate || !selectedTime || !selectedLocation) return;
+    
+    // Validate time format before proceeding
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(selectedTime)) return;
+    
+    setIsSuggesting(true);
+    try {
+        const [hours, minutes] = selectedTime.split(":").map(Number);
+        const eventDate = new Date(selectedDate);
+        eventDate.setHours(hours, minutes, 0, 0);
+
+        const result = await suggestOperator({
+            date: eventDate.toISOString(),
+            location: selectedLocation
+        });
+
+        if (result.operator && operators.includes(result.operator)) {
+            form.setValue("operator", result.operator, { shouldValidate: true });
+            toast({
+                title: "Operador Sugerido",
+                description: `A IA sugeriu ${result.operator} com base na escala.`,
+            });
+        }
+    } catch (error) {
+        console.error("Error suggesting operator:", error);
+        toast({
+            title: "Erro na Sugestão",
+            description: "Não foi possível sugerir um operador.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSuggesting(false);
+    }
+  }, [selectedDate, selectedTime, selectedLocation, form, toast]);
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -208,7 +252,20 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
             name="operator"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Operador</FormLabel>
+                <FormLabel className="flex items-center justify-between">
+                  Operador
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    size="sm" 
+                    onClick={handleSuggestOperator} 
+                    disabled={isSuggesting || !selectedDate || !selectedTime || !selectedLocation}
+                    className="p-0 h-auto text-xs"
+                    >
+                    {isSuggesting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                    {isSuggesting ? 'Sugerindo...' : 'Sugerir com IA'}
+                  </Button>
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
