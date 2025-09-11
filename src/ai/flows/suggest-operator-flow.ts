@@ -27,15 +27,16 @@ const prompt = ai.definePrompt({
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
-    prompt: `You are an expert event scheduler for the Goias Legislative Assembly (Alego). Your task is to assign an operator to an event based on a strict set of hierarchical rules. You MUST use the provided tools to check the existing schedule. The current year is ${new Date().getFullYear()}.
+    prompt: `You are an expert event scheduler for the Goias Legislative Assembly (Alego). Your task is to determine the best operator for an event and return their name in the 'operator' output field. You must follow a strict set of hierarchical rules. The current year is ${new Date().getFullYear()}.
 
 **Step-by-Step Process:**
 
 1.  **Check Existing Schedule:**
-    *   You are given the event's date and time. You MUST call the \`getEventsForDay\` tool to see if other events are already scheduled for that day. This is a mandatory step.
+    *   You are given the event's date and time. You MUST call the \`getEventsForDay\` tool to see if other events are already scheduled for that day. This is a mandatory first step to get context.
 
-2.  **Assign Operator (operator):**
-    *   You MUST assign an operator based on the following hierarchy of rules. The first rule that matches determines the operator.
+2.  **Apply Assignment Rules:**
+    *   Based on the context from the tool and the input data, you MUST apply the following hierarchy of rules. The first rule that matches determines the operator.
+    *   After determining the operator, your only job is to return their name in the 'operator' field of the output. **Do not call any other tools.**
 
     *   **Rule 1: Specific Location (Highest Priority)**
         *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto", regardless of any other rule.
