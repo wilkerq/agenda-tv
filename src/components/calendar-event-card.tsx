@@ -3,6 +3,7 @@ import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
+import { User } from 'lucide-react';
 
 type CalendarEventCardProps = {
   event: Event;
@@ -25,6 +26,10 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
     >
       <p className="font-semibold truncate">{event.name}</p>
       <p className="text-muted-foreground">{format(event.date, 'HH:mm')}</p>
+       <div className="flex items-center text-muted-foreground mt-1 truncate">
+        <User className="h-3 w-3 mr-1 flex-shrink-0" />
+        <span className="truncate">{event.operator}</span>
+      </div>
       <div className='flex justify-end'>
         <Badge 
            variant="outline" 
