@@ -111,7 +111,7 @@ export default function DashboardPage() {
         for (let i = 0; i < repeatSettings.count; i++) {
           const newEvent = {
             ...eventData,
-            date: Timestamp.fromDate(currentDate),
+            date: Timestamp.fromDate(currentDate), // CRITICAL FIX: Convert date to Timestamp
             color: getRandomColor(),
           };
           batch.set(doc(eventsCollection), newEvent);
