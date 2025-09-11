@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -170,7 +169,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Selecione o operador" />
-                            </Trigger>
+                            </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                             {operators.map((operator) => (
@@ -287,5 +286,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    
