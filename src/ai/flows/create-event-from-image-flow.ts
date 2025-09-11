@@ -26,7 +26,6 @@ const prompt = ai.definePrompt({
     model: 'googleai/gemini-pro-vision',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
-    tools: [getEventsForDay],
     prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to first extract event details from an image with high accuracy, then consult the existing schedule using tools, and finally assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
 
 Your final output must conform to the specified JSON schema.
