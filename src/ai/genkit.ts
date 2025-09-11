@@ -8,6 +8,6 @@ import {googleAI} from '@genkit-ai/googleai';
 
 export const ai = genkit({
   plugins: [googleAI()],
-  model: 'gemini-pro-vision',
-  // Tools are loaded dynamically by flows that need them.
+  // By not specifying a model, Genkit will choose the most appropriate one
+  // based on the prompt (e.g., a vision model if an image is included).
 });
