@@ -95,23 +95,23 @@ export default function DashboardPage() {
   }, [selectedDate, toast]);
 
 
- const handleAddEvent = async (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => {
+ const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     try {
       if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         await addDoc(collection(db, "events"), {
-          ...event,
-          date: Timestamp.fromDate(event.date), // Convert to Timestamp
+          ...eventData,
+          date: Timestamp.fromDate(eventData.date),
           color: getRandomColor(),
         });
       } else {
         const batch = writeBatch(db);
         const eventsCollection = collection(db, "events");
-        let currentDate = new Date(event.date);
+        let currentDate = new Date(eventData.date);
 
         for (let i = 0; i < repeatSettings.count; i++) {
           const newEvent = {
-            ...event,
-            date: Timestamp.fromDate(currentDate), // Convert to Timestamp
+            ...eventData,
+            date: Timestamp.fromDate(currentDate),
             color: getRandomColor(),
           };
           batch.set(doc(eventsCollection), newEvent);
@@ -138,7 +138,7 @@ export default function DashboardPage() {
         description: "Não foi possível adicionar o evento.",
         variant: "destructive",
       });
-      throw error;
+      throw error; // Re-throw the error to be caught by the form
     }
   };
 

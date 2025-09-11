@@ -35,7 +35,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { Event, TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
@@ -81,7 +81,7 @@ const formSchema = z.object({
 
 
 type AddEventFormProps = {
-  onAddEvent: (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => Promise<void>;
+  onAddEvent: (eventData: EventFormData, repeatSettings?: RepeatSettings) => Promise<void>;
   preloadedData?: Partial<EventFormData>;
   onSuccess?: () => void;
 };
@@ -181,7 +181,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       eventDate.setSeconds(0);
       eventDate.setMilliseconds(0);
 
-      const baseEvent = {
+      const eventData: EventFormData = {
           name: values.name,
           location: values.location,
           date: eventDate,
@@ -194,7 +194,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           count: values.repeatCount!,
       } : undefined;
 
-      await onAddEvent(baseEvent, repeatSettings);
+      await onAddEvent(eventData, repeatSettings);
       
       form.reset({
         name: "",
@@ -214,6 +214,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
     } catch (error) {
         console.error("Failed to submit event:", error);
+        // The toast with the error is shown in the parent component
     } finally {
         setIsSubmitting(false);
     }
