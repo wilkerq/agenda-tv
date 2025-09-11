@@ -125,10 +125,24 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
   const selectedLocation = form.watch("location");
 
   const handleSuggestOperator = React.useCallback(async () => {
-    if (!selectedDate || !selectedTime || !selectedLocation) return;
+    if (!selectedDate || !selectedTime || !selectedLocation) {
+        toast({
+            title: "Dados Incompletos",
+            description: "Por favor, preencha a data, hora e local para sugerir um operador.",
+            variant: "destructive",
+        });
+        return;
+    };
     
     // Validate time format before proceeding
-    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(selectedTime)) return;
+    if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(selectedTime)) {
+        toast({
+            title: "Formato de Hora Inválido",
+            description: "Por favor, insira a hora no formato HH:mm.",
+            variant: "destructive",
+        });
+        return;
+    }
     
     setIsSuggesting(true);
     try {
@@ -146,6 +160,12 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
             toast({
                 title: "Operador Sugerido",
                 description: `A IA sugeriu ${result.operator} com base na escala.`,
+            });
+        } else {
+             toast({
+                title: "Nenhuma sugestão",
+                description: "A IA não conseguiu sugerir um operador com base nas regras atuais.",
+                variant: "destructive",
             });
         }
     } catch (error) {

@@ -71,3 +71,15 @@ export const CreateEventFromImageOutputSchema = z.object({
   operator: z.string().optional().describe('The operator responsible for the event.'),
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
+
+// AI-related Schemas for suggestOperator flow
+export const SuggestOperatorInputSchema = z.object({
+  date: z.string().describe("The full date and time of the event in ISO 8601 format."),
+  location: z.string().describe("The venue or place where the event will occur."),
+});
+export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
+
+export const SuggestOperatorOutputSchema = z.object({
+  operator: z.string().optional().describe('The suggested operator for the event.'),
+});
+export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;

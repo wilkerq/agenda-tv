@@ -4,24 +4,16 @@
  * @fileOverview A flow for suggesting an event operator based on scheduling rules.
  *
  * - suggestOperator - A function that suggests an operator based on event details.
- * - SuggestOperatorInput - The input type for the suggestOperator function.
- * - SuggestOperatorOutput - The return type for the suggestOperator function.
  */
 
 import { ai } from '@/ai/genkit';
 import { getEventsForDay } from '@/lib/tools';
-import { z } from 'zod';
-
-export const SuggestOperatorInputSchema = z.object({
-  date: z.string().describe("The full date and time of the event in ISO 8601 format."),
-  location: z.string().describe("The venue or place where the event will occur."),
-});
-export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
-
-export const SuggestOperatorOutputSchema = z.object({
-  operator: z.string().optional().describe('The suggested operator for the event.'),
-});
-export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
+import { 
+    SuggestOperatorInput, 
+    SuggestOperatorInputSchema, 
+    SuggestOperatorOutput, 
+    SuggestOperatorOutputSchema 
+} from '@/lib/types';
 
 
 export async function suggestOperator(input: SuggestOperatorInput): Promise<SuggestOperatorOutput> {
