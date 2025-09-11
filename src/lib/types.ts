@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export type TransmissionType = "youtube" | "tv";
 export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
-export type EventTurn = "Manhã" | "Tarde" | "Noite" | "Madrugada";
+export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
 export interface Event {
   id: string;

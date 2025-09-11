@@ -14,8 +14,7 @@ const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
   if (hour >= 6 && hour < 12) return 'Manhã';
   if (hour >= 12 && hour < 18) return 'Tarde';
-  if (hour >= 18 && hour < 24) return 'Noite';
-  return 'Madrugada';
+  return 'Noite'; // Covers 18:00 to 05:59
 };
 
 export default function HomePage() {

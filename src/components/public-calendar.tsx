@@ -15,7 +15,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Sun, Moon, Cloud, Coffee, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sun, Moon, Cloud, CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Event } from '@/lib/types';
 import { CalendarEventCard } from './calendar-event-card';
@@ -34,12 +34,11 @@ const turnIcons = {
     'Manhã': <Sun className="mr-2 h-4 w-4" />,
     'Tarde': <Cloud className="mr-2 h-4 w-4" />,
     'Noite': <Moon className="mr-2 h-4 w-4" />,
-    'Madrugada': <Coffee className="mr-2 h-4 w-4" />,
 };
 
 export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedTurns, setSelectedTurns] = useState<string[]>(['Manhã', 'Tarde', 'Noite', 'Madrugada']);
+  const [selectedTurns, setSelectedTurns] = useState<string[]>(['Manhã', 'Tarde', 'Noite']);
 
   const start = startOfMonth(currentMonth);
   const end = endOfMonth(currentMonth);
@@ -56,7 +55,7 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
 
 
   const filteredEvents = useMemo(() => {
-    if (selectedTurns.length === 4) return events;
+    if (selectedTurns.length === 3) return events;
     return events.filter(event => selectedTurns.includes(event.turn));
   }, [events, selectedTurns]);
 
@@ -92,7 +91,7 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
               type="multiple" 
               variant="outline" 
               value={selectedTurns}
-              onValueChange={(value) => setSelectedTurns(value.length > 0 ? value : ['Manhã', 'Tarde', 'Noite', 'Madrugada'])}
+              onValueChange={(value) => setSelectedTurns(value.length > 0 ? value : ['Manhã', 'Tarde', 'Noite'])}
               className='flex-wrap justify-start'
             >
               {Object.entries(turnIcons).map(([turn, icon]) => (

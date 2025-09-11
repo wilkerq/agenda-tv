@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Clock, MapPin, User, Tv, Youtube, Coffee, Moon, Sun, Cloud } from "lucide-react";
+import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud } from "lucide-react";
 
 type EventDetailCardProps = {
     date: Date;
@@ -24,7 +24,6 @@ const turnIcons = {
     'Manhã': <Sun className="h-4 w-4" />,
     'Tarde': <Cloud className="h-4 w-4" />,
     'Noite': <Moon className="h-4 w-4" />,
-    'Madrugada': <Coffee className="h-4 w-4" />,
 };
 
 export function EventDetailCard({ date, events }: EventDetailCardProps) {
