@@ -130,8 +130,6 @@ export default function DashboardPage() {
         title: "Sucesso!",
         description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
       });
-      setAddModalOpen(false);
-      setPreloadedEventData(undefined); // Clear preloaded data
     } catch (error) {
       console.error("Error adding event: ", error);
       toast({
@@ -196,6 +194,11 @@ export default function DashboardPage() {
     setAddModalOpen(true);
   };
 
+  const handleAddSuccess = () => {
+    setAddModalOpen(false);
+    setPreloadedEventData(undefined); // Clear preloaded data
+  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -217,7 +220,7 @@ export default function DashboardPage() {
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
             </DialogHeader>
             <div className="py-4">
-              <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} />
+              <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} onSuccess={handleAddSuccess} />
             </div>
           </DialogContent>
         </Dialog>

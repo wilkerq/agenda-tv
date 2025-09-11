@@ -83,9 +83,10 @@ const formSchema = z.object({
 type AddEventFormProps = {
   onAddEvent: (event: Omit<Event, "id" | "color">, repeatSettings?: RepeatSettings) => Promise<void>;
   preloadedData?: Partial<EventFormData>;
+  onSuccess?: () => void;
 };
 
-export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
+export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const { toast } = useToast();
@@ -206,6 +207,11 @@ export function AddEventForm({ onAddEvent, preloadedData }: AddEventFormProps) {
         repeatFrequency: undefined,
         repeatCount: 1,
       });
+
+      if (onSuccess) {
+          onSuccess();
+      }
+
     } catch (error) {
         console.error("Failed to submit event:", error);
     } finally {
