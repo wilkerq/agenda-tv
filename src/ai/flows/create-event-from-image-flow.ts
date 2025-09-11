@@ -25,7 +25,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-1.5-flash-preview',
+    model: 'googleai/gemini-pro',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     tools: [getEventsForDay],
