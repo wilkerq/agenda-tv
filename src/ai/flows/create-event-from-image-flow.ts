@@ -4,11 +4,12 @@
  * @fileOverview A flow for creating an event from an image using AI.
  *
  * - createEventFromImage - A function that extracts event details from an image.
- * - CreateEventFromImageInput - The input type for the createEventFromImage function.
- * - CreateEventFromImageOutput - The return type for the createEventFromImage function.
+ * - CreateEventFromImageInput - The input type for the createEventFromImageInput function.
+ * - CreateEventFromImageOutput - The return type for the createEventFromImageOutput function.
  */
 
 import { ai } from '@/ai/genkit';
+import { getEventsForDay } from '@/lib/tools';
 import { 
     CreateEventFromImageInput, 
     CreateEventFromImageInputSchema, 
@@ -26,31 +27,58 @@ const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image and a user description. You MUST follow all rules without deviation. The current year is ${new Date().getFullYear()}.
+    tools: [getEventsForDay],
+    prompt: `You are a highly precise event scheduler for the Goias Legislative Assembly (Alego). Your task is to extract event details from an image, consult the existing schedule using tools, and assign operators based on a strict set of rules. The current year is ${new Date().getFullYear()}.
 
-    From the provided image and description, you will fill in the event details according to these strict rules:
+From the provided image and user description, you will fill in the event details. You MUST follow all rules without deviation.
 
-    1.  **Event Name (name):** You MUST extract the full, complete name of the event. Do not use abbreviations.
-    2.  **Date and Time (date):** You MUST extract the full date and the exact time of the event. The output for this field MUST be a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement.
-    3.  **Location (location):** Extract the venue or place where the event will occur.
-    4.  **Transmission (transmission):** This is a mandatory rule based on the event name.
-        - If the event name you extract contains the word "Sessão" or "Comissão", you MUST set the transmission to "tv".
-        - For ALL other events (like "Audiência Pública", "Solenidade", etc.), you MUST set the transmission to "youtube".
-        - The user's description can only override this rule if they explicitly state a different transmission type.
-    5.  **Operator (operator):** This is a mandatory rule based on the event's time of day. You MUST assign the default operator.
-        - **Morning events (from 00:00 to 12:00):** The operator MUST be "Rodrigo Sousa".
-        - **Afternoon events (from 12:01 to 18:00):** The operator MUST be "Mário Augusto" or "Ovidio Dias". You must choose one.
-        - **Night events (after 18:00):** The operator MUST be "Bruno Michel".
-        - This rule is absolute, unless the user's description explicitly names a different operator.
+**Step-by-Step Process:**
 
-    You must process the image as the primary source and use the user's description for context or overrides. Your final output must conform to the specified JSON schema.
+1.  **Extract Basic Details:**
+    *   **Event Name (name):** Extract the full, complete name of the event. Do not use abbreviations.
+    *   **Date and Time (date):** Extract the full date and the exact time of the event. The output for this field MUST be a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you cannot determine the date, do not proceed.
+    *   **Location (location):** Extract the venue or place where the event will occur.
 
-    User's request for context:
-    "{{description}}"
+2.  **Determine Transmission Type:**
+    *   This is a mandatory rule based on the event name.
+    *   If the event name contains "Sessão" or "Comissão", you MUST set the transmission to "tv".
+    *   For ALL other events (e.g., "Audiência Pública", "Solenidade"), you MUST set the transmission to "youtube".
+    *   Only a user's explicit instruction (e.g., "transmitir na tv") can override this rule.
 
-    Image to analyze:
-    {{media url=photoDataUri}}
-    `,
+3.  **Check Existing Schedule:**
+    *   Using the extracted date, you MUST call the \`getEventsForDay\` tool to see if other events are already scheduled for that day. This is a mandatory step for operator assignment.
+
+4.  **Assign Operator (Operator):**
+    *   You MUST assign an operator based on the following hierarchy of rules. The first rule that matches determines the operator.
+
+    *   **Rule 1: Specific Location (Highest Priority)**
+        *   If the location is "Sala Julio da Retifica \"CCJ\"", the operator MUST be "Mário Augusto", regardless of any other rule.
+
+    *   **Rule 2: Weekend Rotation**
+        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias", "Bruno Almeida"].
+
+    *   **Rule 3: Weekday Shifts (Default Logic)**
+        *   **Morning (00:00 - 12:00):**
+            *   Default operator is "Rodrigo Sousa".
+            *   If the tool call shows another event already in the morning, you MUST assign either "Ovidio Dias" or "Mário Augusto".
+        *   **Afternoon (12:01 - 18:00):**
+            *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Almeida". Choose one.
+        *   **Night (after 18:00):**
+            *   Default operator is "Bruno Almeida".
+            *   If the tool call shows another event already at night, you MUST assign either "Mário Augusto" or "Ovidio Dias".
+
+    *   **Rule 4: User Override (Lowest Priority)**
+        *   If the user's description explicitly names an operator (e.g., "O operador será o João"), this overrides all other rules.
+
+**Final Output:**
+Your final output must conform to the specified JSON schema, containing all the details you have extracted and determined.
+
+**Context from user:**
+"{{description}}"
+
+**Image to analyze:**
+{{media url=photoDataUri}}
+`,
 });
 
 const createEventFromImageFlow = ai.defineFlow(
