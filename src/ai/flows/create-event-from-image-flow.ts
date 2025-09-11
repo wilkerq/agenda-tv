@@ -4,8 +4,6 @@
  * @fileOverview A flow for creating an event from an image using AI.
  *
  * - createEventFromImage - A function that extracts event details from an image.
- * - CreateEventFromImageInput - The input type for the createEventFromImageInput function.
- * - CreateEventFromImageOutput - The return type for the createEventFromImageOutput function.
  */
 
 import { ai } from '@/ai/genkit';
@@ -25,7 +23,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-pro',
+    model: 'googleai/gemini-pro-vision',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     tools: [getEventsForDay],
