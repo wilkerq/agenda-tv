@@ -8,9 +8,6 @@ import {googleAI} from '@genkit-ai/googleai';
 
 export const ai = genkit({
   plugins: [
-    googleAI({
-      // A default model is specified here to ensure all generate calls have a model.
-      model: 'gemini-pro',
-    }),
+    googleAI(),
   ],
 });
