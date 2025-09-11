@@ -53,7 +53,6 @@ const operators = [
   "Rodrigo Sousa",
   "Ovidio Dias",
   "Wilker Quirino",
-  "Bruno Almeida",
 ];
 
 const formSchema = z.object({

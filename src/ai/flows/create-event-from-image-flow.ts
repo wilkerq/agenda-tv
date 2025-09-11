@@ -55,17 +55,17 @@ From the provided image and user description, you will fill in the event details
         *   If the location is "Sala Julio da Retifica \"CCJ\"", the operator MUST be "Mário Augusto", regardless of any other rule.
 
     *   **Rule 2: Weekend Rotation**
-        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias", "Bruno Almeida"].
+        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"].
 
     *   **Rule 3: Weekday Shifts (Default Logic)**
         *   **Morning (00:00 - 12:00):**
             *   Default operator is "Rodrigo Sousa".
             *   If the tool call shows another event already in the morning, you MUST assign either "Ovidio Dias" or "Mário Augusto".
         *   **Afternoon (12:01 - 18:00):**
-            *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Almeida". Choose one.
+            *   The operator MUST be one of "Ovidio Dias" or "Mário Augusto". Choose one.
         *   **Night (after 18:00):**
-            *   Default operator is "Bruno Almeida".
-            *   If the tool call shows another event already at night, you MUST assign either "Mário Augusto" or "Ovidio Dias".
+            *   Default operator is "Mário Augusto".
+            *   If the tool call shows another event already at night, you MUST assign "Ovidio Dias".
 
     *   **Rule 4: User Override (Lowest Priority)**
         *   If the user's description explicitly names an operator (e.g., "O operador será o João"), this overrides all other rules.
