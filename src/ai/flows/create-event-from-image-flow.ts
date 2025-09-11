@@ -97,5 +97,3 @@ const createEventFromImageFlow = ai.defineFlow(
         return output!;
     }
 );
-
-    
