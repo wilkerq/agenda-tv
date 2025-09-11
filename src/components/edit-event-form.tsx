@@ -41,11 +41,10 @@ const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
-  "Sala Julio da Retifica \"CCJ\""
+  "Sala Julio da Retifica \"CCJR\""
 ];
 
 const operators = [
-  "Bruno Michel",
   "Mário Augusto",
   "Rodrigo Sousa",
   "Ovidio Dias",

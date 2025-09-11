@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
     *   You MUST assign an operator based on the following hierarchy of rules. The first rule that matches determines the operator.
 
     *   **Rule 1: Specific Location (Highest Priority)**
-        *   If the location is "Sala Julio da Retifica \"CCJ\"", the operator MUST be "Mário Augusto", regardless of any other rule.
+        *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto", regardless of any other rule.
 
     *   **Rule 2: Weekend Rotation**
         *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"].
