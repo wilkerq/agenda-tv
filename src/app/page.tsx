@@ -9,6 +9,8 @@ import { PublicCalendar } from "@/components/public-calendar";
 import { EventDetailCard } from "@/components/event-detail-card";
 import { isSameDay, getHours } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -72,23 +74,27 @@ export default function HomePage() {
   }
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-       <main className="flex-1 space-y-8">
-          <PublicCalendar 
-            events={events} 
-            selectedDate={selectedDate}
-            onDateSelect={setSelectedDate}
-          />
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow">
+        <main className="flex-1 space-y-8">
+            <PublicCalendar 
+              events={events} 
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+            />
 
-          {selectedEvents.length > 0 && (
-            <div className="mt-8">
-                <EventDetailCard
-                    date={selectedDate}
-                    events={selectedEvents}
-                />
-            </div>
-          )}
-       </main>
+            {selectedEvents.length > 0 && (
+              <div className="mt-8">
+                  <EventDetailCard
+                      date={selectedDate}
+                      events={selectedEvents}
+                  />
+              </div>
+            )}
+        </main>
+      </div>
+      <Footer />
     </div>
   );
 }
