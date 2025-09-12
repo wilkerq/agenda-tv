@@ -169,30 +169,21 @@ export default function DashboardLayout({
                   Relatórios
                 </Link>
               </nav>
+              <div className="mt-auto">
+                <Button variant="destructive" className="w-full" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Encerrar Sessão
+                </Button>
+              </div>
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1">
             <h1 className="text-lg font-semibold md:text-xl">Painel Administrativo</h1>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <CircleUser className="h-5 w-5" />
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Configurações</DropdownMenuItem>
-              <DropdownMenuItem>Suporte</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sair</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="ghost" size="icon" className="rounded-full" onClick={handleLogout}>
+            <LogOut className="h-5 w-5" />
+            <span className="sr-only">Encerrar sessão</span>
+          </Button>
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           {children}
