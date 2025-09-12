@@ -5,12 +5,12 @@ import { getAuth } from "firebase/auth";
 
 // As credenciais corretas para o projeto Firebase.
 const firebaseConfig = {
-  "projectId": "agenda-alego-ugf4q",
-  "appId": "1:855770576745:web:832b6f49d0a866c8da2ff8",
-  "storageBucket": "agenda-alego-ugf4q.firebasestorage.app",
-  "apiKey": "AIzaSyBNxIdOfYiGmSSS-PNpImvNDb20JSSkTSo",
-  "authDomain": "agenda-alego-ugf4q.firebaseapp.com",
-  "messagingSenderId": "855770576745"
+  "projectId": "agenda-alego-v3-72653978-39fba",
+  "appId": "1:814315709282:web:fbc64b7c698c68cde6823b",
+  "storageBucket": "agenda-alego-v3-72653978-39fba.firebasestorage.app",
+  "apiKey": "AIzaSyDGkB7kxb8oK39K-G_1J4weRoqxMQYKRhA",
+  "authDomain": "agenda-alego-v3-72653978-39fba.firebaseapp.com",
+  "messagingSenderId": "814315709282"
 };
 
 

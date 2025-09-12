@@ -1,11 +1,9 @@
-rules_version = '2';
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /events/{eventId} {
-      // Qualquer pessoa pode ler os eventos
+    match /events/{document=**} {
       allow read: if true;
-      // Apenas usuários autenticados podem criar, atualizar ou deletar
       allow write: if request.auth != null;
     }
   }
