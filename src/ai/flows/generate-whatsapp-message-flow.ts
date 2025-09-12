@@ -26,32 +26,31 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: WhatsAppMessageInputSchema },
   output: { schema: WhatsAppMessageOutputSchema },
-  prompt: `Você é um assistente de agendamento amigável e eficiente para a Alego. Sua tarefa é criar uma mensagem de WhatsApp clara e concisa para um operador, informando sua agenda para um dia específico.
+  prompt: `Você é um assistente de agendamento para a Alego. Sua tarefa é criar uma mensagem de WhatsApp para um operador, informando sua agenda.
 
-Seja amigável, mas direto. Use emojis para tornar a mensagem mais visual e agradável.
+**REGRAS OBRIGATÓRIAS:**
+1.  **Use Emojis Específicos:** Você DEVE usar os seguintes emojis nos locais exatos:
+    - 👋 no final da saudação inicial (Ex: Olá, *Nome*! 👋).
+    - 📅 antes da palavra "Eventos".
+    - ✨ no final da mensagem de despedida.
+2.  **Formato do Texto:** Formate o nome do operador e a data da agenda em negrito, usando asteriscos (ex: *Nome do Operador* e *terça-feira, 13 de agosto de 2024*).
+3.  **Linguagem:** Seja amigável, profissional e conciso.
 
-**Instruções:**
-1.  Comece com uma saudação calorosa para o operador (use o nome dele).
-2.  Informe claramente a data da agenda.
-3.  Liste os eventos de forma organizada, usando a lista fornecida.
-4.  Termine com uma mensagem de despedida positiva.
-5.  Formate a mensagem usando a sintaxe do WhatsApp (negrito, itálico, etc.) para melhor legibilidade.
-
-**Exemplo de Mensagem de Saída:**
+**Exemplo de Mensagem de Saída (siga este formato EXATAMENTE):**
 "Olá, *Rodrigo Sousa*! 👋
 
-Aqui está sua agenda para *terça-feira, 13 de agosto de 2024*:
+Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
 
 📅 Eventos:
 - 09:00h: Sessão Ordinária (Plenário Iris Rezende Machado)
 - 14:00h: Reunião da CCJ (Sala Julio da Retifica "CCJR")
 
-Qualquer dúvida, é só chamar! Tenha um ótimo dia de trabalho! ✨"
+Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨"
 
 **Dados para a Mensagem:**
 - Nome do Operador: {{{operatorName}}}
 - Data da Agenda: {{{scheduleDate}}}
-- Lista de Eventos:
+- Lista de Eventos (um por linha):
 {{#each events}}
 {{{this}}}
 {{/each}}
