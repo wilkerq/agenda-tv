@@ -12,7 +12,7 @@ export function Footer() {
                          <Package2 className="h-7 w-7 text-primary" />
                          <div>
                             <h2 className="text-lg font-bold text-white">Agenda Alego</h2>
-                            <p className="text-sm text-slate-400">Assembleia Legislativa de Goiás</p>
+                            <p className="text-sm text-slate-400">TV Assembleia Legislativa de Goiás</p>
                          </div>
                     </div>
                 </div>

@@ -12,7 +12,7 @@ const fontSans = FontSans({
 
 export const metadata: Metadata = {
   title: 'Agenda Alego',
-  description: 'Calendário de Eventos da Assembleia Legislativa de Goiás',
+  description: 'Sistema de gerenciamento de eventos da TV Assembleia Legislativa do Estado de Goiás.',
 };
 
 export default function RootLayout({

@@ -17,7 +17,7 @@ export function Header() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Agenda Alego</h1>
             <p className="text-sm text-slate-400">
-              Eventos da Assembleia Legislativa de Goiás
+              Sistema de gerenciamento de eventos
             </p>
           </div>
         </Link>
