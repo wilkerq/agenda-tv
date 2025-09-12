@@ -140,7 +140,7 @@ export default function ShareSchedulePage() {
       });
       return;
     }
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURI(message)}`;
     window.open(whatsappUrl, "_blank");
   };
 
