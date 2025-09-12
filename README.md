@@ -25,3 +25,7 @@ Após o build, você pode iniciar o servidor de produção com:
 ```bash
 npm run start
 ```
+
+## Autor
+
+- **Wilker Quirino**

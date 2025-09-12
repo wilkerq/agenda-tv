@@ -17,6 +17,7 @@ export function Footer() {
                     </div>
                 </div>
                 <div className="mt-8 border-t border-slate-700 pt-6 text-center text-sm text-slate-500">
+                    <p className="mb-2">Desenvolvido por Wilker Quirino.</p>
                     <p>&copy; {currentYear} Assembleia Legislativa do Estado de Goiás. Todos os direitos reservados.</p>
                 </div>
             </div>
