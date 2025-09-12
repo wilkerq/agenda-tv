@@ -1,9 +1,8 @@
 
 import type { Event } from "@/lib/types";
-import { EventCard } from "./event-card";
 import { Button } from "./ui/button";
-import { Edit, Trash2 } from "lucide-react";
-import { CalendarSearch } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube } from "lucide-react";
+import { format } from "date-fns";
 
 type EventListProps = {
   events: Event[];
@@ -11,10 +10,15 @@ type EventListProps = {
   onEditEvent?: (event: Event) => void;
 };
 
+const transmissionIcons = {
+  youtube: <Youtube className="h-4 w-4 text-red-600" />,
+  tv: <Tv className="h-4 w-4 text-blue-600" />,
+};
+
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {
     return (
-      <div className="text-center py-16 px-4 bg-card/60 backdrop-blur-sm rounded-lg shadow-sm border border-white/20">
+      <div className="text-center py-16 px-4 bg-card/60 backdrop-blur-sm rounded-lg shadow-sm border">
         <CalendarSearch className="mx-auto h-12 w-12 text-foreground/50 mb-4" />
         <p className="text-lg font-medium text-foreground">Nenhum evento agendado para esta data.</p>
         <p className="text-sm text-foreground/70">Selecione outro dia no calendário ou adicione um novo evento no painel.</p>
@@ -23,14 +27,26 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
       {events.map((event) => (
-        <div key={event.id} className="relative group">
-          <EventCard
-            event={event}
-          />
+        <div key={event.id} className="group relative p-4 rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-md" style={{ borderLeft: `4px solid ${event.color}`}}>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-start">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold pr-20">{event.name}</h3>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                <span className="flex items-center"><User className="mr-1.5 h-4 w-4" /> {event.operator}</span>
+                <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4" /> {event.location}</span>
+                <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4" /> {format(event.date, 'HH:mm')}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2 sm:mt-0 text-sm font-semibold">
+                {transmissionIcons[event.transmission]}
+                <span>{event.transmission === "youtube" ? "YouTube" : "TV Aberta"}</span>
+            </div>
+          </div>
+          
           {onDeleteEvent && onEditEvent && (
-             <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+             <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                <Button
                   variant="outline"
                   size="icon"
