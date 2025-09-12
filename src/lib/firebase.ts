@@ -3,15 +3,16 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
+// COLE O NOVO OBJETO firebaseConfig AQUI
 const firebaseConfig = {
-  "projectId": "agenda-alego-ugf4q",
-  "appId": "1:855770576745:web:832b6f49d0a866c8da2ff8",
-  "storageBucket": "agenda-alego-ugf4q.firebasestorage.app",
-  "apiKey": "AIzaSyBNxIdOfYiGmSSS-PNpImvNDb20JSSkTSo",
-  "authDomain": "agenda-alego-ugf4q.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "855770576745"
+  "projectId": "substitua-pelo-id-do-novo-projeto",
+  "appId": "substitua-pelo-app-id",
+  "storageBucket": "substitua-pelo-storage-bucket",
+  "apiKey": "substitua-pela-api-key",
+  "authDomain": "substitua-pelo-auth-domain",
+  "messagingSenderId": "substitua-pelo-sender-id"
 };
+
 
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
