@@ -4,26 +4,15 @@
  * @fileOverview A flow for generating a friendly WhatsApp message for an operator's schedule.
  *
  * - generateWhatsAppMessage - A function that creates a message from a list of events.
- * - WhatsAppMessageInput - The input type for the flow.
- * - WhatsAppMessageOutput - The return type for the flow.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-
-// Input Schema
-export const WhatsAppMessageInputSchema = z.object({
-  operatorName: z.string().describe("The name of the operator."),
-  scheduleDate: z.string().describe("The date of the schedule (e.g., 'terça-feira, 13 de agosto de 2024')."),
-  events: z.array(z.string()).describe("A list of formatted event strings, each including time, name, and location."),
-});
-export type WhatsAppMessageInput = z.infer<typeof WhatsAppMessageInputSchema>;
-
-// Output Schema
-export const WhatsAppMessageOutputSchema = z.object({
-  message: z.string().describe("The full, friendly, and formatted WhatsApp message."),
-});
-export type WhatsAppMessageOutput = z.infer<typeof WhatsAppMessageOutputSchema>;
+import { 
+    WhatsAppMessageInput, 
+    WhatsAppMessageInputSchema, 
+    WhatsAppMessageOutput, 
+    WhatsAppMessageOutputSchema 
+} from '@/lib/types';
 
 
 // Exported wrapper function
