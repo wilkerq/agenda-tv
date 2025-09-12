@@ -213,8 +213,9 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       }
 
     } catch (error) {
+        // Error is handled by the parent component's toast.
+        // The form submission state is reset in the finally block.
         console.error("Failed to submit event:", error);
-        // The toast with the error is shown in the parent component
     } finally {
         setIsSubmitting(false);
     }
