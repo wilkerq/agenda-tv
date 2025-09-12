@@ -1,11 +1,14 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Permite que qualquer pessoa leia os dados dos eventos (necessário para a página pública).
+    // A escrita, atualização e exclusão são negadas por padrão.
     match /events/{eventId} {
-      // Qualquer pessoa pode ler os eventos (para a página pública)
       allow read;
-      // Apenas usuários autenticados podem criar, atualizar ou deletar eventos (para o dashboard)
+      
+      // Permite que apenas usuários autenticados criem, atualizem ou excluam eventos.
       allow write: if request.auth != null;
     }
   }
