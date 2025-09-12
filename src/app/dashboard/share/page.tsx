@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, startOfDay, endOfDay, format } from "date-fns";
+import { addDays, startOfDay, endOfDay, format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot } from "lucide-react";
 import { generateWhatsAppMessage } from "@/ai/flows/generate-whatsapp-message-flow";
@@ -42,45 +42,49 @@ export default function ShareSchedulePage() {
 
     setIsFetchingEvents(true);
     try {
-      const startOfSelectedDay = startOfDay(selectedDate);
-      const endOfSelectedDay = endOfDay(selectedDate);
-
+      // Simplified query to avoid composite index requirement
       const q = query(
         collection(db, "events"),
         where("operator", "==", selectedOperator),
-        where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
-        where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
         orderBy("date", "asc")
       );
 
       const querySnapshot = await getDocs(q);
-      const eventsData = querySnapshot.docs.map(doc => {
+      const allEventsForOperator = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           name: data.name,
           location: data.location,
           date: (data.date as Timestamp).toDate(),
-          // Adicione outros campos necessários para o tipo Event
           transmission: data.transmission,
           color: data.color,
           operator: data.operator,
-          status: 'Agendado', // Defina um status padrão ou determine-o
-          turn: 'Manhã' // Defina um turno padrão ou determine-o
-        };
+          // These fields are required by the Event type, let's keep them
+          status: 'Agendado', 
+          turn: 'Manhã' 
+        } as Event;
       });
-      setEvents(eventsData);
+
+      // Filter by date on the client side
+      const eventsForDate = allEventsForOperator.filter(event => 
+        isSameDay(event.date, selectedDate)
+      );
+
+      setEvents(eventsForDate);
+
     } catch (error) {
       console.error("Error fetching events: ", error);
       toast({
         title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a agenda para este operador.",
+        description: "Não foi possível carregar a agenda. Verifique o console para mais detalhes.",
         variant: "destructive",
       });
     } finally {
       setIsFetchingEvents(false);
     }
   }, [selectedOperator, selectedDate, toast]);
+
 
   useEffect(() => {
     fetchEvents();
