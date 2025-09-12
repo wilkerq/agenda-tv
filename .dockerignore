@@ -1,21 +1,18 @@
-# Arquivos de dependência do sistema operacional
-.DS_Store
-*.log
+# Arquivos e pastas do Docker
+Dockerfile
+.dockerignore
+
+# Dependências
+node_modules
+
+# Build do Next.js
+.next
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# Pasta de dependências
-node_modules
-
-# Pasta de build do Next.js
-.next
-
-# Arquivo de ambiente local
+# Arquivos de ambiente locais (se houver)
 .env.local
-
-# Arquivos Docker
-Dockerfile
-.dockerignore
