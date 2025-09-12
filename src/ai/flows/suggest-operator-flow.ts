@@ -52,7 +52,7 @@ const prompt = ai.definePrompt({
         *   **Afternoon (12:01 - 18:00):**
             *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one.
         *   **Night (after 18:00):**
-            *   Default operator is "Mário Augusto".
+            *   Default operator is "Bruno Michel".
             *   If the tool call shows another event already at night, you MUST assign "Ovidio Dias".
 
 **Input Event Details:**

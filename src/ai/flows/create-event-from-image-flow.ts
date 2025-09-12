@@ -65,7 +65,7 @@ After extracting the data, you will apply the following business rules and forma
         *   **Afternoon (12:01 - 18:00):**
             *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one.
         *   **Night (after 18:00):**
-            *   Default operator is "Mário Augusto".
+            *   Default operator is "Bruno Michel".
 
     *   **Rule 4: User Override (Lowest Priority)**
         *   If the user's description explicitly names an operator (e.g., "O operador será o João"), this overrides all other rules.
