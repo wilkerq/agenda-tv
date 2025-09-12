@@ -3,7 +3,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// COLE O NOVO OBJETO firebaseConfig AQUI
+// As credenciais corretas para o projeto Firebase.
 const firebaseConfig = {
   "projectId": "agenda-alego-ugf4q",
   "appId": "1:855770576745:web:832b6f49d0a866c8da2ff8",

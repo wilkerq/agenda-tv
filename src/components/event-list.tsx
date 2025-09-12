@@ -1,5 +1,4 @@
 
-
 import type { Event } from "@/lib/types";
 import { EventCard } from "./event-card";
 import { Button } from "./ui/button";

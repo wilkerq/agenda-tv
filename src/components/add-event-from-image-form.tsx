@@ -36,7 +36,9 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    processFile(selectedFile);
+    if (selectedFile) {
+      processFile(selectedFile);
+    }
   };
   
   useEffect(() => {
@@ -94,7 +96,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
 
         onSuccess(preloadedData);
       };
-      reader.onerror = (error) => {
+      reader.onerror = (_error) => {
          throw new Error("Falha ao ler o arquivo de imagem.");
       };
 

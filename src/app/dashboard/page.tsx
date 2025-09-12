@@ -50,8 +50,10 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!selectedDate) {
-      return; // Do not fetch events if date is not set
+    if (!selectedDate || !auth.currentUser) {
+      // Do not fetch events if date is not set or user is not authenticated
+      setLoading(false);
+      return; 
     }
     setLoading(true);
     const eventsCollection = collection(db, "events");
@@ -85,7 +87,7 @@ export default function DashboardPage() {
       console.error("Error fetching events: ", error);
       toast({
         title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a lista de eventos.",
+        description: "Não foi possível carregar a lista de eventos. Verifique suas permissões.",
         variant: "destructive"
       });
       setLoading(false);
