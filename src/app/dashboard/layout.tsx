@@ -111,29 +111,11 @@ export default function DashboardLayout({
               </Link>
             </nav>
           </div>
-          <div className="mt-auto p-4 border-t border-slate-700">
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start gap-2 hover:bg-slate-700 hover:text-white">
-                  <CircleUser className="h-5 w-5" />
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm">{user?.email}</span>
-                  </div>
-                   <LogOut className="ml-auto h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Configurações</DropdownMenuItem>
-                <DropdownMenuItem>Suporte</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sair</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="mt-auto p-4">
+            <Button variant="destructive" className="w-full" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Encerrar Sessão
+            </Button>
           </div>
         </div>
       </div>
