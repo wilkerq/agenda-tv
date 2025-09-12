@@ -12,6 +12,7 @@ import {
   LogOut,
   LayoutDashboard,
   Home,
+  Share2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,16 @@ export default function DashboardLayout({
                 <LineChart className="h-4 w-4" />
                 Relatórios
               </Link>
+              <Link
+                href="/dashboard/share"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
+                  pathname === "/dashboard/share" && "bg-slate-700 text-white"
+                )}
+              >
+                <Share2 className="h-4 w-4" />
+                Compartilhar Agenda
+              </Link>
             </nav>
           </div>
           <div className="mt-auto p-4">
@@ -167,6 +178,16 @@ export default function DashboardLayout({
                 >
                   <LineChart className="h-5 w-5" />
                   Relatórios
+                </Link>
+                <Link
+                  href="/dashboard/share"
+                  className={cn(
+                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                     pathname === "/dashboard/share" && "bg-slate-700 text-white"
+                  )}
+                >
+                  <Share2 className="h-5 w-5" />
+                  Compartilhar Agenda
                 </Link>
               </nav>
               <div className="mt-auto">

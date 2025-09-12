@@ -3,3 +3,4 @@
 import "./flows/summarize-reports-flow";
 import "./flows/create-event-from-image-flow";
 import "./flows/suggest-operator-flow";
+import "./flows/generate-whatsapp-message-flow";
