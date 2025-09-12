@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Event, EventStatus, EventTurn } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -56,8 +56,7 @@ export default function ShareSchedulePage() {
     try {
       const q = query(
         collection(db, "events"),
-        where("operator", "==", selectedOperator),
-        orderBy("date", "asc")
+        where("operator", "==", selectedOperator)
       );
 
       const querySnapshot = await getDocs(q);
@@ -77,9 +76,9 @@ export default function ShareSchedulePage() {
         } as Event;
       });
 
-      const eventsForDate = allEventsForOperator.filter(event => 
-        isSameDay(event.date, selectedDate)
-      );
+      const eventsForDate = allEventsForOperator
+        .filter(event => isSameDay(event.date, selectedDate))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort events by date
 
       setEvents(eventsForDate);
 
