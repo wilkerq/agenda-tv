@@ -2,13 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /events/{eventId} {
-      // Regra de Leitura: Permite que qualquer pessoa (autenticada ou não) leia os eventos.
-      // Essencial para a página pública.
-      allow read;
+    match /events/{document=**} {
+      // Allow public read access for listing and getting events
+      allow read: if true;
 
-      // Regra de Escrita: Permite que apenas usuários autenticados criem, atualizem ou excluam eventos.
-      // Essencial para a segurança do painel de controle (dashboard).
+      // Allow write access only for authenticated users
       allow write: if request.auth != null;
     }
   }
