@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Event } from "@/lib/types";
+import type { Event, EventStatus, EventTurn } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, startOfDay, endOfDay, format, isSameDay } from "date-fns";
+import { addDays, startOfDay, endOfDay, format, isSameDay, getHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot } from "lucide-react";
 import { generateWhatsAppMessage } from "@/ai/flows/generate-whatsapp-message-flow";
@@ -24,6 +24,18 @@ const operators = [
   "Wilker Quirino",
   "Bruno Michel",
 ];
+
+const getEventTurn = (date: Date): EventTurn => {
+  const hour = getHours(date);
+  if (hour >= 6 && hour < 12) return 'Manhã';
+  if (hour >= 12 && hour < 18) return 'Tarde';
+  return 'Noite';
+};
+
+const getEventStatus = (date: Date): EventStatus => {
+  return date < new Date() ? 'Concluído' : 'Agendado';
+}
+
 
 export default function ShareSchedulePage() {
   const [selectedOperator, setSelectedOperator] = useState<string>("");
@@ -42,7 +54,6 @@ export default function ShareSchedulePage() {
 
     setIsFetchingEvents(true);
     try {
-      // Simplified query to avoid composite index requirement
       const q = query(
         collection(db, "events"),
         where("operator", "==", selectedOperator),
@@ -52,21 +63,20 @@ export default function ShareSchedulePage() {
       const querySnapshot = await getDocs(q);
       const allEventsForOperator = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        const eventDate = (data.date as Timestamp).toDate();
         return {
           id: doc.id,
           name: data.name,
           location: data.location,
-          date: (data.date as Timestamp).toDate(),
+          date: eventDate,
           transmission: data.transmission,
           color: data.color,
           operator: data.operator,
-          // These fields are required by the Event type, let's keep them
-          status: 'Agendado', 
-          turn: 'Manhã' 
+          status: getEventStatus(eventDate),
+          turn: getEventTurn(eventDate),
         } as Event;
       });
 
-      // Filter by date on the client side
       const eventsForDate = allEventsForOperator.filter(event => 
         isSameDay(event.date, selectedDate)
       );
