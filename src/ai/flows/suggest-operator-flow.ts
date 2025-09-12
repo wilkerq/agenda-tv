@@ -42,13 +42,13 @@ const prompt = ai.definePrompt({
         *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto", regardless of any other rule.
 
     *   **Rule 2: Weekend Rotation**
-        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"].
+        *   If the event is on a Saturday or Sunday, you MUST implement a rotation. Use the \`getEventsForDay\` tool result to see who worked the last weekend event and assign a different operator from the main pool: ["Bruno Michel", "Mário Augusto", "Ovidio Dias"].
 
     *   **Rule 3: Weekday Shifts (Default Logic)**
         *   The event time is provided in the 'date' input field.
         *   **Morning (00:00 - 12:00):**
             *   Default operator is "Rodrigo Sousa".
-            *   If the tool call shows another event already in the morning, you MUST assign either "Ovidio Dias" or "Mário Augusto".
+            *   If the tool call shows another event already in the morning, you MUST assign either "Wilker Quirino", "Ovidio Dias" or "Mário Augusto".
         *   **Afternoon (12:01 - 18:00):**
             *   The operator MUST be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one.
         *   **Night (after 18:00):**
