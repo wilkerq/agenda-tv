@@ -54,7 +54,7 @@ After extracting the data, you will apply the following business rules and forma
         *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto", regardless of any other rule.
 
     *   **Rule 2: Weekend Rotation**
-        *   If the event is on a Saturday or Sunday, you MUST assign one operator from the main pool: ["Rodrigo Sousa", "Mário Augusto", "Ovidio Dias"]. Pick one at random.
+        *   If the event is on a Saturday or Sunday, you MUST assign one operator from the main pool: ["Bruno Michel", "Mário Augusto", "Ovidio Dias"]. Pick one at random.
 
     *   **Rule 3: Weekday Shifts (Default Logic)**
         *   **Morning (00:00 - 12:00):**
