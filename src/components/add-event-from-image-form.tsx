@@ -85,7 +85,15 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
         const preloadedData: Partial<EventFormData> = {};
         if (result.name) preloadedData.name = result.name;
         if (result.location) preloadedData.location = result.location;
-        if (result.date) preloadedData.date = new Date(result.date);
+        if (result.date) {
+            preloadedData.date = new Date(result.date);
+        } else {
+            toast({
+                title: "Hora não encontrada",
+                description: "A IA não conseguiu determinar a hora do evento. Por favor, insira manualmente.",
+                variant: "default"
+            })
+        }
         if (result.transmission) preloadedData.transmission = result.transmission;
         if (result.operator) preloadedData.operator = result.operator;
 

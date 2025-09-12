@@ -35,14 +35,14 @@ First, analyze the image and the user's description to extract the raw event det
 
 1.  **Event Name (name):** Extract the full, complete name of the event (e.g., "Sessão Solene de Homenagem").
 2.  **Location (location):** Extract the specific venue (e.g., "Plenário Iris Rezende Machado"). If a building name is given, infer the most important hall within it.
-3.  **Date and Time (date and time):** Extract the full date and the exact time (24h format). You MUST extract both.
+3.  **Date and Time (date):** Extract the full date and the exact time (24h format). You MUST extract both date and time from the image to construct the final ISO 8601 string. If you cannot confidently determine the full date AND time from the image, you MUST return null for the 'date' field. Do not guess or invent a time.
 4.  **YouTube Link:** If a YouTube URL is clearly visible, extract it. Otherwise, ignore this field.
 
 **Part 2: Business Logic & Final JSON Formatting**
 
 After extracting the data, you will apply the following business rules and format the final output.
 
-1.  **Format Date (date):** You MUST combine the extracted date and time into a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you cannot determine the full date and time, do not proceed.
+1.  **Format Date (date):** If you extracted a date and time, you MUST combine them into a single string in the 'YYYY-MM-DDTHH:mm:ss.sssZ' ISO 8601 format. This is a critical requirement. If you returned null in the previous step, this field will remain null.
 
 2.  **Determine Transmission Type (transmission):**
     *   This is a mandatory rule based on the event name.
