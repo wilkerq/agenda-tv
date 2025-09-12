@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { add, format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isAddFromImageModalOpen, setAddFromImageModalOpen] = useState(false);
   const [preloadedEventData, setPreloadedEventData] = useState<Partial<EventFormData> | undefined>(undefined);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -41,17 +42,18 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
         router.push("/login");
+      } else {
+        setUser(currentUser);
       }
     });
     return () => unsubscribeAuth();
   }, [router]);
 
   useEffect(() => {
-    if (!selectedDate || !auth.currentUser) {
-      // Do not fetch events if date is not set or user is not authenticated
+    if (!selectedDate || !user) {
       setLoading(false);
       return; 
     }
@@ -94,7 +96,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribeSnapshot();
-  }, [selectedDate, toast]);
+  }, [selectedDate, user, toast]);
 
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
