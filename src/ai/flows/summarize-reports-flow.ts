@@ -27,31 +27,31 @@ const prompt = ai.definePrompt({
     model: 'googleai/gemini-2.5-flash-lite',
     input: { schema: ReportDataInputSchema },
     output: { schema: ReportSummaryOutputSchema },
-    prompt: `You are a data analyst for Alego's event management team. Your task is to provide a brief, insightful summary based on the following event data. The summary must be in Brazilian Portuguese.
+    prompt: `Você é um analista de dados da equipe de gerenciamento de eventos da Alego. Sua tarefa é fornecer um resumo breve e perspicaz com base nos seguintes dados de eventos. O resumo deve estar em português do Brasil.
 
-    Focus on key takeaways. For example:
-    - Who is the most active operator?
-    - Are night events common?
-    - Which location is most used?
-    - Is there a dominant transmission medium?
+    Concentre-se nos principais pontos. Por exemplo:
+    - Quem é o operador mais ativo?
+    - Eventos noturnos são comuns?
+    - Qual local é mais utilizado?
+    - Existe um meio de transmissão dominante?
 
-    Keep the summary concise and to the point, like a paragraph in a report.
+    Mantenha o resumo conciso e direto ao ponto, como um parágrafo em um relatório.
 
-    Data:
-    - Total Events: {{{totalEvents}}}
-    - Total Night Events (after 6 PM): {{{totalNightEvents}}}
+    Dados:
+    - Total de Eventos: {{{totalEvents}}}
+    - Total de Eventos Noturnos (após as 18h): {{{totalNightEvents}}}
     
-    Events per Operator:
+    Eventos por Operador:
     {{#each reportData}}
-    - {{@key}}: {{this.count}} events ({{this.nightCount}} at night)
+    - {{@key}}: {{this.count}} eventos ({{this.nightCount}} à noite)
     {{/each}}
 
-    Events per Location:
+    Eventos por Local:
     {{#each locationReport}}
-    - {{@key}}: {{this}} events
+    - {{@key}}: {{this}} eventos
     {{/each}}
 
-    Events per Transmission Type:
+    Eventos por Tipo de Transmissão:
     - YouTube: {{{transmissionReport.youtube}}}
     - TV Aberta: {{{transmissionReport.tv}}}
     `,
