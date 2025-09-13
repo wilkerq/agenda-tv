@@ -27,7 +27,7 @@ const prompt = ai.definePrompt({
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
-    prompt: `Você é um especialista em agendamento da Alego. Sua tarefa é determinar o melhor operador para um evento, seguindo regras hierárquicas. O ano atual é ${new Date().getFullYear()}.
+    prompt: `Você é um assistente especialista em agendamento da Alego. Sua tarefa é determinar o operador mais adequado para um evento, seguindo uma hierarquia de regras. O ano atual é 2024.
 
 **PROCESSO OBRIGATÓRIO:**
 
