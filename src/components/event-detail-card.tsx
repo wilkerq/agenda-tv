@@ -57,11 +57,18 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
                                         {event.turn}
                                     </Badge>
                                     <Badge variant="outline" className={cn(event.transmission === 'youtube' ? 'border-red-200' : 'border-blue-200')}>
-                                      {event.transmission === 'youtube' ? 
-                                        <Youtube className="h-4 w-4 text-red-600 mr-1.5"/> : 
-                                        <Tv className="h-4 w-4 text-blue-600 mr-1.5"/>
-                                      }
-                                      {event.transmission === 'youtube' ? 'YouTube' : 'TV Aberta'}
+                                      {event.transmission === 'tv' ? (
+                                        <div className="flex items-center">
+                                            <Tv className="h-4 w-4 text-blue-600 mr-1.5"/>
+                                            <Youtube className="h-4 w-4 text-red-600 mr-1.5"/>
+                                            <span>TV Aberta e YouTube</span>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center">
+                                            <Youtube className="h-4 w-4 text-red-600 mr-1.5"/>
+                                            <span>YouTube</span>
+                                        </div>
+                                      )}
                                     </Badge>
                                 </div>
                             </div>

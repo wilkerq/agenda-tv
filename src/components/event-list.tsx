@@ -10,11 +10,6 @@ type EventListProps = {
   onEditEvent?: (event: Event) => void;
 };
 
-const transmissionIcons = {
-  youtube: <Youtube className="h-4 w-4 text-red-600" />,
-  tv: <Tv className="h-4 w-4 text-blue-600" />,
-};
-
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {
     return (
@@ -40,8 +35,18 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 sm:mt-0 text-sm font-semibold">
-                {transmissionIcons[event.transmission]}
-                <span>{event.transmission === "youtube" ? "YouTube" : "TV Aberta"}</span>
+                {event.transmission === 'tv' ? (
+                    <div className="flex items-center gap-2">
+                        <Tv className="h-4 w-4 text-blue-600" />
+                        <Youtube className="h-4 w-4 text-red-600" />
+                        <span>TV Aberta e YouTube</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Youtube className="h-4 w-4 text-red-600" />
+                        <span>YouTube</span>
+                    </div>
+                )}
             </div>
           </div>
           
