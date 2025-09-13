@@ -15,7 +15,6 @@ import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type jsPDF from "jspdf";
 import 'jspdf-autotable';
 
 type OperatorReport = {
@@ -115,8 +114,11 @@ export default function ReportsPage() {
             newLocationReport[event.location] = (newLocationReport[event.location] || 0) + 1;
         }
 
-        if (event.transmission === 'youtube' || event.transmission === 'tv') {
-            newTransmissionReport[event.transmission]++;
+        if (event.transmission === 'youtube') {
+            newTransmissionReport.youtube++;
+        } else if (event.transmission === 'tv') {
+            newTransmissionReport.tv++;
+            newTransmissionReport.youtube++; // Eventos de TV também são transmitidos no YouTube
         }
       });
       
@@ -313,7 +315,7 @@ export default function ReportsPage() {
             </Button>
           </CardFooter>
         </Card>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card className="shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Eventos</CardTitle>
@@ -335,23 +337,21 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
         <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transmissões (YouTube)</CardTitle>
-                <Youtube className="h-4 w-4 text-muted-foreground" />
+            <CardHeader>
+                <CardTitle>Relatório de Transmissão</CardTitle>
+                <CardDescription>Contagem de plataformas.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{transmissionReport.youtube}</div>
-                <p className="text-xs text-muted-foreground">Total de transmissões no YouTube.</p>
-            </CardContent>
-        </Card>
-        <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transmissões (TV Aberta)</CardTitle>
-                <Tv className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{transmissionReport.tv}</div>
-                <p className="text-xs text-muted-foreground">Total de transmissões na TV Aberta.</p>
+            <CardContent className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                    <Youtube className="h-6 w-6 mx-auto text-red-600 mb-2" />
+                    <p className="text-2xl font-bold">{transmissionReport.youtube}</p>
+                    <p className="text-xs text-muted-foreground">YouTube</p>
+                </div>
+                 <div className="text-center">
+                    <Tv className="h-6 w-6 mx-auto text-blue-600 mb-2" />
+                    <p className="text-2xl font-bold">{transmissionReport.tv}</p>
+                    <p className="text-xs text-muted-foreground">TV Aberta</p>
+                </div>
             </CardContent>
         </Card>
       </div>
@@ -450,5 +450,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
