@@ -33,7 +33,7 @@ Your final output must conform to the specified JSON schema.
 
 First, analyze the image and the user's description to extract the raw event details.
 
-1.  **Event Name (name):** Extract the full, complete name of the event (e.g., "Sessão Solene de Homenagem").
+1.  **Event Name (name):** Extract the full, complete name of the event. Look for a detailed description, often under headings like "Em pauta". For example, extract "Sessão Solene de Homenagem aos Contadores" instead of just "Sessão Solene".
 2.  **Location (location):** Extract the specific venue (e.g., "Plenário Iris Rezende Machado"). If a building name is given, infer the most important hall within it.
 3.  **Date (date):** You MUST extract both the date and the time from the image. Combine them into a single ISO 8601 string ('YYYY-MM-DDTHH:mm:ss.sssZ'). If you cannot find a specific time in the image, you MUST return \`null\` for this field. Do not invent a time.
 
