@@ -27,39 +27,40 @@ const prompt = ai.definePrompt({
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
-    prompt: `Você é um especialista em agendamento de eventos para a Assembleia Legislativa de Goiás (Alego). Sua tarefa é determinar o melhor operador para um evento e retornar o nome dele no campo 'operator' da saída. Você deve seguir um conjunto estrito de regras hierárquicas. O ano atual é ${new Date().getFullYear()}.
+    prompt: `Você é um especialista em agendamento da Alego. Sua tarefa é determinar o melhor operador para um evento, seguindo regras hierárquicas. O ano atual é ${new Date().getFullYear()}.
 
-**Processo Passo a Passo:**
+**PROCESSO OBRIGATÓRIO:**
 
-1.  **Verificar Agenda Existente:**
-    *   Você recebe a data e a hora do evento. Você DEVE chamar a ferramenta \`getEventsForDay\` para ver se outros eventos já estão agendados para aquele dia. Este é um primeiro passo obrigatório para obter contexto.
+1.  **Consultar Agenda (Passo 1):**
+    *   Primeiro, use a ferramenta \`getEventsForDay\` para obter a lista de eventos já agendados para a data fornecida. Isso é essencial para o contexto.
 
-2.  **Aplicar Regras de Atribuição:**
-    *   Com base no contexto da ferramenta e nos dados de entrada, você DEVE aplicar a seguinte hierarquia de regras. A primeira regra que corresponder determina o operador.
-    *   Após determinar o operador, seu único trabalho é retornar o nome dele no campo 'operator' da saída. **Não chame nenhuma outra ferramenta.**
+2.  **Aplicar Regras de Atribuição (Passo 2):**
+    *   Com base no resultado da ferramenta e nos detalhes do evento, aplique a seguinte hierarquia de regras. A primeira regra que corresponder determina o operador.
+    *   Após determinar o operador, seu único trabalho é retornar o nome dele no campo 'operator'. **NÃO chame mais nenhuma ferramenta.**
 
-    *   **Regra 1: Local Específico (Prioridade Máxima)**
-        *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto", independentemente de qualquer outra regra.
+**HIERARQUIA DE REGRAS:**
 
-    *   **Regra 2: Rotação de Fim de Semana**
-        *   Se o evento for em um sábado ou domingo, você DEVE implementar uma rotação. Use o resultado da ferramenta \`getEventsForDay\` para ver quem trabalhou no último evento de fim de semana e atribua um operador diferente do grupo principal: ["Bruno Michel", "Mário Augusto", "Ovidio Dias"].
+*   **Regra 1: Local Específico (Prioridade Máxima)**
+    *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto".
 
-    *   **Regra 3: Turnos da Semana (Lógica Padrão)**
-        *   A hora do evento é fornecida no campo de entrada 'date'.
-        *   **Manhã (00:00 - 12:00):**
-            *   O operador padrão é "Rodrigo Sousa".
-            *   Se a chamada da ferramenta mostrar outro evento já pela manhã, você DEVE atribuir "Wilker Quirino", "Ovidio Dias" ou "Mário Augusto".
-        *   **Tarde (12:01 - 18:00):**
-            *   O operador DEVE ser um dos seguintes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um.
-        *   **Noite (após as 18:00):**
-            *   O operador padrão é "Bruno Michel".
-            *   Se a chamada da ferramenta mostrar outro evento já à noite, você DEVE atribuir "Ovidio Dias" ou "Mário Augusto".
+*   **Regra 2: Rotação de Fim de Semana (Sábado e Domingo)**
+    *   Se o evento for em um fim de semana, use o resultado da ferramenta \`getEventsForDay\` para ver quem trabalhou no último evento de fim de semana e atribua um operador **diferente** do grupo principal: ["Bruno Michel", "Mário Augusto", "Ovidio Dias"].
 
-**Detalhes do Evento de Entrada:**
+*   **Regra 3: Turnos da Semana (Segunda a Sexta)**
+    *   **Manhã (00:00 - 12:00):**
+        *   O operador padrão é "Rodrigo Sousa".
+        *   Se já houver outro evento pela manhã (verificado com a ferramenta), você DEVE atribuir um destes: "Wilker Quirino", "Ovidio Dias" ou "Mário Augusto".
+    *   **Tarde (12:01 - 18:00):**
+        *   O operador DEVE ser um destes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Faça um rodízio com base nos eventos já agendados.
+    *   **Noite (após as 18:00):**
+        *   O operador padrão é "Bruno Michel".
+        *   Se já houver outro evento à noite (verificado com a ferramenta), você DEVE atribuir "Ovidio Dias" ou "Mário Augusto".
+
+**Detalhes do Evento para Análise:**
 - **Data e Hora:** {{{date}}}
 - **Local:** {{{location}}}
 
-Sua saída final deve ser um objeto JSON apenas com o campo "operator" preenchido com o nome que você determinou.
+Sua saída final deve ser um objeto JSON contendo apenas o campo "operator".
 `,
 });
 

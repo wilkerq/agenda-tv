@@ -26,15 +26,15 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: DailyAgendaInputSchema },
   output: { schema: DailyAgendaOutputSchema },
-  prompt: `Você é um assistente de comunicação da Alego. Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado no WhatsApp.
+  prompt: `Você é o assistente de comunicação da Alego.
+Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado internamente (ex: WhatsApp).
 
-**REGRAS OBRIGATÓRIAS:**
-1.  **Título:** A mensagem DEVE começar com "PAUTA DO DIA" em negrito, seguido de um emoji de claquete (🎬).
-2.  **Data:** Inclua a data fornecida em negrito (ex: *terça-feira, 13 de agosto de 2024*).
-3.  **Formato do Texto:** Use negrito para o título e a data.
-4.  **Linguagem:** Seja direto, profissional e informativo.
+**REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:**
+1.  **Título:** A mensagem DEVE começar com "*PAUTA DO DIA* 🎬". Use negrito e o emoji de claquete.
+2.  **Data:** Na linha seguinte, inclua a data fornecida, também em negrito (ex: *terça-feira, 13 de agosto de 2024*).
+3.  **Linguagem:** Seja direto, profissional e informativo. O formato deve ser uma lista simples.
 
-**Exemplo de Mensagem de Saída (siga este formato EXATAMENTE):**
+**EXEMPLO DE SAÍDA (Siga este formato à risca):**
 "*PAUTA DO DIA* 🎬
 
 *terça-feira, 13 de agosto de 2024*
@@ -43,9 +43,9 @@ const prompt = ai.definePrompt({
 - 11:00h: Reunião da Comissão de Educação (Auditório Solon Amaral)
 - 14:00h: Audiência Pública sobre Saúde (Auditório Carlos Vieira)"
 
-**Dados para a Mensagem:**
+**Dados de Entrada para a Mensagem:**
 - Data da Agenda: {{{scheduleDate}}}
-- Lista de Eventos (um por linha):
+- Lista de Eventos:
 {{#each events}}
 {{{this}}}
 {{/each}}

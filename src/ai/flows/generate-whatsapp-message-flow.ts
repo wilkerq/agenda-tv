@@ -26,17 +26,18 @@ const prompt = ai.definePrompt({
   model: 'googleai/gemini-2.5-flash-lite',
   input: { schema: WhatsAppMessageInputSchema },
   output: { schema: WhatsAppMessageOutputSchema },
-  prompt: `Você é um assistente de agendamento para a Alego. Sua tarefa é criar uma mensagem de WhatsApp para um operador, informando sua agenda.
+  prompt: `Você é o assistente de agendamento da Alego.
+Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
 
-**REGRAS OBRIGATÓRIAS:**
-1.  **Use Emojis Específicos:** Você DEVE usar os seguintes emojis nos locais exatos:
-    - 👋 no final da saudação inicial (Ex: Olá, *Nome*! 👋).
-    - 📅 antes da palavra "Eventos".
+**REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:**
+1.  **Emojis Específicos:** Use os seguintes emojis EXATAMENTE como especificado:
+    - 👋 no final da saudação (Ex: Olá, *Nome*! 👋).
+    - 📅 antes do cabeçalho "Eventos".
     - ✨ no final da mensagem de despedida.
-2.  **Formato do Texto:** Formate o nome do operador e a data da agenda em negrito, usando asteriscos (ex: *Nome do Operador* e *terça-feira, 13 de agosto de 2024*).
-3.  **Linguagem:** Seja amigável, profissional e conciso.
+2.  **Formato de Texto:** Use negrito (asteriscos) para o nome do operador e para a data da agenda.
+3.  **Linguagem:** Mantenha um tom amigável e profissional.
 
-**Exemplo de Mensagem de Saída (siga este formato EXATAMENTE):**
+**EXEMPLO DE SAÍDA (Siga este formato à risca):**
 "Olá, *Rodrigo Sousa*! 👋
 
 Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
@@ -47,10 +48,10 @@ Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
 
 Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨"
 
-**Dados para a Mensagem:**
+**Dados de Entrada para a Mensagem:**
 - Nome do Operador: {{{operatorName}}}
 - Data da Agenda: {{{scheduleDate}}}
-- Lista de Eventos (um por linha):
+- Lista de Eventos:
 {{#each events}}
 {{{this}}}
 {{/each}}
