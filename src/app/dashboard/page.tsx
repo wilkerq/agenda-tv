@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import type { Event, EventFormData, RepeatSettings } from "@/lib/types";
+import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
@@ -15,12 +15,23 @@ import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { add, format, startOfDay, endOfDay } from 'date-fns';
+import { add, format, startOfDay, endOfDay, getHours } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
+
+const getEventTurn = (date: Date): EventTurn => {
+  const hour = getHours(date);
+  if (hour >= 6 && hour < 12) return 'Manhã';
+  if (hour >= 12 && hour < 18) return 'Tarde';
+  return 'Noite';
+};
+
+const getEventStatus = (date: Date): EventStatus => {
+  return date < new Date() ? 'Concluído' : 'Agendado';
+}
 
 
 export default function DashboardPage() {
@@ -73,14 +84,17 @@ export default function DashboardPage() {
     const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
       const eventsData = snapshot.docs.map(doc => {
         const data = doc.data();
+        const eventDate = (data.date as Timestamp).toDate();
         return {
           id: doc.id,
           name: data.name,
           location: data.location,
           transmission: data.transmission,
-          date: (data.date as Timestamp).toDate(),
+          date: eventDate,
           color: data.color || getRandomColor(),
           operator: data.operator,
+          status: getEventStatus(eventDate),
+          turn: getEventTurn(eventDate),
         };
       });
       setEvents(eventsData);
