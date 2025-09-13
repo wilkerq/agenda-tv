@@ -3,7 +3,7 @@ import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
-import { User } from 'lucide-react';
+import { User, Tv, Youtube } from 'lucide-react';
 
 type CalendarEventCardProps = {
   event: Event;
@@ -30,16 +30,17 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
         <User className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.operator}</span>
       </div>
-      <div className='flex justify-end'>
-        <Badge 
-           variant="outline" 
-           className={cn(
-            "text-xs mt-1", 
-            event.transmission === 'youtube' ? 'border-red-500/50 text-red-600' : 'border-blue-500/50 text-blue-600'
-            )}
-        >
-            {event.transmission === 'youtube' ? 'YouTube' : 'TV'}
-        </Badge>
+      <div className='flex justify-end mt-1'>
+          {event.transmission === 'tv' ? (
+              <div className="flex items-center gap-1">
+                  <Tv className="h-3 w-3 text-blue-600" />
+                  <Youtube className="h-3 w-3 text-red-600" />
+              </div>
+          ) : (
+              <div className="flex items-center">
+                  <Youtube className="h-3 w-3 text-red-600" />
+              </div>
+          )}
       </div>
     </div>
   );
