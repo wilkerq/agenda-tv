@@ -1,19 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
-import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { collection, onSnapshot, orderBy, query, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Event, ReportDataInput } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube } from "lucide-react";
+import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import jsPDF from "jspdf";
+import 'jspdf-autotable';
 
 type OperatorReport = {
   count: number;
@@ -34,6 +37,14 @@ type TransmissionReport = {
   tv: number;
 };
 
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+const months = Array.from({ length: 12 }, (_, i) => ({
+  value: (i + 1).toString(),
+  label: format(new Date(currentYear, i), "MMMM", { locale: ptBR }),
+}));
+
+
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData>({});
   const [totalEvents, setTotalEvents] = useState(0);
@@ -45,9 +56,24 @@ export default function ReportsPage() {
   const [aiSummary, setAiSummary] = useState("");
   const { toast } = useToast();
 
+  const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
+
   useEffect(() => {
+    setLoading(true);
+
+    const year = parseInt(selectedYear);
+    const month = parseInt(selectedMonth) - 1;
+    const startDate = startOfMonth(new Date(year, month));
+    const endDate = endOfMonth(new Date(year, month));
+
     const eventsCollection = collection(db, "events");
-    const q = query(eventsCollection, orderBy("date", "desc"));
+    const q = query(
+        eventsCollection, 
+        where("date", ">=", Timestamp.fromDate(startDate)),
+        where("date", "<=", Timestamp.fromDate(endDate)),
+        orderBy("date", "desc")
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eventsData: Event[] = snapshot.docs.map(doc => {
@@ -69,7 +95,6 @@ export default function ReportsPage() {
       let nightEventsCount = 0;
 
       eventsData.forEach(event => {
-        // Operator Report
         if (event.operator) {
           if (!newReportData[event.operator]) {
             newReportData[event.operator] = { count: 0, nightCount: 0, events: [] };
@@ -77,23 +102,19 @@ export default function ReportsPage() {
           newReportData[event.operator].count++;
           newReportData[event.operator].events.push(event);
           
-          const eventHour = event.date.getHours();
-          if (eventHour >= 18) {
+          if (event.date.getHours() >= 18) {
             newReportData[event.operator].nightCount++;
           }
         }
         
-        // Night Events Count
         if (event.date.getHours() >= 18) {
             nightEventsCount++;
         }
 
-        // Location Report
         if (event.location) {
             newLocationReport[event.location] = (newLocationReport[event.location] || 0) + 1;
         }
 
-        // Transmission Report
         if (event.transmission === 'youtube' || event.transmission === 'tv') {
             newTransmissionReport[event.transmission]++;
         }
@@ -105,6 +126,7 @@ export default function ReportsPage() {
       setLocationReport(newLocationReport);
       setTransmissionReport(newTransmissionReport);
       setLoading(false);
+      setAiSummary(""); // Reset AI summary when filters change
     }, (error) => {
         console.error("Error fetching reports: ", error);
         toast({
@@ -116,7 +138,7 @@ export default function ReportsPage() {
     });
 
     return () => unsubscribe();
-  }, [toast]);
+  }, [selectedYear, selectedMonth, toast]);
 
   const handleGenerateSummary = async () => {
     setIsAiSummaryLoading(true);
@@ -147,77 +169,121 @@ export default function ReportsPage() {
         setIsAiSummaryLoading(false);
     }
   };
+  
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const margin = 10;
+    let y = margin;
+    
+    const monthLabel = months.find(m => m.value === selectedMonth)?.label || "";
+
+    doc.setFontSize(18);
+    doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, margin, y);
+    y += 10;
+
+    doc.setFontSize(12);
+    doc.text(`Total de Eventos: ${totalEvents}`, margin, y);
+    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin + 70, y);
+    y += 7;
+    doc.text(`Transmissões (YouTube): ${transmissionReport.youtube}`, margin, y);
+    doc.text(`Transmissões (TV Aberta): ${transmissionReport.tv}`, margin + 70, y);
+    y += 10;
+
+    if (aiSummary) {
+        doc.setFontSize(14);
+        doc.text("Resumo da IA:", margin, y);
+        y += 7;
+        doc.setFontSize(10);
+        const splitSummary = doc.splitTextToSize(aiSummary, 180);
+        doc.text(splitSummary, margin, y);
+        y += (splitSummary.length * 5) + 10;
+    }
+    
+    const autoTable = (doc as any).autoTable;
+
+    if (sortedOperators.length > 0) {
+      autoTable({
+          startY: y,
+          head: [['Operador', 'Eventos Totais', 'Eventos Noturnos']],
+          body: sortedOperators.map(op => [op, reportData[op].count, reportData[op].nightCount]),
+          theme: 'striped',
+      });
+      y = autoTable.previous.finalY + 10;
+    }
+    
+    if (sortedLocations.length > 0) {
+      autoTable({
+          startY: y,
+          head: [['Local', 'Quantidade']],
+          body: sortedLocations.map(loc => [loc, locationReport[loc]]),
+          theme: 'striped',
+      });
+    }
+
+
+    doc.save(`relatorio_eventos_${selectedMonth}_${selectedYear}.pdf`);
+  };
 
 
   const sortedOperators = Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count);
   const sortedLocations = Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]);
-
-  if (loading) {
-      return (
-        <div className="grid gap-6">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-4 w-3/4" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-10 w-48" />
-                </CardContent>
-            </Card>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((_, i) => (
-                    <Card key={i} className="shadow-lg">
-                        <CardHeader>
-                            <Skeleton className="h-5 w-3/4" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-8 w-1/2" />
-                            <Skeleton className="h-4 w-full mt-2" />
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-             <div className="grid gap-6 md:grid-cols-2">
-                <Card className="shadow-lg">
-                    <CardHeader>
-                         <Skeleton className="h-6 w-1/2" />
-                         <Skeleton className="h-4 w-3/4" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                           <Skeleton className="h-12 w-full" />
-                           <Skeleton className="h-12 w-full" />
-                           <Skeleton className="h-12 w-full" />
-                        </div>
-                    </CardContent>
-                </Card>
-                 <Card className="shadow-lg">
-                    <CardHeader>
-                         <Skeleton className="h-6 w-1/2" />
-                         <Skeleton className="h-4 w-3/4" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                           <Skeleton className="h-12 w-full" />
-                           <Skeleton className="h-12 w-full" />
-                           <Skeleton className="h-12 w-full" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-      );
-  }
+  
+  const reportTitle = useMemo(() => {
+    const monthLabel = months.find(m => m.value === selectedMonth)?.label;
+    return `${monthLabel} de ${selectedYear}`;
+  }, [selectedMonth, selectedYear]);
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6" id="report-content">
+       <Card>
+          <CardHeader>
+              <CardTitle>Filtros do Relatório</CardTitle>
+              <CardDescription>Selecione o período para gerar os relatórios.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione o Mês" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+              <div className="flex-1">
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger>
+                          <SelectValue placeholder="Selecione o Ano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                      </SelectContent>
+                  </Select>
+              </div>
+          </CardContent>
+          <CardFooter>
+             <Button onClick={handleExportPDF} disabled={loading || totalEvents === 0}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Salvar como PDF
+              </Button>
+          </CardFooter>
+      </Card>
+      
+      {loading ? (
+        <div className="text-center p-8">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Carregando dados para {reportTitle}...</p>
+        </div>
+      ) : (
+      <>
        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               Resumo com Inteligência Artificial
             </CardTitle>
-            <CardDescription>Clique no botão para gerar uma análise dos dados desta página com o Gemini.</CardDescription>
+            <CardDescription>Clique no botão para gerar uma análise dos dados do período selecionado.</CardDescription>
           </CardHeader>
           <CardContent>
             {isAiSummaryLoading && (
@@ -231,9 +297,12 @@ export default function ReportsPage() {
                     <p>{aiSummary}</p>
                 </div>
             )}
+            {!isAiSummaryLoading && !aiSummary && totalEvents === 0 && (
+                <p className="text-muted-foreground">Nenhum dado para gerar resumo neste período.</p>
+            )}
           </CardContent>
           <CardFooter>
-             <Button onClick={handleGenerateSummary} disabled={isAiSummaryLoading}>
+             <Button onClick={handleGenerateSummary} disabled={isAiSummaryLoading || totalEvents === 0}>
               {isAiSummaryLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -251,7 +320,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalEvents}</div>
-            <p className="text-xs text-muted-foreground">Eventos cadastrados no sistema.</p>
+            <p className="text-xs text-muted-foreground">Eventos em {reportTitle}.</p>
           </CardContent>
         </Card>
         <Card className="shadow-lg">
@@ -261,7 +330,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalNightEvents}</div>
-            <p className="text-xs text-muted-foreground">Eventos realizados a partir das 18h.</p>
+            <p className="text-xs text-muted-foreground">Eventos a partir das 18h.</p>
           </CardContent>
         </Card>
         <Card className="shadow-lg">
@@ -290,7 +359,7 @@ export default function ReportsPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Eventos por Operador</CardTitle>
-            <CardDescription>Eventos totais e noturnos por operador.</CardDescription>
+            <CardDescription>Eventos totais e noturnos por operador em {reportTitle}.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -302,13 +371,17 @@ export default function ReportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedOperators.map(operator => (
+                {sortedOperators.length > 0 ? sortedOperators.map(operator => (
                   <TableRow key={operator}>
                     <TableCell className="font-medium">{operator}</TableCell>
                     <TableCell className="text-center">{reportData[operator].count}</TableCell>
                     <TableCell className="text-center">{reportData[operator].nightCount}</TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">Nenhum evento encontrado.</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -316,7 +389,7 @@ export default function ReportsPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Eventos por Local</CardTitle>
-            <CardDescription>Locais mais utilizados para eventos.</CardDescription>
+            <CardDescription>Locais mais utilizados para eventos em {reportTitle}.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -327,23 +400,27 @@ export default function ReportsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {sortedLocations.map(location => (
+                    {sortedLocations.length > 0 ? sortedLocations.map(location => (
                         <TableRow key={location}>
                             <TableCell className="font-medium">{location}</TableCell>
                             <TableCell className="text-center">{locationReport[location]}</TableCell>
                         </TableRow>
-                    ))}
+                    )) : (
+                       <TableRow>
+                            <TableCell colSpan={2} className="text-center text-muted-foreground">Nenhum evento encontrado.</TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
 
-      {sortedOperators.map(operator => (
+      {sortedOperators.length > 0 && sortedOperators.map(operator => (
         <Card key={operator}>
           <CardHeader>
             <CardTitle>Detalhes: {operator}</CardTitle>
-            <CardDescription>Lista de todos os eventos cadastrados por {operator}.</CardDescription>
+            <CardDescription>Lista de eventos de {operator} em {reportTitle}.</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -367,6 +444,8 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       ))}
+      </>
+      )}
     </div>
   );
 }
