@@ -66,7 +66,7 @@ export type CreateEventFromImageInput = z.infer<typeof CreateEventFromImageInput
 export const CreateEventFromImageOutputSchema = z.object({
   name: z.string().optional().describe('The extracted name of the event.'),
   location: z.string().optional().describe('The extracted location of the event.'),
-  date: z.string().optional().describe("The extracted date and time of the event in ISO 8601 format."),
+  date: z.string().nullable().describe("The extracted date and time of the event in ISO 8601 format. Should be null if time is not found."),
   transmission: z.enum(["youtube", "tv"]).optional().describe('The type of transmission.'),
   operator: z.string().optional().describe('The operator responsible for the event.'),
 });

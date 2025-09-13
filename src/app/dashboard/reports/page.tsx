@@ -4,14 +4,14 @@
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, orderBy, query, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Event } from "@/lib/types";
+import type { Event, ReportDataInput } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { summarizeReports, type ReportDataInput } from "@/ai/flows/summarize-reports-flow";
+import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -60,7 +60,7 @@ export default function ReportsPage() {
           date: (data.date as Timestamp).toDate(),
           color: data.color,
           operator: data.operator,
-        };
+        } as Event;
       });
 
       const newReportData: ReportData = {};
@@ -362,7 +362,7 @@ export default function ReportsPage() {
                     <TableCell>{format(event.date, "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
+              </Body>
             </Table>
           </CardContent>
         </Card>
