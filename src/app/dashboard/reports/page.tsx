@@ -362,7 +362,7 @@ export default function ReportsPage() {
                     <TableCell>{format(event.date, "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
                   </TableRow>
                 ))}
-              </Body>
+              </TableBody>
             </Table>
           </CardContent>
         </Card>
