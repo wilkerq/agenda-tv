@@ -15,7 +15,7 @@ import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import jsPDF from "jspdf";
+import type jsPDF from "jspdf";
 import 'jspdf-autotable';
 
 type OperatorReport = {
@@ -170,7 +170,10 @@ export default function ReportsPage() {
     }
   };
   
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+
     const doc = new jsPDF();
     const margin = 10;
     let y = margin;
@@ -199,20 +202,18 @@ export default function ReportsPage() {
         y += (splitSummary.length * 5) + 10;
     }
     
-    const autoTable = (doc as any).autoTable;
-
     if (sortedOperators.length > 0) {
-      autoTable({
+      autoTable(doc, {
           startY: y,
           head: [['Operador', 'Eventos Totais', 'Eventos Noturnos']],
           body: sortedOperators.map(op => [op, reportData[op].count, reportData[op].nightCount]),
           theme: 'striped',
       });
-      y = autoTable.previous.finalY + 10;
+      y = (doc as any).lastAutoTable.finalY + 10;
     }
     
     if (sortedLocations.length > 0) {
-      autoTable({
+      autoTable(doc, {
           startY: y,
           head: [['Local', 'Quantidade']],
           body: sortedLocations.map(loc => [loc, locationReport[loc]]),
@@ -449,3 +450,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
