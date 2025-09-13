@@ -1,43 +1,29 @@
-# Estágio 1: Instalação de dependências
+# 1. Estágio de Dependências: Instala as dependências
 FROM node:20 AS deps
-# Instala o libc6-compat para compatibilidade com o Genkit/gRPC no Alpine
-# RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copia os arquivos de definição de pacotes
 COPY package.json ./
-# O ideal é usar um lockfile (package-lock.json, yarn.lock, etc.) para builds consistentes
-# COPY package-lock.json ./
-
-# Instala as dependências
 RUN npm install
 
-# Estágio 2: Build da aplicação
+# 2. Estágio de Build: Constrói a aplicação
 FROM node:20 AS builder
 WORKDIR /app
-# Copia as dependências do estágio anterior
 COPY --from=deps /app/node_modules ./node_modules
-# Copia o restante do código da aplicação
 COPY . .
-
-# Executa o script de build do Next.js
 RUN npm run build
 
-# Estágio 3: Produção
+# 3. Estágio de Execução: Roda a aplicação
 FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copia os artefatos de build do estágio "builder"
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copia os artefatos de build do Next.js
+# Veja: https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# O Next.js por padrão inicia na porta 3000
+# O servidor será iniciado em 0.0.0.0 para aceitar conexões de fora do contêiner.
+# A porta padrão do Next.js é 3000.
 EXPOSE 3000
-
-# Comando para iniciar a aplicação
-# O "next start" é otimizado para produção
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
