@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, writeBatch, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
