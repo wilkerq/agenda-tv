@@ -66,9 +66,11 @@ const importAlegoAgendaFlow = ai.defineFlow(
             if (dateText && timeStr && name && location) {
                 const dateParts = dateText.split(' de ');
                 const day = parseInt(dateParts[0]);
-                const month = monthMap[dateParts[1].toLowerCase()];
+                const monthName = dateParts[1];
                 const year = parseInt(dateParts[2]);
                 
+                const month = monthMap[monthName.toLowerCase()];
+
                 const [hour, minute] = timeStr.split(':').map(Number);
                 
                 if (!isNaN(day) && month !== undefined && !isNaN(year) && !isNaN(hour) && !isNaN(minute)) {
