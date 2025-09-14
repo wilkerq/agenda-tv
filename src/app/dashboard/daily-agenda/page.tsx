@@ -113,7 +113,7 @@ export default function DailyAgendaPage() {
       });
       return;
     }
-    const whatsappUrl = `https://wa.me/?text=${encodeURI(message)}`;
+    const whatsappUrl = `https://api.whatsapp.com/send/?text=${encodeURI(message)}`;
     window.open(whatsappUrl, "_blank");
   };
   
