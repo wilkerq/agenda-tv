@@ -50,8 +50,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
     // 2. Extract raw event data from the HTML
     const eventElements = root.querySelectorAll('.compromisso-item');
     const rawEvents: { name: string, date: string, location: string }[] = [];
-    const currentYear = new Date().getFullYear();
-
+    
     const monthMap: { [key: string]: number } = {
         'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5, 
         'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
@@ -59,19 +58,23 @@ const importAlegoAgendaFlow = ai.defineFlow(
 
     eventElements.forEach(item => {
         try {
-            const dateStr = item.querySelector('.compromisso-data-numero')?.text.trim();
-            const monthStr = item.querySelector('.compromisso-mes')?.text.trim().toLowerCase();
-            const timeStr = item.querySelector('.compromisso-horario')?.text.trim().replace('h', ':');
+            const dateText = item.querySelector('.compromisso-data')?.text.trim(); // "13 de AGOSTO de 2024"
+            const timeStr = item.querySelector('.compromisso-horario')?.text.trim().replace('h', ':'); // "09:00"
             const name = item.querySelector('.compromisso-titulo a')?.text.trim();
             const location = item.querySelector('.compromisso-local')?.text.trim();
 
-            if (dateStr && monthStr && timeStr && name && location) {
-                const day = parseInt(dateStr);
-                const month = monthMap[monthStr];
-                const [hour, minute] = timeStr.split(':').map(Number);
-                const eventDate = new Date(currentYear, month, day, hour, minute);
+            if (dateText && timeStr && name && location) {
+                const dateParts = dateText.split(' de ');
+                const day = parseInt(dateParts[0]);
+                const month = monthMap[dateParts[1].toLowerCase()];
+                const year = parseInt(dateParts[2]);
                 
-                rawEvents.push({ name, date: eventDate.toISOString(), location });
+                const [hour, minute] = timeStr.split(':').map(Number);
+                
+                if (!isNaN(day) && month !== undefined && !isNaN(year) && !isNaN(hour) && !isNaN(minute)) {
+                    const eventDate = new Date(year, month, day, hour, minute);
+                    rawEvents.push({ name, date: eventDate.toISOString(), location });
+                }
             }
         } catch (e) {
             console.warn("Skipping an event due to parsing error:", e);
