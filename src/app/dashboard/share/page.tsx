@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, getDocs, query, where, Timestamp, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Event, EventStatus, EventTurn, Operator } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -75,7 +75,8 @@ export default function ShareSchedulePage() {
         collection(db, "events"),
         where("operator", "==", selectedOperator.name),
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
-        where("date", "<=", Timestamp.fromDate(endOfSelectedDay))
+        where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
+        orderBy("date", "asc")
       );
 
       const querySnapshot = await getDocs(q);
@@ -93,7 +94,7 @@ export default function ShareSchedulePage() {
           status: getEventStatus(eventDate),
           turn: getEventTurn(eventDate),
         } as Event;
-      }).sort((a, b) => a.date.getTime() - b.date.getTime());
+      });
 
       setEvents(eventsForDate);
 
@@ -101,7 +102,7 @@ export default function ShareSchedulePage() {
       console.error("Error fetching events: ", error);
       toast({
         title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a agenda. Verifique o console para mais detalhes.",
+        description: "Não foi possível carregar a agenda. Verifique se o índice do Firestore foi criado.",
         variant: "destructive",
       });
     } finally {
@@ -136,13 +137,13 @@ export default function ShareSchedulePage() {
         if (result.sent) {
             toast({
                 title: "Mensagem Enviada!",
-                description: `A agenda foi enviada para ${selectedOperator.name} via WhatsApp.`,
+                description: `A agenda foi enviada para ${selectedOperator.name} via n8n.`,
                 className: "bg-green-100 border-green-300 text-green-800"
             });
         } else {
             toast({
                 title: "Mensagem Gerada!",
-                description: "A mensagem foi criada. O envio automático não está configurado. Envie manualmente.",
+                description: "A mensagem foi criada, mas o envio automático falhou (verifique a URL do n8n).",
                 variant: "default"
             });
         }
