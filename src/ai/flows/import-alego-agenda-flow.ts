@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, writeBatch, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
@@ -150,12 +150,12 @@ Sua única saída deve ser um array JSON de eventos processados. Não inclua eve
       );
 
       if (!isDuplicate) {
-        const newEvent = {
+        const newEventRef = doc(eventsCollection); // Create a new document reference
+        batch.set(newEventRef, {
           ...event,
           date: Timestamp.fromDate(eventDate),
           color: getRandomColor(),
-        };
-        batch.set(doc(eventsCollection), newEvent);
+        });
         newEventsCount++;
       }
     }

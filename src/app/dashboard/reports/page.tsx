@@ -118,7 +118,6 @@ export default function ReportsPage() {
             newTransmissionReport.youtube++;
         } else if (event.transmission === 'tv') {
             newTransmissionReport.tv++;
-            newTransmissionReport.youtube++; // Eventos de TV também são transmitidos no YouTube
         }
       });
       
