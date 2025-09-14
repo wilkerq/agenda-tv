@@ -1,29 +1,17 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Regras para a coleção 'events'
-    match /events/{document=**} {
-      // Qualquer um pode listar os eventos (necessário para o calendário público)
-      allow list: if true;
-    }
+    // Permite que qualquer pessoa liste e leia eventos (necessário para a página pública)
+    // Apenas usuários autenticados podem criar, editar ou apagar.
     match /events/{eventId} {
-      // Qualquer um pode ler um evento específico
-      allow get: if true;
-      // Apenas usuários autenticados podem criar, atualizar e deletar
+      allow get, list: if true;
       allow create, update, delete: if request.auth != null;
     }
 
-    // Regras para a coleção 'operators'
-    match /operators/{document=**} {
-      // Qualquer um pode listar os operadores (necessário para os formulários)
-      allow list: if true;
-    }
+    // Permite que qualquer pessoa liste e leia operadores (necessário para os formulários)
+    // Apenas usuários autenticados podem criar, editar ou apagar.
     match /operators/{operatorId} {
-       // Qualquer um pode ler um operador específico
-      allow get: if true;
-      // Apenas usuários autenticados podem criar, atualizar e deletar
+      allow get, list: if true;
       allow create, update, delete: if request.auth != null;
     }
   }
