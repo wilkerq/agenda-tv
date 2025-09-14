@@ -13,6 +13,7 @@ import {
     WhatsAppMessageOutput, 
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
+import 'dotenv/config';
 
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {
