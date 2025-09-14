@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
