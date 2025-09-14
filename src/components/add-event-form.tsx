@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import * as React from "react";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +37,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
@@ -45,14 +47,6 @@ const locations = [
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
   "Sala Julio da Retifica \"CCJR\""
-];
-
-const operators = [
-  "Mário Augusto",
-  "Rodrigo Sousa",
-  "Ovidio Dias",
-  "Wilker Quirino",
-  "Bruno Michel",
 ];
 
 const formSchema = z.object({
@@ -89,7 +83,20 @@ type AddEventFormProps = {
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
+  const [operators, setOperators] = React.useState<Operator[]>([]);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const q = query(collection(db, "operators"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedOperators: Operator[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+      });
+      setOperators(fetchedOperators.sort((a,b) => a.name.localeCompare(b.name)));
+    });
+    return () => unsubscribe();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -125,7 +132,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             location: selectedLocation
         });
 
-        if (result.operator && operators.includes(result.operator)) {
+        if (result.operator && operators.some(op => op.name === result.operator)) {
             form.setValue("operator", result.operator, { shouldValidate: true });
             toast({
                 title: "Operador Sugerido com IA!",
@@ -148,7 +155,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [selectedDate, selectedTime, selectedLocation, form, toast]);
+  }, [selectedDate, selectedTime, selectedLocation, form, toast, operators]);
 
   React.useEffect(() => {
     handleSuggestOperator();
@@ -285,8 +292,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                   </FormControl>
                   <SelectContent>
                     {operators.map((operator) => (
-                      <SelectItem key={operator} value={operator}>
-                        {operator}
+                      <SelectItem key={operator.id} value={operator.name}>
+                        {operator.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

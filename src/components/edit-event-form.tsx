@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import * as React from "react";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +36,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { Event, TransmissionType, EventFormData } from "@/lib/types";
+import type { Event, TransmissionType, EventFormData, Operator } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 
 const locations = [
@@ -42,14 +44,6 @@ const locations = [
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
   "Sala Julio da Retifica \"CCJR\""
-];
-
-const operators = [
-  "Mário Augusto",
-  "Rodrigo Sousa",
-  "Ovidio Dias",
-  "Wilker Quirino",
-  "Bruno Michel",
 ];
 
 const formSchema = z.object({
@@ -73,6 +67,19 @@ type EditEventFormProps = {
 
 export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [operators, setOperators] = React.useState<Operator[]>([]);
+
+   React.useEffect(() => {
+    const q = query(collection(db, "operators"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedOperators: Operator[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+      });
+      setOperators(fetchedOperators.sort((a,b) => a.name.localeCompare(b.name)));
+    });
+    return () => unsubscribe();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -179,8 +186,8 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         </FormControl>
                         <SelectContent>
                             {operators.map((operator) => (
-                            <SelectItem key={operator} value={operator}>
-                                {operator}
+                            <SelectItem key={operator.id} value={operator.name}>
+                                {operator.name}
                             </SelectItem>
                             ))}
                         </SelectContent>

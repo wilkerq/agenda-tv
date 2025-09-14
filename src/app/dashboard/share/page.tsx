@@ -2,9 +2,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Event, EventStatus, EventTurn } from "@/lib/types";
+import type { Event, EventStatus, EventTurn, Operator } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,14 +17,6 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot } from "lucide-react";
 import { generateWhatsAppMessage } from "@/ai/flows/generate-whatsapp-message-flow";
 
-const operators = [
-  "Mário Augusto",
-  "Rodrigo Sousa",
-  "Ovidio Dias",
-  "Wilker Quirino",
-  "Bruno Michel",
-];
-
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
   if (hour >= 6 && hour < 12) return 'Manhã';
@@ -36,15 +28,31 @@ const getEventStatus = (date: Date): EventStatus => {
   return date < new Date() ? 'Concluído' : 'Agendado';
 }
 
-
 export default function ShareSchedulePage() {
-  const [selectedOperator, setSelectedOperator] = useState<string>("");
+  const [operators, setOperators] = useState<Operator[]>([]);
+  const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(addDays(new Date(), 1));
   const [events, setEvents] = useState<Event[]>([]);
   const [message, setMessage] = useState("");
   const [isFetchingEvents, setIsFetchingEvents] = useState(false);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const q = query(collection(db, "operators"));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const fetchedOperators: Operator[] = [];
+      querySnapshot.forEach((doc) => {
+        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+      });
+      setOperators(fetchedOperators.sort((a, b) => a.name.localeCompare(b.name)));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const selectedOperator = useMemo(() => {
+    return operators.find(op => op.id === selectedOperatorId);
+  }, [operators, selectedOperatorId]);
 
   const fetchEvents = useCallback(async () => {
     if (!selectedOperator || !selectedDate) {
@@ -56,7 +64,7 @@ export default function ShareSchedulePage() {
     try {
       const q = query(
         collection(db, "events"),
-        where("operator", "==", selectedOperator)
+        where("operator", "==", selectedOperator.name)
       );
 
       const querySnapshot = await getDocs(q);
@@ -78,7 +86,7 @@ export default function ShareSchedulePage() {
 
       const eventsForDate = allEventsForOperator
         .filter(event => isSameDay(event.date, selectedDate))
-        .sort((a, b) => a.date.getTime() - b.date.getTime()); // Sort events by date
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
 
       setEvents(eventsForDate);
 
@@ -100,9 +108,11 @@ export default function ShareSchedulePage() {
   }, [fetchEvents]);
   
   const handleGenerateMessage = useCallback(async () => {
+    if (!selectedOperator) return;
+
     if (events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
-        setMessage(`Nenhum evento encontrado para ${selectedOperator} em ${dateStr}.`);
+        setMessage(`Nenhum evento encontrado para ${selectedOperator.name} em ${dateStr}.`);
         return;
     }
     
@@ -110,7 +120,7 @@ export default function ShareSchedulePage() {
     try {
         const eventStrings = events.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
         const result = await generateWhatsAppMessage({
-            operatorName: selectedOperator,
+            operatorName: selectedOperator.name,
             scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
             events: eventStrings,
         });
@@ -140,8 +150,14 @@ export default function ShareSchedulePage() {
       });
       return;
     }
-    const whatsappUrl = `https://api.whatsapp.com/send/?text=${encodeURI(message)}`;
-    window.open(whatsappUrl, "_blank");
+
+    let url = `https://api.whatsapp.com/send/?text=${encodeURIComponent(message)}`;
+    if (selectedOperator?.phone) {
+        const phone = selectedOperator.phone.replace(/\D/g, ''); // Remove non-digits
+        url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+    }
+    
+    window.open(url, "_blank");
   };
 
   const hasEvents = events.length > 0;
@@ -157,13 +173,13 @@ export default function ShareSchedulePage() {
           <CardContent className="space-y-4">
              <div className="space-y-2">
                 <Label htmlFor="operator">Operador</Label>
-                <Select value={selectedOperator} onValueChange={setSelectedOperator}>
+                <Select value={selectedOperatorId} onValueChange={setSelectedOperatorId}>
                 <SelectTrigger id="operator">
                     <SelectValue placeholder="Selecione um operador" />
                 </SelectTrigger>
                 <SelectContent>
                     {operators.map(op => (
-                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                    <SelectItem key={op.id} value={op.id}>{op.name}</SelectItem>
                     ))}
                 </SelectContent>
                 </Select>
@@ -181,7 +197,7 @@ export default function ShareSchedulePage() {
             </div>
           </CardContent>
            <CardFooter>
-             <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || !selectedOperator || !selectedDate}>
+             <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || !selectedOperatorId || !selectedDate}>
                 {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
                 Gerar Mensagem com IA
             </Button>
@@ -196,9 +212,9 @@ export default function ShareSchedulePage() {
             <CardDescription>
               {isFetchingEvents 
                 ? "Buscando eventos..." 
-                : hasEvents 
-                  ? `Agenda de ${selectedOperator} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`
-                  : `Nenhum evento encontrado para ${selectedOperator} na data selecionada.`
+                : hasEvents && selectedOperator
+                  ? `Agenda de ${selectedOperator.name} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`
+                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'operador'} na data selecionada.`
               }
             </CardDescription>
           </CardHeader>

@@ -15,6 +15,7 @@ import {
   Share2,
   ListTodo,
   Import,
+  Users,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,16 @@ export default function DashboardLayout({
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboard
+              </Link>
+              <Link
+                href="/dashboard/operators"
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
+                  pathname === "/dashboard/operators" && "bg-slate-700 text-white"
+                )}
+              >
+                <Users className="h-4 w-4" />
+                Gerenciar Operadores
               </Link>
               <Link
                 href="/dashboard/reports"
@@ -190,6 +201,16 @@ export default function DashboardLayout({
                 >
                   <LayoutDashboard className="h-5 w-5" />
                   Dashboard
+                </Link>
+                 <Link
+                  href="/dashboard/operators"
+                  className={cn(
+                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    pathname === "/dashboard/operators" && "bg-slate-700 text-white"
+                  )}
+                >
+                  <Users className="h-5 w-5" />
+                  Gerenciar Operadores
                 </Link>
                 <Link
                   href="/dashboard/reports"

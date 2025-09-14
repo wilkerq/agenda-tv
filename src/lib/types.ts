@@ -19,6 +19,11 @@ export interface Event {
 
 export type EventFormData = Omit<Event, "id" | "color" | "status" | "turn">;
 
+export interface Operator {
+  id: string;
+  name: string;
+  phone: string;
+}
 
 // AI-related Schemas for summarizeReports flow
 const OperatorReportSchema = z.object({
