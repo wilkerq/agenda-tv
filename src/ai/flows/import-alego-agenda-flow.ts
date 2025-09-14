@@ -91,7 +91,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-lite',
       output: { schema: z.array(AlegoEventSchema) },
-      prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de eventos brutos extraídos do site oficial, aplicar regras de negócio e retornar uma lista de eventos prontos para serem salvos.
+      prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de eventos brutos extraídos do site oficial, aplicar regras de negócio e retornar uma lista de eventos prontos para serem salvos. O ano atual é ${new Date().getFullYear()}.
 
 **REGRAS OBRIGATÓRIAS:**
 
