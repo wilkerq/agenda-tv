@@ -22,7 +22,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-pro',
+    model: 'googleai/gemini-2.5-flash-lite',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     prompt: `Você é um agendador de eventos de alta precisão para a Assembleia Legislativa de Goiás (Alego). Sua tarefa é extrair detalhes de um evento a partir de uma imagem e, em seguida, aplicar regras de negócio para completar o agendamento. O ano atual é 2024.
