@@ -27,11 +27,6 @@ export default function ImportPage() {
           title: 'Importação Concluída!',
           description: `${result.count} novo(s) evento(s) foram importados e salvos com sucesso.`,
         });
-      } else {
-        toast({
-          title: 'Nenhum Evento Novo',
-          description: 'A agenda já está atualizada. Nenhum evento novo foi encontrado para importar.',
-        });
       }
 
     } catch (error) {
