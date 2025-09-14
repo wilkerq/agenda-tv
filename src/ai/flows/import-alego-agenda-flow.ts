@@ -12,7 +12,7 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 const AlegoEventSchema = z.object({
   name: z.string().describe('The full, detailed name of the event.'),
@@ -122,8 +122,8 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
 
     for (const event of processedEvents) {
       const eventDate = new Date(event.date);
-      const start = startOfDay(eventDate);
-      const end = endOfDay(eventDate);
+      const start = startOfMonth(eventDate);
+      const end = endOfMonth(eventDate);
 
       // Check if a similar event already exists to avoid duplicates
       const q = query(
