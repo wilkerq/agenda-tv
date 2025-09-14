@@ -12,7 +12,7 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { startOfMonth, endOfMonth, isValid } from 'date-fns';
+import { startOfMonth, endOfMonth, isValid, format, startOfDay } from 'date-fns';
 
 const AlegoEventSchema = z.object({
   name: z.string().describe('The full, detailed name of the event.'),
@@ -91,7 +91,13 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
       throw new Error("AI failed to process events.");
     }
     
-    const processedEvents = output.filter(event => event.date && isValid(new Date(event.date)));
+    const today = startOfDay(new Date());
+    const processedEvents = output.filter(event => {
+      if (!event.date) return false;
+      const eventDate = new Date(event.date);
+      return isValid(eventDate) && eventDate >= today;
+    });
+
 
     if (processedEvents.length === 0) {
         return { count: 0 };
@@ -101,12 +107,11 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
     const eventsCollection = collection(db, "events");
     let newEventsCount = 0;
 
-    // To avoid multiple queries for the same month, let's fetch all existing events for the relevant months once.
     const relevantMonths = [...new Set(processedEvents.map(e => format(new Date(e.date), 'yyyy-MM')))];
     const existingEventsInDb: { name: string, date: Date }[] = [];
 
     for (const monthStr of relevantMonths) {
-        const monthDate = new Date(monthStr + '-01T12:00:00Z'); // Use midday to avoid timezone issues
+        const monthDate = new Date(monthStr + '-01T12:00:00Z'); 
         const start = startOfMonth(monthDate);
         const end = endOfMonth(monthDate);
         const q = query(
@@ -124,10 +129,9 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
     for (const event of processedEvents) {
       const eventDate = new Date(event.date);
 
-      // Check if a similar event already exists to avoid duplicates
       const isDuplicate = existingEventsInDb.some(
           dbEvent => dbEvent.name === event.name && 
-                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 // Check if times are within a minute
+                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 
       );
 
       if (!isDuplicate) {
