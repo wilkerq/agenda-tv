@@ -12,20 +12,52 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { startOfMonth, endOfMonth, isValid, format, addDays, startOfDay } from 'date-fns';
-
-const AlegoEventSchema = z.object({
-  name: z.string().describe('The full, detailed name of the event.'),
-  date: z.string().describe('The event date and time in ISO 8601 format.'),
-  location: z.string().describe('The specific location of the event.'),
-  transmission: z.enum(['youtube', 'tv']).describe('The transmission type.'),
-  operator: z.string().describe('The assigned operator.'),
-});
+import { addDays, startOfDay, isValid, format, startOfMonth, endOfMonth } from 'date-fns';
 
 const ImportAlegoAgendaOutputSchema = z.object({
   count: z.number().describe('The number of new events imported.'),
 });
 export type ImportAlegoAgendaOutput = z.infer<typeof ImportAlegoAgendaOutputSchema>;
+
+
+const monthMap: { [key: string]: number } = {
+    'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5,
+    'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
+};
+
+interface ProcessedEvent {
+    name: string;
+    date: Date;
+    location: string;
+    transmission: 'youtube' | 'tv';
+    operator: string;
+}
+
+// Function to assign operator based on rules
+const assignOperator = (date: Date, location: string): string => {
+    const hour = date.getHours();
+
+    if (location === 'Sala Julio da Retifica "CCJR"') {
+        return "Mário Augusto";
+    }
+
+    // Weekday shifts
+    if (hour < 12) return "Rodrigo Sousa"; // Morning
+    if (hour >= 12 && hour < 18) { // Afternoon
+        const operators = ["Ovidio Dias", "Mário Augusto", "Bruno Michel"];
+        return operators[Math.floor(Math.random() * operators.length)];
+    }
+    return "Bruno Michel"; // Night
+};
+
+// Function to determine transmission type
+const determineTransmission = (eventName: string): 'youtube' | 'tv' => {
+    const lowerEventName = eventName.toLowerCase();
+    if (lowerEventName.includes("sessão") || lowerEventName.includes("comissão")) {
+        return "tv";
+    }
+    return "youtube";
+};
 
 export async function importAlegoAgenda(): Promise<ImportAlegoAgendaOutput> {
   return importAlegoAgendaFlow();
@@ -37,91 +69,86 @@ const importAlegoAgendaFlow = ai.defineFlow(
     outputSchema: ImportAlegoAgendaOutputSchema,
   },
   async () => {
-    const allEventsHtml: string[] = [];
+    const processedEvents: ProcessedEvent[] = [];
     const today = new Date();
+    const currentYear = today.getFullYear();
 
-    // 1. Loop through the next 15 days and fetch HTML for each day
     for (let i = 0; i < 15; i++) {
-      const targetDate = addDays(today, i);
-      const dateString = format(targetDate, 'dd/MM/yyyy');
-      const url = `https://portal.al.go.leg.br/agenda?data=${dateString}`;
-      
-      try {
-        const response = await fetch(url, { cache: 'no-store' });
-        if (!response.ok) {
-          console.warn(`Failed to fetch agenda for ${dateString}: ${response.statusText}`);
-          continue; // Skip to the next day
+        const targetDate = addDays(today, i);
+        const dateString = format(targetDate, 'dd/MM/yyyy');
+        const url = `https://portal.al.go.leg.br/agenda?data=${dateString}`;
+        
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) {
+                console.warn(`Failed to fetch agenda for ${dateString}: ${response.statusText}`);
+                continue;
+            }
+            const html = await response.text();
+            const root = parse(html);
+
+            const eventElements = root.querySelectorAll('.compromisso-item');
+
+            for (const el of eventElements) {
+                const timeStr = el.querySelector('.compromisso-horario')?.text.trim(); // "HH:mm"
+                const name = el.querySelector('.compromisso-titulo')?.text.trim();
+                const location = el.querySelector('.compromisso-local')?.text.trim();
+                
+                // Date parts are outside the item, so we re-fetch them from the context of the page
+                const dayStr = root.querySelector('.compromisso-dia')?.text.trim(); // "DD"
+                const monthStr = root.querySelector('.compromisso-mes')?.text.trim().toLowerCase(); // "MÊS"
+                
+                if (!timeStr || !name || !location || !dayStr || !monthStr) {
+                    continue; // Skip if essential info is missing
+                }
+                
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                const day = parseInt(dayStr);
+                const month = monthMap[monthStr];
+
+                if (isNaN(hours) || isNaN(minutes) || isNaN(day) || month === undefined) {
+                    continue; // Skip if date/time parts are invalid
+                }
+                
+                const eventDate = new Date(currentYear, month, day, hours, minutes);
+
+                if (!isValid(eventDate)) {
+                    continue;
+                }
+
+                processedEvents.push({
+                    name,
+                    date: eventDate,
+                    location,
+                    transmission: determineTransmission(name),
+                    operator: assignOperator(eventDate, location),
+                });
+            }
+
+        } catch (error) {
+            console.error(`Error fetching or parsing agenda for ${dateString}:`, error);
         }
-        const html = await response.text();
-        const root = parse(html);
-
-        const eventElements = root.querySelectorAll('.compromisso-item');
-        if (eventElements.length > 0) {
-            eventElements.forEach(el => allEventsHtml.push(el.toString()));
-        }
-      } catch (error) {
-        console.error(`Error fetching or parsing agenda for ${dateString}:`, error);
-      }
-    }
-    
-    if (allEventsHtml.length === 0) {
-      return { count: 0 };
     }
 
-    // 2. Use AI to process and enrich the event data from raw HTML
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-lite',
-      output: { schema: z.array(AlegoEventSchema) },
-      prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de blocos HTML, onde cada bloco representa um evento, e retornar uma lista de objetos de evento prontos para serem salvos. O ano atual é ${new Date().getFullYear()}.
-
-Para cada bloco HTML na lista, você deve:
-1. Extrair o nome completo do evento, a data, a hora e o local. A data estará no formato "DD de MÊS de AAAA". Combine a data e a hora em uma única string ISO 8601.
-2. Aplicar as seguintes regras de negócio para determinar a transmissão e o operador.
-
-**REGRAS OBRIGATÓRIAS:**
-
-1.  **Determinar Tipo de Transmissão (transmission):**
-    *   Se o nome do evento contiver "Sessão" ou "Comissão", a transmissão DEVE ser "tv".
-    *   Para TODOS os outros tipos de evento (ex: "Audiência Pública", "Solenidade"), a transmissão DEVE ser "youtube".
-
-2.  **Atribuir Operador (operator):**
-    *   Você DEVE atribuir um operador com base na seguinte hierarquia de regras.
-    *   **Regra 1: Local Específico (Prioridade Máxima)**
-        *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto".
-    *   **Regra 2: Turnos Durante a Semana (Lógica Padrão)**
-        *   Use a data/hora do evento para determinar o turno.
-        *   **Manhã (00:00 - 12:00):** O operador padrão é "Rodrigo Sousa".
-        *   **Tarde (12:01 - 18:00):** O operador DEVE ser um destes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um aleatoriamente.
-        *   **Noite (após 18:00):** O operador padrão é "Bruno Michel".
-
-**Dados Brutos dos Eventos (HTML):**
-${JSON.stringify(allEventsHtml, null, 2)}
-
-Sua única saída deve ser um array JSON de eventos processados. Não inclua eventos que não puderam ser totalmente analisados ou que não tenham data e hora.`,
-    });
-
-    if (!output || output.length === 0) {
-      return { count: 0 };
+    if (processedEvents.length === 0) {
+        return { count: 0 };
     }
-    
-    // Filter out invalid or past events
-    const validProcessedEvents = output.filter(event => {
-      if (!event.date) return false;
-      const eventDate = new Date(event.date);
-      return isValid(eventDate) && eventDate >= startOfDay(today);
-    });
 
+    // Filter out past events
+    const validProcessedEvents = processedEvents.filter(event => 
+        event.date >= startOfDay(today)
+    );
 
     if (validProcessedEvents.length === 0) {
         return { count: 0 };
     }
-
+    
     const batch = writeBatch(db);
     const eventsCollection = collection(db, "events");
     let newEventsCount = 0;
 
     // Fetch existing events for the relevant months to avoid duplicates
-    const relevantMonths = [...new Set(validProcessedEvents.map(e => format(new Date(e.date), 'yyyy-MM')))];
+    const relevantMonths = [...new Set(validProcessedEvents.map(e => format(e.date, 'yyyy-MM')))];
     const existingEventsInDb: { name: string, date: Date }[] = [];
 
     for (const monthStr of relevantMonths) {
@@ -142,18 +169,16 @@ Sua única saída deve ser um array JSON de eventos processados. Não inclua eve
 
     // Compare and add only new events
     for (const event of validProcessedEvents) {
-      const eventDate = new Date(event.date);
-
       const isDuplicate = existingEventsInDb.some(
           dbEvent => dbEvent.name === event.name && 
-                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 // 1 minute tolerance
+                     Math.abs(dbEvent.date.getTime() - event.date.getTime()) < 60000 // 1 minute tolerance
       );
 
       if (!isDuplicate) {
-        const newEventRef = doc(eventsCollection); // Create a new document reference
+        const newEventRef = doc(eventsCollection);
         batch.set(newEventRef, {
           ...event,
-          date: Timestamp.fromDate(eventDate),
+          date: Timestamp.fromDate(event.date),
           color: getRandomColor(),
         });
         newEventsCount++;
