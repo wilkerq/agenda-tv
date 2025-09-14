@@ -3,16 +3,16 @@
 /**
  * @fileOverview A flow to import events from the official Alego agenda website.
  *
- * - importAlegoAgenda - Fetches, parses, and saves events from the Alego website.
+ * - importAlegoAgenda - Fetches, parses, and saves events from the Alego website for the next 15 days.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'firebase/firestore';
+import { collection, writeBatch, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { startOfMonth, endOfMonth, isValid, format, startOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, isValid, format, addDays, startOfDay } from 'date-fns';
 
 const AlegoEventSchema = z.object({
   name: z.string().describe('The full, detailed name of the event.'),
@@ -37,31 +37,45 @@ const importAlegoAgendaFlow = ai.defineFlow(
     outputSchema: ImportAlegoAgendaOutputSchema,
   },
   async () => {
-    const url = 'https://portal.al.go.leg.br/agenda';
-    
-    // 1. Fetch HTML from the official agenda URL
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch agenda: ${response.statusText}`);
-    }
-    const html = await response.text();
-    const root = parse(html);
+    const allEventsHtml: string[] = [];
+    const today = new Date();
 
-    // 2. Extract HTML blocks for each event
-    const eventElements = root.querySelectorAll('.compromisso-item');
-    if (eventElements.length === 0) {
+    // 1. Loop through the next 15 days and fetch HTML for each day
+    for (let i = 0; i < 15; i++) {
+      const targetDate = addDays(today, i);
+      const dateString = format(targetDate, 'dd/MM/yyyy');
+      const url = `https://portal.al.go.leg.br/agenda?data=${dateString}`;
+      
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) {
+          console.warn(`Failed to fetch agenda for ${dateString}: ${response.statusText}`);
+          continue; // Skip to the next day
+        }
+        const html = await response.text();
+        const root = parse(html);
+
+        const eventElements = root.querySelectorAll('.compromisso-item');
+        if (eventElements.length > 0) {
+            eventElements.forEach(el => allEventsHtml.push(el.toString()));
+        }
+      } catch (error) {
+        console.error(`Error fetching or parsing agenda for ${dateString}:`, error);
+      }
+    }
+    
+    if (allEventsHtml.length === 0) {
       return { count: 0 };
     }
-    const eventHtmlStrings = eventElements.map(el => el.toString());
 
-    // 3. Use AI to process and enrich the event data from raw HTML
+    // 2. Use AI to process and enrich the event data from raw HTML
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-lite',
       output: { schema: z.array(AlegoEventSchema) },
       prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de blocos HTML, onde cada bloco representa um evento, e retornar uma lista de objetos de evento prontos para serem salvos. O ano atual é ${new Date().getFullYear()}.
 
 Para cada bloco HTML na lista, você deve:
-1. Extrair o nome completo do evento, a data, a hora e o local. A data está no formato "DD de MÊS de AAAA". Combine a data e a hora em uma única string ISO 8601.
+1. Extrair o nome completo do evento, a data, a hora e o local. A data estará no formato "DD de MÊS de AAAA". Combine a data e a hora em uma única string ISO 8601.
 2. Aplicar as seguintes regras de negócio para determinar a transmissão e o operador.
 
 **REGRAS OBRIGATÓRIAS:**
@@ -81,25 +95,24 @@ Para cada bloco HTML na lista, você deve:
         *   **Noite (após 18:00):** O operador padrão é "Bruno Michel".
 
 **Dados Brutos dos Eventos (HTML):**
-${JSON.stringify(eventHtmlStrings, null, 2)}
+${JSON.stringify(allEventsHtml, null, 2)}
 
-Sua única saída deve ser um array JSON de eventos processados, seguindo o schema. Não inclua eventos que não puderam ser totalmente analisados.
-`,
+Sua única saída deve ser um array JSON de eventos processados. Não inclua eventos que não puderam ser totalmente analisados ou que não tenham data e hora.`,
     });
 
-    if (!output) {
-      throw new Error("AI failed to process events.");
+    if (!output || output.length === 0) {
+      return { count: 0 };
     }
     
-    const today = startOfDay(new Date());
-    const processedEvents = output.filter(event => {
+    // Filter out invalid or past events
+    const validProcessedEvents = output.filter(event => {
       if (!event.date) return false;
       const eventDate = new Date(event.date);
-      return isValid(eventDate) && eventDate >= today;
+      return isValid(eventDate) && eventDate >= startOfDay(today);
     });
 
 
-    if (processedEvents.length === 0) {
+    if (validProcessedEvents.length === 0) {
         return { count: 0 };
     }
 
@@ -107,11 +120,12 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
     const eventsCollection = collection(db, "events");
     let newEventsCount = 0;
 
-    const relevantMonths = [...new Set(processedEvents.map(e => format(new Date(e.date), 'yyyy-MM')))];
+    // Fetch existing events for the relevant months to avoid duplicates
+    const relevantMonths = [...new Set(validProcessedEvents.map(e => format(new Date(e.date), 'yyyy-MM')))];
     const existingEventsInDb: { name: string, date: Date }[] = [];
 
     for (const monthStr of relevantMonths) {
-        const monthDate = new Date(monthStr + '-01T12:00:00Z'); 
+        const monthDate = new Date(monthStr + '-01T00:00:00Z');
         const start = startOfMonth(monthDate);
         const end = endOfMonth(monthDate);
         const q = query(
@@ -126,12 +140,13 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
         });
     }
 
-    for (const event of processedEvents) {
+    // Compare and add only new events
+    for (const event of validProcessedEvents) {
       const eventDate = new Date(event.date);
 
       const isDuplicate = existingEventsInDb.some(
           dbEvent => dbEvent.name === event.name && 
-                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 
+                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 // 1 minute tolerance
       );
 
       if (!isDuplicate) {
@@ -145,7 +160,9 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
       }
     }
 
-    await batch.commit();
+    if (newEventsCount > 0) {
+      await batch.commit();
+    }
 
     return { count: newEventsCount };
   }
