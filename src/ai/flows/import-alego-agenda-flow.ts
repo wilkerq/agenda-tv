@@ -89,17 +89,22 @@ const importAlegoAgendaFlow = ai.defineFlow(
 
             const eventElements = root.querySelectorAll('.compromisso-item');
 
+            // Date parts are outside the item, so we fetch them from the context of the page
+            const dayStr = root.querySelector('.compromisso-dia')?.text.trim(); // "DD"
+            const monthStrRaw = root.querySelector('.compromisso-mes')?.text.trim(); // "MÊS"
+            
+            if (!dayStr || !monthStrRaw) {
+                continue; // No events on this day, skip to the next day in the loop
+            }
+            const monthStr = monthStrRaw.toLowerCase();
+
             for (const el of eventElements) {
                 const timeStr = el.querySelector('.compromisso-horario')?.text.trim(); // "HH:mm"
                 const name = el.querySelector('.compromisso-titulo')?.text.trim();
                 const location = el.querySelector('.compromisso-local')?.text.trim();
                 
-                // Date parts are outside the item, so we re-fetch them from the context of the page
-                const dayStr = root.querySelector('.compromisso-dia')?.text.trim(); // "DD"
-                const monthStr = root.querySelector('.compromisso-mes')?.text.trim().toLowerCase(); // "MÊS"
-                
-                if (!timeStr || !name || !location || !dayStr || !monthStr) {
-                    continue; // Skip if essential info is missing
+                if (!timeStr || !name || !location) {
+                    continue; // Skip if essential info is missing from the event item
                 }
                 
                 const [hours, minutes] = timeStr.split(':').map(Number);
