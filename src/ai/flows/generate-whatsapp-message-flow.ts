@@ -1,9 +1,9 @@
 
 'use server';
 /**
- * @fileOverview A flow for generating a friendly WhatsApp message for an operator's schedule.
+ * @fileOverview A flow for generating a friendly WhatsApp message and sending it via n8n.
  *
- * - generateWhatsAppMessage - A function that creates a message from a list of events.
+ * - generateWhatsAppMessage - Creates a message and sends it to an n8n webhook.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,7 +13,10 @@ import {
     WhatsAppMessageOutput, 
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
+import { config } from 'dotenv';
 
+// Load environment variables from .env file
+config();
 
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {
@@ -23,7 +26,7 @@ export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Prom
 // Prompt Definition
 const prompt = ai.definePrompt({
   name: 'generateWhatsAppMessagePrompt',
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-pro',
   input: { schema: WhatsAppMessageInputSchema },
   output: { schema: WhatsAppMessageOutputSchema },
   prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
@@ -66,7 +69,43 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
     outputSchema: WhatsAppMessageOutputSchema,
   },
   async (input) => {
+    // 1. Generate the message using the LLM
     const { output } = await prompt(input);
-    return output!;
+    if (!output?.message) {
+      throw new Error("Failed to generate message text.");
+    }
+    
+    // 2. Send the generated message to the n8n webhook
+    const webhookUrl = process.env.N8N_WEBHOOK_URL;
+    
+    if (!webhookUrl || webhookUrl === 'INSIRA_SUA_URL_AQUI') {
+      console.warn('N8N_WEBHOOK_URL not set. Skipping automatic sending.');
+      // Return the message so it can be manually copied
+      return { message: output.message, sent: false };
+    }
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: input.operatorPhone,
+          message: output.message,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`n8n webhook returned status ${response.status}`);
+      }
+
+       return { message: output.message, sent: true };
+
+    } catch (error) {
+      console.error('Error sending message to n8n webhook:', error);
+      // Return the message anyway, but indicate it was not sent
+      return { message: output.message, sent: false };
+    }
   }
 );

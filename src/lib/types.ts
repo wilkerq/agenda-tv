@@ -93,6 +93,7 @@ export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
 // AI-related Schemas for generate-whatsapp-message flow
 export const WhatsAppMessageInputSchema = z.object({
   operatorName: z.string().describe("The name of the operator."),
+  operatorPhone: z.string().describe("The phone number of the operator for sending the message."),
   scheduleDate: z.string().describe("The date of the schedule (e.g., 'terça-feira, 13 de agosto de 2024')."),
   events: z.array(z.string()).describe("A list of formatted event strings, each including time, name, and location."),
 });
@@ -100,8 +101,10 @@ export type WhatsAppMessageInput = z.infer<typeof WhatsAppMessageInputSchema>;
 
 export const WhatsAppMessageOutputSchema = z.object({
   message: z.string().describe("The full, friendly, and formatted WhatsApp message."),
+  sent: z.boolean().describe("Indicates whether the message was successfully sent to the webhook."),
 });
 export type WhatsAppMessageOutput = z.infer<typeof WhatsAppMessageOutputSchema>;
+
 
 // AI-related Schemas for generate-daily-agenda flow
 export const DailyAgendaInputSchema = z.object({

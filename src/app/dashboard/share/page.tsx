@@ -14,8 +14,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { addDays, startOfDay, endOfDay, format, isSameDay, getHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Share2, Bot } from "lucide-react";
+import { Loader2, Share2, Bot, Send } from "lucide-react";
 import { generateWhatsAppMessage } from "@/ai/flows/generate-whatsapp-message-flow";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -31,7 +32,7 @@ const getEventStatus = (date: Date): EventStatus => {
 export default function ShareSchedulePage() {
   const [operators, setOperators] = useState<Operator[]>([]);
   const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(addDays(new Date(), 1));
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [message, setMessage] = useState("");
   const [isFetchingEvents, setIsFetchingEvents] = useState(false);
@@ -49,6 +50,11 @@ export default function ShareSchedulePage() {
     });
     return () => unsubscribe();
   }, []);
+  
+  useEffect(() => {
+    // Set the initial date on the client side to avoid hydration mismatch
+    setSelectedDate(new Date());
+  }, []);
 
   const selectedOperator = useMemo(() => {
     return operators.find(op => op.id === selectedOperatorId);
@@ -62,13 +68,18 @@ export default function ShareSchedulePage() {
 
     setIsFetchingEvents(true);
     try {
+      const startOfSelectedDay = startOfDay(selectedDate);
+      const endOfSelectedDay = endOfDay(selectedDate);
+
       const q = query(
         collection(db, "events"),
-        where("operator", "==", selectedOperator.name)
+        where("operator", "==", selectedOperator.name),
+        where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
+        where("date", "<=", Timestamp.fromDate(endOfSelectedDay))
       );
 
       const querySnapshot = await getDocs(q);
-      const allEventsForOperator = querySnapshot.docs.map(doc => {
+      const eventsForDate = querySnapshot.docs.map(doc => {
         const data = doc.data();
         const eventDate = (data.date as Timestamp).toDate();
         return {
@@ -82,11 +93,7 @@ export default function ShareSchedulePage() {
           status: getEventStatus(eventDate),
           turn: getEventTurn(eventDate),
         } as Event;
-      });
-
-      const eventsForDate = allEventsForOperator
-        .filter(event => isSameDay(event.date, selectedDate))
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
+      }).sort((a, b) => a.date.getTime() - b.date.getTime());
 
       setEvents(eventsForDate);
 
@@ -108,10 +115,10 @@ export default function ShareSchedulePage() {
   }, [fetchEvents]);
   
   const handleGenerateMessage = useCallback(async () => {
-    if (!selectedOperator) return;
+    if (!selectedOperator || !selectedDate) return;
 
     if (events.length === 0) {
-        const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
+        const dateStr = format(selectedDate, "dd/MM/yyyy");
         setMessage(`Nenhum evento encontrado para ${selectedOperator.name} em ${dateStr}.`);
         return;
     }
@@ -121,19 +128,30 @@ export default function ShareSchedulePage() {
         const eventStrings = events.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
         const result = await generateWhatsAppMessage({
             operatorName: selectedOperator.name,
-            scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
+            scheduleDate: format(selectedDate, "PPPP", { locale: ptBR }),
             events: eventStrings,
+            operatorPhone: selectedOperator.phone,
         });
         setMessage(result.message);
-         toast({
-            title: "Mensagem Gerada!",
-            description: "A mensagem para o WhatsApp foi criada com sucesso.",
-        });
+        if (result.sent) {
+            toast({
+                title: "Mensagem Enviada!",
+                description: `A agenda foi enviada para ${selectedOperator.name} via WhatsApp.`,
+                className: "bg-green-100 border-green-300 text-green-800"
+            });
+        } else {
+            toast({
+                title: "Mensagem Gerada!",
+                description: "A mensagem foi criada. O envio automático não está configurado. Envie manualmente.",
+                variant: "default"
+            });
+        }
+
     } catch (error) {
          console.error("Error generating message: ", error);
          toast({
             title: "Erro de IA",
-            description: "Não foi possível gerar a mensagem.",
+            description: "Não foi possível gerar ou enviar a mensagem.",
             variant: "destructive",
         });
     } finally {
@@ -141,7 +159,7 @@ export default function ShareSchedulePage() {
     }
   }, [events, selectedOperator, selectedDate, toast]);
 
-  const handleShare = () => {
+  const handleShareManually = () => {
     if (!message) {
       toast({
         title: "Mensagem vazia",
@@ -151,11 +169,9 @@ export default function ShareSchedulePage() {
       return;
     }
 
-    let url = `https://api.whatsapp.com/send/?text=${encodeURIComponent(message)}`;
-    if (selectedOperator?.phone) {
-        const phone = selectedOperator.phone.replace(/\D/g, ''); // Remove non-digits
-        url = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-    }
+    const phone = selectedOperator?.phone?.replace(/\D/g, '') || '';
+    const text = encodeURIComponent(message);
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${text}`;
     
     window.open(url, "_blank");
   };
@@ -168,7 +184,7 @@ export default function ShareSchedulePage() {
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
-            <CardDescription>Selecione o operador e a data para gerar a agenda.</CardDescription>
+            <CardDescription>Selecione o operador e a data para gerar e enviar a agenda.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
@@ -192,14 +208,14 @@ export default function ShareSchedulePage() {
                     onSelect={setSelectedDate}
                     className="p-0 border rounded-md"
                     locale={ptBR}
-                    disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
+                    disabled={(date) => date < startOfDay(new Date())}
                 />
             </div>
           </CardContent>
            <CardFooter>
-             <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || !selectedOperatorId || !selectedDate}>
-                {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                Gerar Mensagem com IA
+             <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || !selectedOperatorId || !selectedDate || !hasEvents}>
+                {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {isGeneratingMessage ? "Enviando..." : "Gerar e Enviar Agenda"}
             </Button>
            </CardFooter>
         </Card>
@@ -214,11 +230,18 @@ export default function ShareSchedulePage() {
                 ? "Buscando eventos..." 
                 : hasEvents && selectedOperator
                   ? `Agenda de ${selectedOperator.name} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`
-                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'operador'} na data selecionada.`
+                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'o operador'} na data selecionada.`
               }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+             <Alert>
+                <Bot className="h-4 w-4" />
+                <AlertTitle>Envio Automático</AlertTitle>
+                <AlertDescription>
+                  Ao clicar em "Gerar e Enviar", a mensagem abaixo será enviada automaticamente para o WhatsApp do operador via n8n. Se precisar, você pode editá-la antes de enviar ou usar o botão de compartilhamento manual.
+                </AlertDescription>
+            </Alert>
             <div className="space-y-2">
                 <Label htmlFor="whatsapp-message">Mensagem para WhatsApp</Label>
                 <Textarea
@@ -226,15 +249,15 @@ export default function ShareSchedulePage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={10}
-                    placeholder={isGeneratingMessage ? "Gerando mensagem..." : "Clique em 'Gerar Mensagem' ou escreva sua mensagem aqui."}
+                    placeholder={isGeneratingMessage ? "Gerando mensagem..." : "A mensagem para o operador aparecerá aqui."}
                     readOnly={isGeneratingMessage}
                 />
             </div>
           </CardContent>
           <CardFooter>
-             <Button onClick={handleShare} disabled={!message || isGeneratingMessage}>
+             <Button onClick={handleShareManually} disabled={!message || isGeneratingMessage} variant="outline">
               <Share2 className="mr-2 h-4 w-4" />
-              Compartilhar no WhatsApp
+              Compartilhar Manualmente
             </Button>
           </CardFooter>
         </Card>
