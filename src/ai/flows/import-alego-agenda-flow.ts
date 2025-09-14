@@ -12,7 +12,7 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { startOfMonth, endOfMonth, startOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, isValid } from 'date-fns';
 
 const AlegoEventSchema = z.object({
   name: z.string().describe('The full, detailed name of the event.'),
@@ -47,51 +47,22 @@ const importAlegoAgendaFlow = ai.defineFlow(
     const html = await response.text();
     const root = parse(html);
 
-    // 2. Extract raw event data from the HTML
+    // 2. Extract HTML blocks for each event
     const eventElements = root.querySelectorAll('.compromisso-item');
-    const rawEvents: { name: string, date: string, location: string }[] = [];
-    
-    const monthMap: { [key: string]: number } = {
-        'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5, 
-        'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
-    };
-
-    eventElements.forEach(item => {
-        try {
-            const dateText = item.querySelector('.compromisso-data')?.text.trim(); // "13 de AGOSTO de 2024"
-            const timeStr = item.querySelector('.compromisso-horario')?.text.trim().replace('h', ':'); // "09:00"
-            const name = item.querySelector('.compromisso-titulo a')?.text.trim();
-            const location = item.querySelector('.compromisso-local')?.text.trim();
-
-            if (dateText && timeStr && name && location) {
-                const dateParts = dateText.split(' de ');
-                const day = parseInt(dateParts[0]);
-                const monthName = dateParts[1];
-                const year = parseInt(dateParts[2]);
-                
-                const month = monthMap[monthName.toLowerCase()];
-
-                const [hour, minute] = timeStr.split(':').map(Number);
-                
-                if (!isNaN(day) && month !== undefined && !isNaN(year) && !isNaN(hour) && !isNaN(minute)) {
-                    const eventDate = new Date(year, month, day, hour, minute);
-                    rawEvents.push({ name, date: eventDate.toISOString(), location });
-                }
-            }
-        } catch (e) {
-            console.warn("Skipping an event due to parsing error:", e);
-        }
-    });
-
-    if (rawEvents.length === 0) {
+    if (eventElements.length === 0) {
       return { count: 0 };
     }
+    const eventHtmlStrings = eventElements.map(el => el.toString());
 
-    // 3. Use AI to process and enrich the event data
+    // 3. Use AI to process and enrich the event data from raw HTML
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash-lite',
       output: { schema: z.array(AlegoEventSchema) },
-      prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de eventos brutos extraídos do site oficial, aplicar regras de negócio e retornar uma lista de eventos prontos para serem salvos. O ano atual é ${new Date().getFullYear()}.
+      prompt: `Você é um assistente de agendamento especialista da Alego. Sua tarefa é processar uma lista de blocos HTML, onde cada bloco representa um evento, e retornar uma lista de objetos de evento prontos para serem salvos. O ano atual é ${new Date().getFullYear()}.
+
+Para cada bloco HTML na lista, você deve:
+1. Extrair o nome completo do evento, a data, a hora e o local. A data está no formato "DD de MÊS de AAAA". Combine a data e a hora em uma única string ISO 8601.
+2. Aplicar as seguintes regras de negócio para determinar a transmissão e o operador.
 
 **REGRAS OBRIGATÓRIAS:**
 
@@ -100,19 +71,19 @@ const importAlegoAgendaFlow = ai.defineFlow(
     *   Para TODOS os outros tipos de evento (ex: "Audiência Pública", "Solenidade"), a transmissão DEVE ser "youtube".
 
 2.  **Atribuir Operador (operator):**
-    *   Você DEVE atribuir um operador com base na seguinte hierarquia de regras. A primeira regra que corresponder determina o operador.
+    *   Você DEVE atribuir um operador com base na seguinte hierarquia de regras.
     *   **Regra 1: Local Específico (Prioridade Máxima)**
         *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto".
     *   **Regra 2: Turnos Durante a Semana (Lógica Padrão)**
         *   Use a data/hora do evento para determinar o turno.
         *   **Manhã (00:00 - 12:00):** O operador padrão é "Rodrigo Sousa".
-        *   **Tarde (12:01 - 18:00):** O operador DEVE ser um destes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um.
+        *   **Tarde (12:01 - 18:00):** O operador DEVE ser um destes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um aleatoriamente.
         *   **Noite (após 18:00):** O operador padrão é "Bruno Michel".
 
-**Dados Brutos dos Eventos:**
-${JSON.stringify(rawEvents, null, 2)}
+**Dados Brutos dos Eventos (HTML):**
+${JSON.stringify(eventHtmlStrings, null, 2)}
 
-Sua única saída deve ser um array JSON de eventos processados, seguindo o schema.
+Sua única saída deve ser um array JSON de eventos processados, seguindo o schema. Não inclua eventos que não puderam ser totalmente analisados.
 `,
     });
 
@@ -120,28 +91,46 @@ Sua única saída deve ser um array JSON de eventos processados, seguindo o sche
       throw new Error("AI failed to process events.");
     }
     
-    const processedEvents = output;
+    const processedEvents = output.filter(event => event.date && isValid(new Date(event.date)));
+
+    if (processedEvents.length === 0) {
+        return { count: 0 };
+    }
+
     const batch = writeBatch(db);
     const eventsCollection = collection(db, "events");
     let newEventsCount = 0;
 
+    // To avoid multiple queries for the same month, let's fetch all existing events for the relevant months once.
+    const relevantMonths = [...new Set(processedEvents.map(e => format(new Date(e.date), 'yyyy-MM')))];
+    const existingEventsInDb: { name: string, date: Date }[] = [];
+
+    for (const monthStr of relevantMonths) {
+        const monthDate = new Date(monthStr + '-01T12:00:00Z'); // Use midday to avoid timezone issues
+        const start = startOfMonth(monthDate);
+        const end = endOfMonth(monthDate);
+        const q = query(
+            eventsCollection,
+            where('date', '>=', Timestamp.fromDate(start)),
+            where('date', '<=', Timestamp.fromDate(end))
+        );
+        const snapshot = await getDocs(q);
+        snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            existingEventsInDb.push({ name: data.name, date: (data.date as Timestamp).toDate() });
+        });
+    }
+
     for (const event of processedEvents) {
       const eventDate = new Date(event.date);
-      
-      // Define the start and end of the month for the query
-      const start = startOfMonth(eventDate);
-      const end = endOfMonth(eventDate);
 
       // Check if a similar event already exists to avoid duplicates
-      const q = query(
-        eventsCollection,
-        where('name', '==', event.name),
-        where('date', '>=', Timestamp.fromDate(start)),
-        where('date', '<=', Timestamp.fromDate(end))
+      const isDuplicate = existingEventsInDb.some(
+          dbEvent => dbEvent.name === event.name && 
+                     Math.abs(dbEvent.date.getTime() - eventDate.getTime()) < 60000 // Check if times are within a minute
       );
-      const existingEvents = await getDocs(q);
 
-      if (existingEvents.empty) {
+      if (!isDuplicate) {
         const newEvent = {
           ...event,
           date: Timestamp.fromDate(eventDate),
