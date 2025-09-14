@@ -12,18 +12,12 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { parse } from 'node-html-parser';
-import { addDays, startOfDay, isValid, format, startOfMonth, endOfMonth } from 'date-fns';
+import { addDays, startOfDay, isValid, format, startOfMonth, endOfMonth, parse as parseDate } from 'date-fns';
 
 const ImportAlegoAgendaOutputSchema = z.object({
   count: z.number().describe('The number of new events imported.'),
 });
 export type ImportAlegoAgendaOutput = z.infer<typeof ImportAlegoAgendaOutputSchema>;
-
-
-const monthMap: { [key: string]: number } = {
-    'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5,
-    'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
-};
 
 interface ProcessedEvent {
     name: string;
@@ -71,7 +65,6 @@ const importAlegoAgendaFlow = ai.defineFlow(
   async () => {
     const processedEvents: ProcessedEvent[] = [];
     const today = new Date();
-    const currentYear = today.getFullYear();
 
     for (let i = 0; i < 15; i++) {
         const targetDate = addDays(today, i);
@@ -88,34 +81,32 @@ const importAlegoAgendaFlow = ai.defineFlow(
             const root = parse(html);
 
             const eventElements = root.querySelectorAll('.compromisso-item');
-
-            // Date parts are outside the item, so we fetch them from the context of the page
-            const dayStr = root.querySelector('.compromisso-dia')?.text.trim(); // "DD"
-            const monthStrRaw = root.querySelector('.compromisso-mes')?.text.trim(); // "MÊS"
             
-            if (!dayStr || !monthStrRaw) {
-                continue; // No events on this day, skip to the next day in the loop
+            // Robust date extraction from the body's data attribute
+            const bodyDateStr = root.querySelector('body')?.getAttribute('data-dia-selecionado'); // "YYYY-MM-DD"
+            
+            if (!bodyDateStr || eventElements.length === 0) {
+                continue; // No events or date found for this day
             }
-            const monthStr = monthStrRaw.toLowerCase();
-
+            
+            const [year, month, day] = bodyDateStr.split('-').map(Number);
+            
             for (const el of eventElements) {
                 const timeStr = el.querySelector('.compromisso-horario')?.text.trim(); // "HH:mm"
                 const name = el.querySelector('.compromisso-titulo')?.text.trim();
                 const location = el.querySelector('.compromisso-local')?.text.trim();
                 
                 if (!timeStr || !name || !location) {
-                    continue; // Skip if essential info is missing from the event item
+                    continue; // Skip if essential info is missing
                 }
                 
                 const [hours, minutes] = timeStr.split(':').map(Number);
-                const day = parseInt(dayStr);
-                const month = monthMap[monthStr];
 
-                if (isNaN(hours) || isNaN(minutes) || isNaN(day) || month === undefined) {
+                if (isNaN(hours) || isNaN(minutes) || isNaN(day) || isNaN(month) || isNaN(year)) {
                     continue; // Skip if date/time parts are invalid
                 }
                 
-                const eventDate = new Date(currentYear, month, day, hours, minutes);
+                const eventDate = new Date(year, month - 1, day, hours, minutes);
 
                 if (!isValid(eventDate)) {
                     continue;
@@ -157,7 +148,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
     const existingEventsInDb: { name: string, date: Date }[] = [];
 
     for (const monthStr of relevantMonths) {
-        const monthDate = new Date(monthStr + '-01T00:00:00Z');
+        const monthDate = parseDate(monthStr, 'yyyy-MM', new Date());
         const start = startOfMonth(monthDate);
         const end = endOfMonth(monthDate);
         const q = query(
