@@ -6,3 +6,4 @@ import "./flows/suggest-operator-flow";
 import "./flows/generate-whatsapp-message-flow";
 import "./flows/generate-daily-agenda-flow";
 import "./flows/import-alego-agenda-flow";
+import "./flows/send-daily-agenda-to-all-flow";
