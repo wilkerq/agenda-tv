@@ -21,12 +21,6 @@ const SendDailyAgendaOutputSchema = z.object({
 });
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
-// Define an interface for the event structure we expect from Firestore
-interface OperatorEvent {
-    name: string;
-    location: string;
-    date: Date;
-}
 
 export async function sendDailyAgendaToAll(): Promise<SendDailyAgendaOutput> {
   return sendDailyAgendaToAllFlow();
@@ -61,12 +55,12 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
         const eventsSnapshot = await getDocs(eventsQuery);
         
-        // Correctly map and type the events
-        const operatorEvents: OperatorEvent[] = eventsSnapshot.docs.map(doc => {
+        // Explicitly type the mapped events
+        const operatorEvents = eventsSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
-                name: data.name,
-                location: data.location,
+                name: data.name as string,
+                location: data.location as string,
                 date: (data.date as Timestamp).toDate(),
             };
         });
