@@ -59,13 +59,19 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
         const eventsSnapshot = await getDocs(eventsQuery);
         
-        const operatorEvents = eventsSnapshot.docs.map(doc => {
-            // This is the definitive fix: cast data() to Event first.
-            const data = doc.data() as Event;
+        // Definitive fix: Explicitly construct the event object to ensure type safety.
+        const operatorEvents: Event[] = eventsSnapshot.docs.map(doc => {
+            const data = doc.data() as Omit<Event, 'id' | 'date'> & { date: Timestamp };
             return {
-                ...data,
                 id: doc.id,
-                date: (data.date as unknown as Timestamp).toDate(),
+                name: data.name,
+                location: data.location,
+                transmission: data.transmission,
+                color: data.color,
+                operator: data.operator,
+                status: data.status,
+                turn: data.turn,
+                date: data.date.toDate(),
             };
         });
 
@@ -93,3 +99,5 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     };
   }
 );
+
+    
