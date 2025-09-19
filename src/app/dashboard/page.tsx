@@ -243,6 +243,9 @@ export default function DashboardPage() {
           <DialogContent className="sm:max-w-[825px]">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
+               <CardDescription>
+                Ao preencher os campos de data, hora e local, a IA sugerirá o operador mais adequado com base nas regras de negócio e na escala.
+              </CardDescription>
             </DialogHeader>
             <div className="py-4">
               <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} onSuccess={handleAddSuccess} />
@@ -261,7 +264,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
                     <CardDescription>
-                        Faça o upload de uma imagem e descreva o que você precisa. A IA tentará preencher os detalhes do evento para você.
+                       Faça o upload de uma imagem e a IA tentará preencher os detalhes do evento para você, incluindo o operador e o tipo de transmissão, com base nas regras de negócio.
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">
