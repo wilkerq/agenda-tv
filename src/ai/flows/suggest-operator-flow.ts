@@ -106,6 +106,11 @@ const suggestOperatorFlow = ai.defineFlow(
             availableOperators,
         });
 
-        return output!;
+        // Handle cases where the LLM returns null instead of a valid JSON object
+        if (output === null) {
+            return { operator: undefined };
+        }
+
+        return output;
     }
 );
