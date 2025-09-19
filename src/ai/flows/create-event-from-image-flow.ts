@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for creating an event from an image using AI.
@@ -22,40 +21,40 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash-001',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `Você é um robô de automação para a Assembleia Legislativa de Goiás (Alego). Sua única função é extrair detalhes de uma imagem de evento e aplicar um conjunto de regras de negócio fixas para preencher um formulário. O ano atual é 2024. Sua saída DEVE estar em conformidade com o esquema JSON.
+    prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your sole function is to extract event details from an event image and apply a fixed set of business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
 
-**PROCESSO OBRIGATÓRIO EM DUAS ETAPAS:**
+**MANDATORY TWO-STEP PROCESS:**
 
-**Etapa 1: Extração de Dados da Imagem**
-Primeiro, analise a imagem para extrair os seguintes dados brutos.
+**Step 1: Data Extraction from Image**
+First, analyze the image to extract the following raw data.
 
-1.  **Nome do Evento (name):** Extraia o nome completo e detalhado do evento.
-2.  **Local (location):** Extraia o local específico (ex: "Plenário Iris Rezende Machado", "Auditório Carlos Vieira"). Se o nome de um edifício for fornecido, infira o salão mais importante dentro dele.
-3.  **Data (date):** Extraia a data do evento da imagem. Formate-a como 'AAAA-MM-DD'.
-4.  **Hora (time):** Extraia a hora do evento da imagem. Formate-a como 'HH:mm'. Se você não conseguir encontrar uma hora específica, DEVE retornar \`null\` para este campo. Não invente uma hora.
+1.  **Event Name (name):** Extract the full, detailed event name.
+2.  **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende Machado", "Auditório Carlos Vieira"). If a building name is provided, infer the most important hall within it.
+3.  **Date (date):** Extract the event date from the image. Format it as 'YYYY-MM-DD'.
+4.  **Time (time):** Extract the event time from the image. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
 
-**Etapa 2: Aplicação das Regras de Negócio (Lógica Obrigatória)**
-Depois de extrair os dados, aplique as seguintes regras para preencher os campos restantes. ESTAS REGRAS SÃO ABSOLUTAS E DEVEM SER SEGUIDAS.
+**Step 2: Business Rule Application (Mandatory Logic)**
+After extracting the data, apply the following rules to populate the remaining fields. THESE RULES ARE ABSOLUTE AND MUST BE FOLLOWED.
 
-1.  **Regra de Transmissão (transmission):**
-    *   Se o local extraído for "Plenário Iris Rezende Machado", você DEVE definir a transmissão como "tv".
-    *   Para TODOS os outros locais, você DEVE definir a transmissão como "youtube".
+1.  **Transmission Rule (transmission):**
+    *   If the extracted location is "Plenário Iris Rezende Machado", you MUST set the transmission to "tv".
+    *   For ALL other locations, you MUST set the transmission to "youtube".
 
-2.  **Regra de Atribuição de Operador (operator):**
-    *   Você DEVE atribuir um operador seguindo esta hierarquia. A primeira regra que corresponder determina o operador.
+2.  **Operator Assignment Rule (operator):**
+    *   You MUST assign an operator by following this hierarchy. The first rule that matches determines the operator.
 
-    *   **Regra 1: Local Específico (Prioridade Máxima)**
-        *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto".
+    *   **Rule 1: Specific Location (Highest Priority)**
+        *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto".
 
-    *   **Regra 2: Turnos Durante a Semana (Lógica Padrão)**
-        *   **Manhã (00:00 - 12:00):** O operador padrão é "Rodrigo Sousa".
-        *   **Tarde (12:01 - 18:00):** O operador DEVE ser um dos seguintes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um aleatoriamente.
-        *   **Noite (após 18:00):** O operador padrão é "Bruno Michel".
+    *   **Rule 2: Weekday Shifts (Default Logic)**
+        *   **Morning (00:00 - 12:00):** The default operator is "Rodrigo Sousa".
+        *   **Afternoon (12:01 - 18:00):** The operator MUST be one of the following: "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one at random.
+        *   **Night (after 18:00):** The default operator is "Bruno Michel".
 
-**Imagem para Análise:**
+**Image for Analysis:**
 {{media url=photoDataUri}}
 `,
 });

@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for suggesting an event operator based on scheduling rules.
@@ -33,50 +32,50 @@ export async function suggestOperator(input: OriginalSuggestOperatorInput): Prom
 
 const prompt = ai.definePrompt({
     name: 'suggestOperatorPrompt',
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash-001',
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
-    prompt: `Você é um assistente especialista em agendamento da Alego. Sua tarefa é determinar o operador mais adequado para um evento, usando a lista de operadores disponíveis e seguindo uma hierarquia de regras. O ano atual é 2024.
+    prompt: `You are an expert scheduling assistant for Alego. Your task is to determine the most suitable operator for an event, using the list of available operators and following a strict hierarchy of rules. The current year is 2024.
 
-**OPERADORES DISPONÍVEIS:**
+**AVAILABLE OPERATORS:**
 {{#each availableOperators}}
 - {{{this}}}
 {{/each}}
 
-**PROCESSO OBRIGATÓRIO:**
+**MANDATORY PROCESS:**
 
-1.  **Consultar Agenda (Passo 1):**
-    *   Primeiro, use a ferramenta \`getEventsForDay\` para obter a lista de eventos já agendados para a data fornecida. Isso é essencial para o contexto.
+1.  **Consult Schedule (Step 1):**
+    *   First, you MUST use the \`getEventsForDay\` tool to retrieve the list of events already scheduled for the given date. This is essential for context.
 
-2.  **Aplicar Regras de Atribuição (Passo 2):**
-    *   Com base no resultado da ferramenta e nos detalhes do evento, aplique a seguinte hierarquia de regras. A primeira regra que corresponder determina o operador.
-    *   Você DEVE escolher um operador da lista de "OPERADORES DISPONÍVEIS".
-    *   Após determinar o operador, seu único trabalho é retornar o nome dele no campo 'operator'. **NÃO chame mais nenhuma ferramenta.**
+2.  **Apply Assignment Rules (Step 2):**
+    *   Based on the tool's result and the event details, apply the following rule hierarchy. The first rule that matches determines the operator.
+    *   You MUST choose an operator from the "AVAILABLE OPERATORS" list.
+    *   After determining the operator, your only job is to return their name in the 'operator' field. **Do NOT call any more tools.**
 
-**HIERARQUIA DE REGRAS:**
+**RULE HIERARCHY:**
 
-*   **Regra 1: Local Específico (Prioridade Máxima)**
-    *   Se o local for "Sala Julio da Retifica \"CCJR\"", o operador DEVE ser "Mário Augusto" (se ele estiver na lista de disponíveis).
+*   **Rule 1: Specific Location (Highest Priority)**
+    *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto" (if he is in the available list).
 
-*   **Regra 2: Rotação de Fim de Semana (Sábado e Domingo)**
-    *   Se o evento for em um fim de semana, use o resultado da ferramenta \`getEventsForDay\` para ver quem trabalhou no último evento de fim de semana e atribua um operador **diferente** da lista de disponíveis.
+*   **Rule 2: Weekend Rotation (Saturday and Sunday)**
+    *   If the event is on a weekend, use the result from the \`getEventsForDay\` tool to see who worked the last weekend event and assign a **different** operator from the available list.
 
-*   **Regra 3: Turnos da Semana (Segunda a Sexta)**
-    *   **Manhã (00:00 - 12:00):**
-        *   O operador padrão é "Rodrigo Sousa" (se disponível).
-        *   Se já houver outro evento pela manhã (verificado com a ferramenta), você DEVE atribuir outro operador da lista de disponíveis.
-    *   **Tarde (12:01 - 18:00):**
-        *   Faça um rodízio entre os operadores da lista de disponíveis, considerando os eventos já agendados.
-    *   **Noite (após as 18:00):**
-        *   O operador padrão é "Bruno Michel" (se disponível).
-        *   Se já houver outro evento à noite (verificado com a ferramenta), você DEVE atribuir outro operador da lista.
+*   **Rule 3: Weekday Shifts (Monday to Friday)**
+    *   **Morning (00:00 - 12:00):**
+        *   The primary operator is "Rodrigo Sousa".
+        *   Check the schedule using the tool. If "Rodrigo Sousa" is already assigned to another event in the morning, you MUST assign another available operator. Otherwise, assign "Rodrigo Sousa".
+    *   **Afternoon (12:01 - 18:00):**
+        *   Rotate between the available operators, considering who is already scheduled to avoid overloading.
+    *   **Night (after 18:00):**
+        *   The primary operator is "Bruno Michel".
+        *   Check the schedule using the tool. If "Bruno Michel" is already assigned to another event at night, you MUST assign another available operator. Otherwise, assign "Bruno Michel".
 
-**Detalhes do Evento para Análise:**
-- **Data e Hora:** {{{date}}}
-- **Local:** {{{location}}}
+**Event Details for Analysis:**
+- **Date and Time:** {{{date}}}
+- **Location:** {{{location}}}
 
-Sua saída final deve ser um objeto JSON contendo apenas o campo "operator".
+Your final output must be a JSON object containing only the "operator" field.
 `,
 });
 
@@ -108,6 +107,7 @@ const suggestOperatorFlow = ai.defineFlow(
 
         // Handle cases where the LLM returns null instead of a valid JSON object
         if (output === null) {
+            console.warn("LLM returned null, defaulting to undefined operator.");
             return { operator: undefined };
         }
 
