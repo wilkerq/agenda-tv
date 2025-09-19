@@ -13,6 +13,8 @@ import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { Event } from '@/lib/types';
+
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -55,14 +57,13 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
         const eventsSnapshot = await getDocs(eventsQuery);
         
-        // Explicitly type the mapped events
         const operatorEvents = eventsSnapshot.docs.map(doc => {
             const data = doc.data();
+            // Force type assertion here to solve the build issue definitively
             return {
-                name: data.name as string,
-                location: data.location as string,
+                ...data,
                 date: (data.date as Timestamp).toDate(),
-            };
+            } as Event;
         });
 
         if (operatorEvents.length > 0) {
