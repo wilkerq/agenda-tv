@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Event } from '@/lib/types';
+import type { Event, Operator } from '@/lib/types';
 
 
 const SendDailyAgendaOutputSchema = z.object({
@@ -36,7 +36,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
   async () => {
     const operatorsCollection = collection(db, 'operators');
     const operatorsSnapshot = await getDocs(operatorsCollection);
-    const operators = operatorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as { id: string, name: string, phone: string }));
+    const operators = operatorsSnapshot.docs.map(doc => doc.data() as Operator);
 
     const tomorrow = addDays(new Date(), 1);
     const startOfTomorrow = startOfDay(tomorrow);
@@ -46,6 +46,8 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     const errors: string[] = [];
 
     for (const operator of operators) {
+      if (!operator.phone) continue; // Skip if operator has no phone number
+
       try {
         const eventsQuery = query(
           collection(db, "events"),
@@ -58,12 +60,13 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         const eventsSnapshot = await getDocs(eventsQuery);
         
         const operatorEvents = eventsSnapshot.docs.map(doc => {
-            const data = doc.data();
-            // Force type assertion here to solve the build issue definitively
+            // This is the definitive fix: cast data() to Event first.
+            const data = doc.data() as Event;
             return {
                 ...data,
-                date: (data.date as Timestamp).toDate(),
-            } as Event;
+                id: doc.id,
+                date: (data.date as unknown as Timestamp).toDate(),
+            };
         });
 
         if (operatorEvents.length > 0) {
