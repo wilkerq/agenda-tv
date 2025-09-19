@@ -51,7 +51,7 @@ const prompt = ai.definePrompt({
 
 2.  **Apply Assignment Rules (Step 2):**
     *   Based on the tool's result and the event details, apply the following rule hierarchy. The first rule that matches determines the operator.
-    *   You MUST choose an operator from the "AVAILABLE OPERATORS" list.
+    *   You MUST choose an operator from the "AVAILABLE OPERATORS" list. Do NOT choose "Wilker Quirino".
     *   After determining the operator, your only job is to return their name in the 'operator' field. **Do NOT call any more tools.**
 
 **RULE HIERARCHY:**
@@ -67,7 +67,7 @@ const prompt = ai.definePrompt({
         *   The primary operator is "Rodrigo Sousa".
         *   Check the schedule using the tool. If "Rodrigo Sousa" is already assigned to another event in the morning, you MUST assign another available operator. Otherwise, assign "Rodrigo Sousa".
     *   **Afternoon (12:01 - 18:00):**
-        *   Rotate between the available operators, considering who is already scheduled to avoid overloading.
+        *   Rotate between the available operators ("Ovidio Dias", "Mário Augusto", "Bruno Michel"), considering who is already scheduled to avoid overloading.
     *   **Night (after 18:00):**
         *   The primary operator is "Bruno Michel".
         *   Check the schedule using the tool. If "Bruno Michel" is already assigned to another event at night, you MUST assign another available operator. Otherwise, assign "Bruno Michel".
