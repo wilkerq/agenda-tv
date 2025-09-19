@@ -21,6 +21,13 @@ const SendDailyAgendaOutputSchema = z.object({
 });
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
+// Define uma interface para o evento que esperamos do Firestore
+interface OperatorEvent {
+    name: string;
+    location: string;
+    date: Date;
+}
+
 export async function sendDailyAgendaToAll(): Promise<SendDailyAgendaOutput> {
   return sendDailyAgendaToAllFlow();
 }
@@ -56,9 +63,10 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         const operatorEvents = eventsSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
-                ...data,
+                name: data.name,
+                location: data.location,
                 date: (data.date as Timestamp).toDate(),
-            };
+            } as OperatorEvent; // Usa a interface para garantir o tipo
         });
 
         if (operatorEvents.length > 0) {
