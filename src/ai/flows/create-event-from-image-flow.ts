@@ -31,7 +31,7 @@ Sua saída final deve estar em conformidade com o esquema JSON especificado.
 
 **Parte 1: Extração de Dados**
 
-Primeiro, analise a imagem e a descrição do usuário para extrair os detalhes brutos do evento.
+Primeiro, analise a imagem para extrair os detalhes brutos do evento.
 
 1.  **Nome do Evento (name):** Extraia o nome completo e detalhado do evento. Procure por uma descrição detalhada, frequentemente sob títulos como "Em pauta". Por exemplo, extraia "Sessão Solene de Homenagem aos Contadores" em vez de apenas "Sessão Solene".
 2.  **Local (location):** Extraia o local específico (ex: "Plenário Iris Rezende Machado"). Se o nome de um edifício for fornecido, infira o salão mais importante dentro dele.
@@ -46,7 +46,6 @@ Após extrair os dados, você aplicará as seguintes regras de negócio e format
     *   Esta é uma regra obrigatória baseada no nome do evento.
     *   Se o nome do evento contiver "Sessão" ou "Comissão", você DEVE definir a transmissão como "tv".
     *   Para TODOS os outros eventos (ex: "Audiência Pública"), você DEVE definir a transmissão como "youtube".
-    *   Apenas uma instrução explícita do usuário (ex: "transmitir na tv") pode anular esta regra.
 
 2.  **Atribuir Operador (operator):**
     *   Você DEVE atribuir um operador com base na seguinte hierarquia de regras. A primeira regra que corresponder determina o operador.
@@ -61,12 +60,6 @@ Após extrair os dados, você aplicará as seguintes regras de negócio e format
             *   O operador DEVE ser um dos seguintes: "Ovidio Dias", "Mário Augusto" ou "Bruno Michel". Escolha um.
         *   **Noite (após 18:00):**
             *   O operador padrão é "Bruno Michel".
-
-    *   **Regra 3: Substituição pelo Usuário (Prioridade Mínima)**
-        *   Se a descrição do usuário nomear explicitamente um operador (ex: "O operador será o João"), isso anula todas as outras regras.
-
-**Contexto do Usuário:**
-"{{description}}"
 
 **Imagem para Análise:**
 {{media url=photoDataUri}}

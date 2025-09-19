@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export type TransmissionType = "youtube" | "tv";
@@ -64,7 +63,6 @@ export const CreateEventFromImageInputSchema = z.object({
     .describe(
       "A photo of the event flyer or details, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
-  description: z.string().describe('The user\'s specific request or context for the event.'),
 });
 export type CreateEventFromImageInput = z.infer<typeof CreateEventFromImageInputSchema>;
 

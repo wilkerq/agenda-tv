@@ -1,11 +1,9 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { createEventFromImage } from "@/ai/flows/create-event-from-image-flow";
 import { type EventFormData } from "@/lib/types";
@@ -20,7 +18,6 @@ type AddEventFromImageFormProps = {
 export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -81,7 +78,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
       reader.readAsDataURL(file);
       reader.onload = async () => {
         const photoDataUri = reader.result as string;
-        const result = await createEventFromImage({ photoDataUri, description });
+        const result = await createEventFromImage({ photoDataUri });
         
         const preloadedData: Partial<EventFormData> = {};
         if (result.name) preloadedData.name = result.name;
@@ -151,16 +148,6 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
                  <Input id="image-upload" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/webp" />
             </label>
         </div> 
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="description">Instruções (Opcional)</Label>
-        <Textarea
-          id="description"
-          placeholder="Ex: É um evento da TV. O operador responsável é o Bruno."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={isLoading}
-        />
       </div>
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading || !file}>
