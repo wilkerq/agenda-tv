@@ -75,7 +75,7 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
     // 2. Send the generated message to the n8n webhook
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     
-    if (!webhookUrl || webhookUrl === 'INSIRA_SUA_URL_AQUI') {
+    if (!webhookUrl || webhookUrl.includes('INSIRA_SUA_URL_AQUI')) {
       console.warn('N8N_WEBHOOK_URL not set. Skipping automatic sending.');
       // Return the message so it can be manually copied
       return { message: output.message, sent: false };

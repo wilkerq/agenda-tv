@@ -131,7 +131,7 @@ export default function ShareSchedulePage() {
             operatorName: selectedOperator.name,
             scheduleDate: format(selectedDate, "PPPP", { locale: ptBR }),
             events: eventStrings,
-            operatorPhone: selectedOperator.phone,
+            operatorPhone: selectedOperator.phone.replace('+', ''),
         });
         setMessage(result.message);
         if (result.sent) {
