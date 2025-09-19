@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,9 +8,12 @@ import { Event, EventStatus, EventTurn } from "@/lib/types";
 import { PublicCalendar } from "@/components/public-calendar";
 import { EventDetailCard } from "@/components/event-detail-card";
 import { isSameDay, getHours } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent } from "@/components/ui/card";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -85,11 +89,39 @@ export default function HomePage() {
       <Header />
       <div className="container mx-auto p-2 sm:p-6 lg:p-8 flex-grow">
         <main className="flex-1 space-y-8">
-            <PublicCalendar 
-              events={events} 
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-            />
+            {/* Desktop Calendar View */}
+            <div className="hidden lg:block">
+              <PublicCalendar 
+                events={events} 
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+              />
+            </div>
+
+            {/* Mobile Calendar View */}
+            <div className="block lg:hidden">
+               <Card>
+                  <CardContent className="p-0">
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        className="p-0"
+                         classNames={{
+                            root: "w-full",
+                            months: "w-full",
+                            month: "w-full",
+                            table: "w-full border-collapse",
+                            head_row: "flex justify-around",
+                            row: "flex justify-around mt-2 w-full",
+                            caption: "flex justify-center items-center relative mb-4 px-4",
+                            caption_label: "text-lg font-medium",
+                        }}
+                        locale={ptBR}
+                    />
+                  </CardContent>
+                </Card>
+            </div>
 
             {selectedEvents.length > 0 && (
               <div className="mt-8">
@@ -105,3 +137,4 @@ export default function HomePage() {
     </div>
   );
 }
+
