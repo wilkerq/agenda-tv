@@ -30,9 +30,9 @@ type PublicCalendarProps = {
 };
 
 const turnIcons = {
-    'Manhã': <Sun className="mr-2 h-4 w-4" />,
-    'Tarde': <Cloud className="mr-2 h-4 w-4" />,
-    'Noite': <Moon className="mr-2 h-4 w-4" />,
+    'Manhã': <Sun className="mr-1 h-4 w-4" />,
+    'Tarde': <Cloud className="mr-1 h-4 w-4" />,
+    'Noite': <Moon className="mr-1 h-4 w-4" />,
 };
 
 export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCalendarProps) {
@@ -95,7 +95,7 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
             >
               {Object.entries(turnIcons).map(([turn, icon]) => (
                 <ToggleGroupItem key={turn} value={turn} aria-label={turn} className='flex gap-1 px-2 sm:px-3'>
-                  {icon} <span className="hidden sm:inline">{turn}</span>
+                  {icon} <span className="sm:inline">{turn}</span>
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>

@@ -29,7 +29,7 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
         <User className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.operator}</span>
       </div>
-      <div className='flex justify-end mt-1'>
+      <div className='hidden sm:flex justify-end mt-1'>
           {event.transmission === 'tv' ? (
               <div className="flex items-center gap-1">
                   <Tv className="h-3 w-3 text-blue-600" />
