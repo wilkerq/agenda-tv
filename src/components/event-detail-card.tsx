@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Event, EventStatus } from "@/lib/types";
@@ -31,24 +30,24 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="text-xl">
+                <CardTitle className="text-xl md:text-2xl">
                     Eventos para {format(date, "d 'de' MMMM, yyyy", { locale: ptBR })}
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {events.map(event => (
                         <div key={event.id} className="p-4 rounded-lg border-l-4" style={{ borderColor: event.color }}>
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-start">
+                            <div className="flex flex-col gap-3">
                                 <div className="flex-1">
                                     <h3 className="text-lg font-semibold">{event.name}</h3>
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
-                                        <span className="flex items-center"><User className="mr-1.5 h-4 w-4" /> {event.operator}</span>
-                                        <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4" /> {event.location}</span>
-                                        <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4" /> {format(event.date, 'HH:mm')}</span>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                                        <span className="flex items-center"><User className="mr-1.5 h-4 w-4 flex-shrink-0" /> {event.operator}</span>
+                                        <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4 flex-shrink-0" /> {event.location}</span>
+                                        <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4 flex-shrink-0" /> {format(event.date, 'HH:mm')}</span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                                <div className="flex flex-wrap items-center gap-2">
                                      <Badge className={cn("capitalize", statusColors[event.status])}>
                                         {event.status}
                                     </Badge>
@@ -61,7 +60,8 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
                                         <div className="flex items-center">
                                             <Tv className="h-4 w-4 text-blue-600 mr-1.5"/>
                                             <Youtube className="h-4 w-4 text-red-600 mr-1.5"/>
-                                            <span>TV Aberta e YouTube</span>
+                                            <span className="hidden sm:inline">TV e YouTube</span>
+                                            <span className="sm:hidden">TV+YT</span>
                                         </div>
                                       ) : (
                                         <div className="flex items-center">

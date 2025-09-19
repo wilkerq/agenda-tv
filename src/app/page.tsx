@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -22,8 +21,14 @@ const getEventTurn = (date: Date): EventTurn => {
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    // Set the initial date on the client side to avoid hydration mismatch
+    setSelectedDate(new Date());
+  }, []);
+
 
   useEffect(() => {
     const eventsCollection = collection(db, "events");
@@ -59,12 +64,14 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const eventsForDate = events.filter(event => isSameDay(event.date, selectedDate));
-    setSelectedEvents(eventsForDate);
+    if (selectedDate) {
+      const eventsForDate = events.filter(event => isSameDay(event.date, selectedDate));
+      setSelectedEvents(eventsForDate);
+    }
   }, [selectedDate, events]);
 
 
-  if (loading) {
+  if (loading || !selectedDate) {
     return (
        <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -76,7 +83,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow">
+      <div className="container mx-auto p-2 sm:p-6 lg:p-8 flex-grow">
         <main className="flex-1 space-y-8">
             <PublicCalendar 
               events={events} 

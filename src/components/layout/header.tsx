@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -15,8 +14,8 @@ export function Header() {
         <Link href="/" className="flex items-center gap-3">
           <Package2 className="h-7 w-7 text-primary" />
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Agenda Alego</h1>
-            <p className="text-sm text-slate-400">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight">Agenda Alego</h1>
+            <p className="hidden sm:block text-sm text-slate-400">
               Sistema de gerenciamento de eventos
             </p>
           </div>

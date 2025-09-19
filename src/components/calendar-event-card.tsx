@@ -1,4 +1,3 @@
-
 import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -19,14 +18,14 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
   return (
     <div
       className={cn(
-        "p-1.5 rounded-md text-xs border cursor-pointer",
+        "p-1 rounded-md text-xs border cursor-pointer",
         statusColors[event.status]
       )}
       style={{ borderLeft: `3px solid ${event.color}`}}
     >
       <p className="font-semibold truncate">{event.name}</p>
-      <p className="text-muted-foreground">{format(event.date, 'HH:mm')}</p>
-       <div className="flex items-center text-muted-foreground mt-1 truncate">
+      <p className="text-muted-foreground text-[10px] sm:text-xs">{format(event.date, 'HH:mm')}</p>
+       <div className="hidden sm:flex items-center text-muted-foreground mt-1 truncate">
         <User className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.operator}</span>
       </div>
