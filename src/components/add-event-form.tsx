@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles } from "lucide-react";
 import * as React from "react";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -112,13 +112,24 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     },
   });
 
-  const selectedDate = form.watch("date");
-  const selectedTime = form.watch("time");
-  const selectedLocation = form.watch("location");
-
   const handleSuggestOperator = React.useCallback(async () => {
-    // Validate time format before proceeding
-    if (!selectedDate || !selectedTime || !selectedLocation || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(selectedTime)) {
+    const { date: selectedDate, time: selectedTime, location: selectedLocation } = form.getValues();
+    
+    if (!selectedDate || !selectedTime || !selectedLocation) {
+      toast({
+        title: "Dados insuficientes",
+        description: "Por favor, preencha a data, hora e local antes de pedir uma sugestão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(selectedTime)) {
+       toast({
+        title: "Formato de hora inválido",
+        description: "Por favor, insira a hora no formato HH:mm.",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -143,7 +154,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
              toast({
                 title: "Nenhuma sugestão automática",
                 description: "A IA não sugeriu um operador. Selecione manualmente.",
-                variant: "destructive",
+                variant: "default",
             });
         }
     } catch (error) {
@@ -156,12 +167,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [selectedDate, selectedTime, selectedLocation, form, toast, operators]);
-
-  React.useEffect(() => {
-    handleSuggestOperator();
-  }, [selectedDate, selectedTime, selectedLocation, handleSuggestOperator]);
-
+  }, [form, toast, operators]);
 
   React.useEffect(() => {
     if (preloadedData) {
@@ -278,29 +284,38 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             name="operator"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center justify-between">
-                  Operador
-                   {isSuggesting && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o operador" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {operators.map((operator) => (
-                      <SelectItem key={operator.id} value={operator.name}>
-                        {operator.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                 <FormLabel>Operador</FormLabel>
+                <div className="flex gap-2">
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o operador" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {operators.map((operator) => (
+                        <SelectItem key={operator.id} value={operator.name}>
+                          {operator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                   <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleSuggestOperator}
+                      disabled={isSuggesting}
+                      title="Sugerir operador com IA"
+                    >
+                      {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    </Button>
+                </div>
                  <FormDescription>
-                  O operador é sugerido pela IA.
+                  Preencha data, hora e local, depois clique no brilho.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -468,3 +483,5 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
+
+    
