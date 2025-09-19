@@ -43,7 +43,9 @@ const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
   "Plenário Iris Rezende Machado",
-  "Sala Julio da Retifica \"CCJR\""
+  "Sala Julio da Retifica \"CCJR\"",
+  "Externa",
+  "Deputados Aqui",
 ];
 
 const formSchema = z.object({
@@ -299,3 +301,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    
