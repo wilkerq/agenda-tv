@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for suggesting an event operator based on scheduling rules.
@@ -89,13 +90,15 @@ const suggestOperatorFlow = ai.defineFlow(
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
-        // 1. Fetch operators from Firestore
+        // 1. Fetch operators from Firestore and filter out 'Wilker Quirino'
         const operatorsCollection = collection(db, 'operators');
         const operatorsSnapshot = await getDocs(query(operatorsCollection));
-        const availableOperators = operatorsSnapshot.docs.map(doc => doc.data().name as string);
+        const availableOperators = operatorsSnapshot.docs
+            .map(doc => doc.data().name as string)
+            .filter(name => name !== 'Wilker Quirino');
 
         if (availableOperators.length === 0) {
-            console.warn("No operators found in the database. Cannot suggest an operator.");
+            console.warn("No available operators found in the database (excluding Wilker Quirino). Cannot suggest an operator.");
             return { operator: undefined };
         }
         
