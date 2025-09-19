@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
 First, analyze the image to extract the following raw data.
 
 1.  **Event Name (name):** Extract the full, detailed event name.
-2.  **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende Machado", "Auditório Carlos Vieira"). If a building name is provided, infer the most important hall within it.
+2.  **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende", "Auditório Carlos Vieira"). If a building name is provided, infer the most important hall within it.
 3.  **Date (date):** Extract the event date from the image. Format it as 'YYYY-MM-DD'.
 4.  **Time (time):** Extract the event time from the image. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
 
@@ -40,7 +40,7 @@ First, analyze the image to extract the following raw data.
 After extracting the data, apply the following rules to populate the remaining fields. THESE RULES ARE ABSOLUTE AND MUST BE FOLLOWED.
 
 1.  **Transmission Rule (transmission):**
-    *   If the extracted location is "Plenário Iris Rezende Machado", you MUST set the transmission to "tv".
+    *   If the extracted location is "Plenário Iris Rezende", you MUST set the transmission to "tv".
     *   For ALL other locations, you MUST set the transmission to "youtube".
 
 2.  **Operator Assignment Rule (operator):**

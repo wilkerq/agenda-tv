@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -42,7 +41,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
-  "Plenário Iris Rezende Machado",
+  "Plenário Iris Rezende",
   "Sala Julio da Retifica \"CCJR\"",
   "Externa",
   "Deputados Aqui",
@@ -301,5 +300,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    
