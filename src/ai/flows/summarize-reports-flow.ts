@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for summarizing event report data.
@@ -22,36 +21,36 @@ export async function summarizeReports(input: ReportDataInput): Promise<ReportSu
 
 const prompt = ai.definePrompt({
     name: 'summarizeReportsPrompt',
-    model: 'googleai/gemini-2.5-flash-lite',
+    model: 'googleai/gemini-1.5-flash-001',
     input: { schema: ReportDataInputSchema },
     output: { schema: ReportSummaryOutputSchema },
-    prompt: `Você é um analista de dados especialista da equipe de gestão de eventos da Alego. Sua tarefa é gerar um resumo executivo conciso, em um único parágrafo, com base nos dados fornecidos. O resumo DEVE estar em português do Brasil.
+    prompt: `You are an expert data analyst for the Alego event management team. Your task is to generate a concise, single-paragraph executive summary based on the provided data. The summary MUST be in Brazilian Portuguese.
 
-**REGRAS OBRIGATÓRIAS:**
-1.  **Foco da Análise:** Concentre-se em extrair os principais insights dos dados. Responda a perguntas como:
-    *   Quem é o operador mais ativo? E o menos ativo?
-    *   Eventos noturnos são uma ocorrência comum ou rara?
-    *   Qual local é o mais utilizado? Existe algum local subutilizado?
-    *   Qual é o meio de transmissão dominante (YouTube vs. TV Aberta)?
-2.  **Linguagem:** Seja conciso, direto e baseie TODAS as afirmações estritamente nos dados fornecidos.
+**MANDATORY ANALYSIS RULES:**
+1.  **Focus on Key Insights:** Concentrate on extracting the most important insights from the data. Answer questions like:
+    *   Who is the most and least active operator?
+    *   Are night events common or rare?
+    *   Which location is most used? Are any locations underutilized?
+    *   What is the dominant transmission medium (YouTube vs. TV)?
+2.  **Data-Driven Language:** Be concise, direct, and base ALL claims strictly on the provided data. Do not make up information.
 
-**DADOS PARA ANÁLISE:**
-- Total de Eventos Registrados: {{{totalEvents}}}
-- Total de Eventos Noturnos (após as 18h): {{{totalNightEvents}}}
+**DATA FOR ANALYSIS:**
+- Total Registered Events: {{{totalEvents}}}
+- Total Night Events (after 6 PM): {{{totalNightEvents}}}
     
-- **Relatório por Operador:**
+- **Report by Operator:**
 {{#each reportData}}
-  - {{@key}}: {{this.count}} eventos ({{this.nightCount}} à noite)
+  - {{@key}}: {{this.count}} events ({{this.nightCount}} at night)
 {{/each}}
 
-- **Relatório por Local:**
+- **Report by Location:**
 {{#each locationReport}}
-  - {{@key}}: {{this}} eventos
+  - {{@key}}: {{this}} events
 {{/each}}
 
-- **Relatório por Transmissão:**
+- **Report by Transmission:**
   - YouTube: {{{transmissionReport.youtube}}}
-  - TV Aberta: {{{transmissionReport.tv}}}
+  - TV: {{{transmissionReport.tv}}}
     `,
 });
 

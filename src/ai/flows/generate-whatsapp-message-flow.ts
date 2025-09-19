@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for generating a friendly WhatsApp message and sending it via n8n.
@@ -23,7 +22,7 @@ export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Prom
 // Prompt Definition
 const prompt = ai.definePrompt({
   name: 'generateWhatsAppMessagePrompt',
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-001',
   input: { schema: WhatsAppMessageInputSchema },
   output: { schema: WhatsAppMessageOutputSchema },
   prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.

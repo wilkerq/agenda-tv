@@ -70,7 +70,7 @@ export const CreateEventFromImageOutputSchema = z.object({
   name: z.string().optional().describe('The extracted name of the event.'),
   location: z.string().optional().describe('The extracted location of the event.'),
   date: z.string().optional().describe("The extracted date of the event in 'YYYY-MM-DD' format."),
-  time: z.string().optional().describe("The extracted time of the event in 'HH:mm' format."),
+  time: z.string().nullable().optional().describe("The extracted time of the event in 'HH:mm' format."),
   transmission: z.enum(["youtube", "tv"]).optional().describe('The type of transmission.'),
   operator: z.string().optional().describe('The operator responsible for the event.'),
 });

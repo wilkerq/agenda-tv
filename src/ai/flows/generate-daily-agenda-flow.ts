@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for generating a daily agenda WhatsApp message.
@@ -23,7 +22,7 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
 // Prompt Definition
 const prompt = ai.definePrompt({
   name: 'generateDailyAgendaPrompt',
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-1.5-flash-001',
   input: { schema: DailyAgendaInputSchema },
   output: { schema: DailyAgendaOutputSchema },
   prompt: `Você é o assistente de comunicação da Alego. Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado internamente (ex: WhatsApp).
