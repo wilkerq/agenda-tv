@@ -31,17 +31,20 @@ interface ProcessedEvent {
 const assignOperator = (date: Date, location: string): string => {
     const hour = date.getHours();
 
+    // Rule 1: Specific Location
     if (location === 'Sala Julio da Retifica "CCJR"') {
         return "Mário Augusto";
     }
 
-    // Weekday shifts
-    if (hour < 12) return "Rodrigo Sousa"; // Morning
-    if (hour >= 12 && hour < 18) { // Afternoon
+    // Rule 2: Weekday Shifts
+    if (hour < 12) {
+        return "Rodrigo Sousa"; // Morning default
+    }
+    if (hour >= 12 && hour < 18) { // Afternoon rotation
         const operators = ["Ovidio Dias", "Mário Augusto", "Bruno Michel"];
         return operators[Math.floor(Math.random() * operators.length)];
     }
-    return "Bruno Michel"; // Night
+    return "Bruno Michel"; // Night default
 };
 
 // Function to determine transmission type

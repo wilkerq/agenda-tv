@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for suggesting an event operator based on scheduling rules.
@@ -37,7 +36,7 @@ const prompt = ai.definePrompt({
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
-    prompt: `You are an expert scheduling assistant for Alego. Your task is to determine the most suitable operator for an event, using the list of available operators and following a strict hierarchy of rules. The current year is 2024.
+    prompt: `You are an expert scheduling assistant for Alego. Your task is to determine the most suitable operator for an event by following a strict hierarchy of rules. You must use the 'getEventsForDay' tool to check the schedule before making a decision. The current year is 2024.
 
 **AVAILABLE OPERATORS:**
 {{#each availableOperators}}
@@ -59,18 +58,19 @@ const prompt = ai.definePrompt({
 *   **Rule 1: Specific Location (Highest Priority)**
     *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto" (if he is in the available list).
 
-*   **Rule 2: Weekend Rotation (Saturday and Sunday)**
-    *   If the event is on a weekend, use the result from the \`getEventsForDay\` tool to see who worked the last weekend event and assign a **different** operator from the available list.
-
-*   **Rule 3: Weekday Shifts (Monday to Friday)**
+*   **Rule 2: Weekday Shifts (Monday to Friday)**
     *   **Morning (00:00 - 12:00):**
         *   The primary operator is "Rodrigo Sousa".
-        *   Check the schedule using the tool. If "Rodrigo Sousa" is already assigned to another event in the morning, you MUST assign another available operator. Otherwise, assign "Rodrigo Sousa".
+        *   Use the tool to check his schedule. If "Rodrigo Sousa" is **free**, you MUST assign him.
+        *   If he is already assigned to another event, you MUST assign another available operator from the list.
     *   **Afternoon (12:01 - 18:00):**
         *   Rotate between the available operators ("Ovidio Dias", "Mário Augusto", "Bruno Michel"), considering who is already scheduled to avoid overloading.
     *   **Night (after 18:00):**
         *   The primary operator is "Bruno Michel".
-        *   Check the schedule using the tool. If "Bruno Michel" is already assigned to another event at night, you MUST assign another available operator. Otherwise, assign "Bruno Michel".
+        *   Use the tool to check his schedule. If "Bruno Michel" is **free**, you MUST assign him.
+        *   If he is already assigned to another event at night, you MUST assign another available operator from the list.
+*   **Rule 3: Weekend Rotation (Saturday and Sunday)**
+    *   If the event is on a weekend, use the result from the \`getEventsForDay\` tool to see who worked the last weekend event and assign a **different** operator from the available list to ensure rotation.
 
 **Event Details for Analysis:**
 - **Date and Time:** {{{date}}}
