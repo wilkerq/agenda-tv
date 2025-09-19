@@ -11,6 +11,7 @@ import { createEventFromImage } from "@/ai/flows/create-event-from-image-flow";
 import { type EventFormData } from "@/lib/types";
 import { Loader2, Upload } from "lucide-react";
 import Image from "next/image";
+import { parse } from "date-fns";
 
 type AddEventFromImageFormProps = {
   onSuccess: (data: Partial<EventFormData>) => void;
@@ -85,17 +86,29 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
         const preloadedData: Partial<EventFormData> = {};
         if (result.name) preloadedData.name = result.name;
         if (result.location) preloadedData.location = result.location;
-        if (result.date) {
-            preloadedData.date = new Date(result.date);
-        } else {
-            toast({
-                title: "Hora não encontrada",
-                description: "A IA não conseguiu determinar a hora do evento. Por favor, insira manualmente.",
-                variant: "default"
-            })
-        }
         if (result.transmission) preloadedData.transmission = result.transmission;
         if (result.operator) preloadedData.operator = result.operator;
+
+        if (result.date && result.time) {
+            const dateStr = `${result.date}T${result.time}`;
+            const parsedDate = parse(dateStr, "yyyy-MM-dd'T'HH:mm", new Date());
+             if (!isNaN(parsedDate.getTime())) {
+                preloadedData.date = parsedDate;
+            } else {
+                 toast({
+                    title: "Data ou hora inválida",
+                    description: "A IA retornou um formato de data/hora inválido. Por favor, insira manualmente.",
+                    variant: "destructive"
+                });
+            }
+        } else {
+             toast({
+                title: "Data ou Hora não encontrada",
+                description: "A IA não conseguiu determinar a data ou a hora do evento. Por favor, insira manualmente.",
+                variant: "default"
+            });
+        }
+
 
         toast({
             title: "Sucesso!",
