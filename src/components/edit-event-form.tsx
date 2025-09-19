@@ -41,7 +41,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
-  "Plenário Iris Rezende",
+  "Plenário Iris Rezende Machado",
   "Sala Julio da Retifica \"CCJR\"",
   "Externa",
   "Deputados Aqui",

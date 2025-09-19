@@ -45,9 +45,8 @@ const assignOperator = (date: Date, location: string): string => {
 };
 
 // Function to determine transmission type
-const determineTransmission = (eventName: string): 'youtube' | 'tv' => {
-    const lowerEventName = eventName.toLowerCase();
-    if (lowerEventName.includes("sessão") || lowerEventName.includes("comissão")) {
+const determineTransmission = (eventName: string, location: string): 'youtube' | 'tv' => {
+    if (location === "Plenário Iris Rezende Machado") {
         return "tv";
     }
     return "youtube";
@@ -116,7 +115,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
                     name,
                     date: eventDate,
                     location,
-                    transmission: determineTransmission(name),
+                    transmission: determineTransmission(name, location),
                     operator: assignOperator(eventDate, location),
                 });
             }

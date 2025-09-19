@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 const locations = [
   "Auditório Francisco Gedda",
   "Auditório Carlos Vieira",
-  "Plenário Iris Rezende",
+  "Plenário Iris Rezende Machado",
   "Sala Julio da Retifica \"CCJR\"",
   "Externa",
   "Deputados Aqui",
