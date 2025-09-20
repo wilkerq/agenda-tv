@@ -1,46 +1,47 @@
-# 1. Estágio de Instalação/Build
+# Dockerfile for a Next.js application
+
+# 1. Builder Stage
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copia os arquivos de definição de pacotes
-COPY package.json ./
-COPY package-lock.json* ./
-COPY next.config.ts ./
-COPY tsconfig.json ./
+# Copy package.json and package-lock.json (or yarn.lock, etc.)
+COPY package*.json ./
 
-# Instala as dependências
+# Install dependencies
 RUN npm install
 
-# Copia o restante do código-fonte da aplicação
+# Copy the rest of the application source code
 COPY . .
 
-# Constrói a aplicação Next.js
+# Build the Next.js application
 RUN npm run build
 
-# 2. Estágio de Produção/Execução
+# 2. Runner Stage
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copia o diretório .next/standalone do estágio de builder
-COPY --from=builder /app/.next/standalone ./
+# Create a non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
 
-# Copia o diretório .next/static do estágio de builder
-COPY --from=builder /app/.next/static ./.next/static
+# Copy the built application from the builder stage
+COPY --from=builder /app/next.config.ts ./
+COPY --from=builder /app/package.json ./
 
-# Copia o diretório public (opcionalmente)
-# Usar --chown=nextjs:nodejs e um usuário não-root é uma boa prática de segurança.
-# A cópia é opcional para não quebrar se a pasta não existir.
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
+# The standalone output includes all necessary node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-
-# Define o usuário não-root
+# Switch to the non-root user
 USER nextjs
 
+# Expose the port the app will run on
 EXPOSE 3050
 
-ENV PORT 3050
+# Set the correct host for container environments
+ENV HOSTNAME 0.0.0.0
 
-# O comando para iniciar o servidor Next.js em modo standalone
+# Start the application
 CMD ["node", "server.js"]
