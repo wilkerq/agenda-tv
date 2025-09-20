@@ -1,55 +1,51 @@
-# 1. Instalar dependências
-FROM node:18-alpine AS deps
+# Estágio 1: Builder - Instala dependências e compila a aplicação
+FROM node:20-alpine AS builder
+
+# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia package.json e package-lock.json (se existir)
+# Copia os arquivos de gerenciamento de pacotes
 COPY package.json ./
-COPY package-lock.json* ./
+COPY src/package.json ./src/
 
 # Instala as dependências
-RUN npm install
-
-# 2. Build da Aplicação
-FROM node:18-alpine AS builder
-WORKDIR /app
-
-# Copia as dependências instaladas
-COPY --from=deps /app/node_modules ./node_modules
+# Usamos --frozen-lockfile para garantir que as versões exatas do package-lock.json sejam usadas
+RUN npm install --frozen-lockfile
 
 # Copia o restante do código da aplicação
 COPY . .
 
-# Executa o build da aplicação
+# Compila a aplicação para produção
+# O Next.js com output: 'standalone' criará uma pasta .next/standalone
 RUN npm run build
 
-# 3. Imagem Final de Execução
-FROM node:18-alpine AS runner
+# Estágio 2: Runner - Executa a aplicação otimizada
+FROM node:20-alpine AS runner
+
 WORKDIR /app
 
-# Define o ambiente como produção
-ENV NODE_ENV=production
-
-# Adiciona um usuário não-root para segurança
+# Cria um usuário não-root para aumentar a segurança
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copia os artefatos de build necessários da etapa 'builder'
-# A pasta 'public' não é usada neste projeto, então sua cópia foi removida.
-COPY --from=builder /app/next.config.ts ./
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copia os artefatos da compilação do estágio 'builder'
+# A pasta .next/standalone contém tudo o que é necessário para rodar
+COPY --from=builder /app/.next/standalone ./
+# Copia a pasta de assets públicos
+COPY --from=builder /app/public ./public
 
-# Adiciona metadados à imagem
-LABEL author="Wilker Quirino"
-LABEL version="0.1.0"
-LABEL description="Agenda Alego - Gerenciador de eventos da TV Assembleia."
+# Muda o proprietário dos arquivos para o usuário não-root
+RUN chown -R nextjs:nodejs /app
 
-# Define o usuário para executar a aplicação
+# Muda para o usuário não-root
 USER nextjs
 
-# Expõe a porta que o Next.js usará
-EXPOSE 3000
+# Expõe a porta que a aplicação vai rodar
+EXPOSE 9002
 
-# Comando para iniciar a aplicação
-CMD ["npm", "start"]
+# Define a variável de ambiente para a porta
+ENV PORT=9002
+
+# O comando para iniciar a aplicação
+# O servidor do Next.js standalone está em server.js
+CMD ["node", "server.js"]
