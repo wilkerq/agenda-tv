@@ -19,7 +19,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", ...fontFamily.sans],
+        sans: [...fontFamily.sans],
         body: ['"Inter"', 'sans-serif'],
         headline: ['"Inter"', 'sans-serif'],
         code: ['monospace'],
