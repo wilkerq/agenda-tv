@@ -116,3 +116,14 @@ export const DailyAgendaOutputSchema = z.object({
   message: z.string().describe("The full, friendly, and formatted WhatsApp message for the daily agenda."),
 });
 export type DailyAgendaOutput = z.infer<typeof DailyAgendaOutputSchema>;
+
+// Settings Schemas
+export const AIConfigSchema = z.object({
+  provider: z.enum(['google']),
+  google: z.object({
+    apiKey: z.string().optional(),
+    model: z.string().optional(),
+  }),
+});
+
+export type AIConfig = z.infer<typeof AIConfigSchema>;
