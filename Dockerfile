@@ -1,29 +1,46 @@
-# Dockerfile
-
-# Estágio de Dependências
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
-
-# Estágio de Build
+# 1. Estágio de Instalação/Build
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Copia os arquivos de definição de pacotes
+COPY package.json ./
+COPY package-lock.json* ./
+COPY next.config.ts ./
+COPY tsconfig.json ./
+
+# Instala as dependências
+RUN npm install
+
+# Copia o restante do código-fonte da aplicação
 COPY . .
+
+# Constrói a aplicação Next.js
 RUN npm run build
 
-# Estágio de Produção
+# 2. Estágio de Produção/Execução
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copia o diretório .next/standalone do estágio de builder
+COPY --from=builder /app/.next/standalone ./
+
+# Copia o diretório .next/static do estágio de builder
+COPY --from=builder /app/.next/static ./.next/static
+
+# Copia o diretório public (opcionalmente)
+# Usar --chown=nextjs:nodejs e um usuário não-root é uma boa prática de segurança.
+# A cópia é opcional para não quebrar se a pasta não existir.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public || true
+
+
+# Define o usuário não-root
+USER nextjs
 
 EXPOSE 3050
 
-CMD ["npm", "run", "start"]
+ENV PORT 3050
+
+# O comando para iniciar o servidor Next.js em modo standalone
+CMD ["node", "server.js"]
