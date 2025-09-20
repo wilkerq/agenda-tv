@@ -1,6 +1,7 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
+import 'dotenv/config';
 
 // IMPORTANT: Do not import tools here that also import `ai` from this file.
 // It will cause a circular dependency. Tools should be defined and configured
@@ -8,6 +9,6 @@ import {googleAI} from '@genkit-ai/googleai';
 
 export const ai = genkit({
   plugins: [
-    googleAI(),
+    googleAI({ apiKey: process.env.GEMINI_API_KEY }),
   ],
 });
