@@ -21,7 +21,7 @@ export async function summarizeReports(input: ReportDataInput): Promise<ReportSu
 
 const prompt = ai.definePrompt({
     name: 'summarizeReportsPrompt',
-    model: 'googleai/gemini-pro',
+    model: 'googleai/gemini-1.5-pro-latest',
     input: { schema: ReportDataInputSchema },
     output: { schema: ReportSummaryOutputSchema },
     prompt: `You are an expert data analyst for the Alego event management team. Your task is to generate a concise, single-paragraph executive summary based on the provided data. The summary MUST be in Brazilian Portuguese.
