@@ -21,7 +21,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-pro',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your sole function is to extract event details from an event image and apply a fixed set of business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
