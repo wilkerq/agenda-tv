@@ -40,6 +40,7 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
+import { useAIConfig } from "@/lib/ai-config";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -86,6 +87,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [operators, setOperators] = React.useState<Operator[]>([]);
   const { toast } = useToast();
+  const [aiConfig] = useAIConfig();
 
   React.useEffect(() => {
     const q = query(collection(db, "operators"));
@@ -141,7 +143,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
         const result = await suggestOperator({
             date: eventDate.toISOString(),
-            location: selectedLocation
+            location: selectedLocation,
+            config: aiConfig,
         });
 
         if (result.operator && operators.some(op => op.name === result.operator)) {
@@ -153,7 +156,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão automática",
-                description: "A IA não sugeriu um operador. Selecione manualmente.",
+                description: "A IA não sugeriu um operador. Verifique a chave de API ou selecione manualmente.",
                 variant: "default",
             });
         }
@@ -161,13 +164,13 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         console.error("Error suggesting operator:", error);
         toast({
             title: "Erro na Sugestão",
-            description: "Não foi possível sugerir um operador automaticamente.",
+            description: "Não foi possível sugerir um operador. Verifique a chave de API nas configurações.",
             variant: "destructive",
         });
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, operators]);
+  }, [form, toast, operators, aiConfig]);
 
   React.useEffect(() => {
     if (preloadedData) {

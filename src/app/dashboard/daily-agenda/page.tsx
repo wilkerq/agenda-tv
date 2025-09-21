@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -16,6 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, ListTodo, CalendarSearch } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAIConfig } from "@/lib/ai-config";
 
 export default function DailyAgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -24,6 +24,7 @@ export default function DailyAgendaPage() {
   const [isFetchingEvents, setIsFetchingEvents] = useState(false);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
+  const [aiConfig] = useAIConfig();
 
   const fetchEvents = useCallback(async () => {
     if (!selectedDate) {
@@ -86,6 +87,7 @@ export default function DailyAgendaPage() {
         const result = await generateDailyAgenda({
             scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
             events: eventStrings,
+            config: aiConfig,
         });
         setMessage(result.message);
          toast({
@@ -96,13 +98,13 @@ export default function DailyAgendaPage() {
          console.error("Error generating message: ", error);
          toast({
             title: "Erro de IA",
-            description: "Não foi possível gerar a pauta.",
+            description: "Não foi possível gerar a pauta. Verifique sua chave de API nas configurações.",
             variant: "destructive",
         });
     } finally {
         setIsGeneratingMessage(false);
     }
-  }, [events, selectedDate, toast]);
+  }, [events, selectedDate, toast, aiConfig]);
 
   const handleShare = () => {
     if (!message) {

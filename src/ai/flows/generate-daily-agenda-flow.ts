@@ -12,6 +12,7 @@ import {
     DailyAgendaOutput,
     DailyAgendaOutputSchema 
 } from '@/lib/types';
+import { getModel } from '@/lib/ai-provider';
 
 
 // Exported wrapper function
@@ -19,13 +20,24 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
   return generateDailyAgendaFlow(input);
 }
 
-// Prompt Definition
-const prompt = ai.definePrompt({
-  name: 'generateDailyAgendaPrompt',
-  model: 'googleai/gemini-pro',
-  input: { schema: DailyAgendaInputSchema },
-  output: { schema: DailyAgendaOutputSchema },
-  prompt: `Você é o assistente de comunicação da Alego. Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado internamente (ex: WhatsApp).
+// Flow Definition
+const generateDailyAgendaFlow = ai.defineFlow(
+  {
+    name: 'generateDailyAgendaFlow',
+    inputSchema: DailyAgendaInputSchema,
+    outputSchema: DailyAgendaOutputSchema,
+  },
+  async (input) => {
+    
+    const textModel = await getModel(input.config);
+    
+    // Prompt Definition
+    const prompt = ai.definePrompt({
+      name: 'generateDailyAgendaPrompt',
+      model: textModel,
+      input: { schema: DailyAgendaInputSchema },
+      output: { schema: DailyAgendaOutputSchema },
+      prompt: `Você é o assistente de comunicação da Alego. Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado internamente (ex: WhatsApp).
 
 **REGRAS OBRIGATÓRIAS:**
 1.  **Título:** A mensagem DEVE começar com "*PAUTA DO DIA* 🎬". Use negrito e o emoji de claquete.
@@ -49,16 +61,8 @@ const prompt = ai.definePrompt({
 {{{this}}}
 {{/each}}
 `,
-});
+    });
 
-// Flow Definition
-const generateDailyAgendaFlow = ai.defineFlow(
-  {
-    name: 'generateDailyAgendaFlow',
-    inputSchema: DailyAgendaInputSchema,
-    outputSchema: DailyAgendaOutputSchema,
-  },
-  async (input) => {
     const { output } = await prompt(input);
     return output!;
   }

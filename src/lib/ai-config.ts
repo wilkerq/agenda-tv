@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AIConfig, AIConfigSchema } from "./types";
 
 const CONFIG_KEY = "aiConfig";
@@ -9,7 +9,7 @@ const defaultConfig: AIConfig = {
   provider: 'google',
   google: {
     apiKey: undefined,
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-pro', // Default to a reliable text model
   },
 };
 
@@ -17,7 +17,7 @@ const defaultConfig: AIConfig = {
  * Custom hook for managing AI configuration in localStorage.
  * This hook is client-side only.
  */
-export function useAIConfig() {
+export function useAIConfig(): [AIConfig, (config: AIConfig | ((prev: AIConfig) => AIConfig)) => void] {
   const [config, setConfig] = useState<AIConfig>(() => {
     if (typeof window === "undefined") {
       return defaultConfig;
@@ -27,7 +27,8 @@ export function useAIConfig() {
       if (storedConfig) {
         const parsed = AIConfigSchema.safeParse(JSON.parse(storedConfig));
         if (parsed.success) {
-          return parsed.data;
+          // Merge with default to ensure all keys are present
+          return { ...defaultConfig, ...parsed.data };
         }
       }
     } catch (error) {
@@ -36,15 +37,22 @@ export function useAIConfig() {
     return defaultConfig;
   });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-      } catch (error) {
-        console.error("Failed to save AI config to localStorage", error);
+  const saveConfig = useCallback((newConfig: AIConfig | ((prev: AIConfig) => AIConfig)) => {
+    setConfig(prevConfig => {
+      const updatedConfig = typeof newConfig === 'function' ? newConfig(prevConfig) : newConfig;
+      if (typeof window !== "undefined") {
+        try {
+          // Before saving, ensure the config is valid
+          const validatedConfig = AIConfigSchema.parse(updatedConfig);
+          window.localStorage.setItem(CONFIG_KEY, JSON.stringify(validatedConfig));
+        } catch (error) {
+          console.error("Failed to save AI config to localStorage", error);
+        }
       }
-    }
-  }, [config]);
+      return updatedConfig;
+    });
+  }, []);
 
-  return [config, setConfig] as const;
+
+  return [config, saveConfig];
 }

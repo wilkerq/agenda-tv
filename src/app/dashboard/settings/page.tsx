@@ -22,27 +22,35 @@ import { useAIConfig } from "@/lib/ai-config";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { useState } from "react";
-import { AIConfig } from "@/lib/types";
+
+// Lista de modelos Gemini disponíveis
+const geminiModels = [
+    { value: 'gemini-pro', label: 'Gemini Pro (Texto)' },
+    { value: 'gemini-pro-vision', label: 'Gemini Pro Vision (Imagem)' },
+    { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (Rápido)' },
+    { value: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Avançado)' },
+];
 
 export default function SettingsPage() {
   const [config, setConfig] = useAIConfig();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
-  // Since we only have one provider now, we can simplify this.
-  const activeProvider: AIConfig['provider'] = 'google';
-
   const handleSave = async () => {
     setIsSaving(true);
-    // The useAIConfig hook handles saving to localStorage automatically.
-    // We just need to show a toast.
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async save
+    // A configuração já é salva automaticamente pelo hook `useAIConfig` no localStorage
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simula um salvamento assíncrono
     toast({
       title: "Configurações Salvas",
       description: "Suas configurações de IA foram atualizadas com sucesso.",
     });
     setIsSaving(false);
   };
+  
+  // Assegura que o modelo selecionado seja um dos disponíveis na lista
+  const currentModel = geminiModels.some(m => m.value === config.google.model) 
+    ? config.google.model 
+    : 'gemini-pro';
 
   return (
     <div className="grid gap-6">
@@ -50,8 +58,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Configurações do Provedor de IA</CardTitle>
           <CardDescription>
-            Gerencie qual modelo de linguagem será usado nos recursos de IA do
-            sistema.
+            Gerencie qual modelo de linguagem será usado nos recursos de IA do sistema.
+            A chave de API é salva localmente no seu navegador e não é enviada para nossos servidores.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -60,8 +68,7 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Google Gemini</CardTitle>
                 <CardDescription>
-                  Configure os modelos do Google. É necessário uma API Key para
-                  usar.
+                  Selecione o modelo desejado e insira sua chave de API para habilitar as funcionalidades.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -70,7 +77,7 @@ export default function SettingsPage() {
                   <Input
                     id="google-api-key"
                     type="password"
-                    placeholder="Cole sua API Key aqui"
+                    placeholder="Cole sua API Key do Google AI Studio aqui"
                     value={config.google.apiKey || ""}
                     onChange={(e) =>
                       setConfig((prev) => ({
@@ -81,9 +88,9 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="google-model">Modelo</Label>
+                  <Label htmlFor="google-model">Modelo Padrão</Label>
                   <Select
-                    value={config.google.model || "gemini-2.5-flash-image-preview"}
+                    value={currentModel}
                     onValueChange={(value) =>
                       setConfig((prev) => ({
                         ...prev,
@@ -95,16 +102,16 @@ export default function SettingsPage() {
                       <SelectValue placeholder="Selecione um modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                       <SelectItem value="gemini-2.5-flash-image-preview">
-                        Gemini 2.5 Flash (Recomendado)
-                      </SelectItem>
-                      <SelectItem value="gemini-1.5-flash-latest">
-                        Gemini 1.5 Flash
-                      </SelectItem>
-                      <SelectItem value="gemini-1.0-pro">Gemini 1.0 Pro</SelectItem>
-                      <SelectItem value="gemini-pro">Gemini Pro (Legacy)</SelectItem>
+                       {geminiModels.map((model) => (
+                           <SelectItem key={model.value} value={model.value}>
+                               {model.label}
+                           </SelectItem>
+                       ))}
                     </SelectContent>
                   </Select>
+                   <p className="text-sm text-muted-foreground pt-2">
+                    Lembre-se que o modelo `gemini-pro-vision` é o único que aceita imagens. Os outros são para tarefas de texto.
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -17,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, Send } from "lucide-react";
 import { generateWhatsAppMessage } from "@/ai/flows/generate-whatsapp-message-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAIConfig } from "@/lib/ai-config";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -38,6 +38,7 @@ export default function ShareSchedulePage() {
   const [isFetchingEvents, setIsFetchingEvents] = useState(false);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
+  const [aiConfig] = useAIConfig();
 
   useEffect(() => {
     const q = query(collection(db, "operators"));
@@ -132,6 +133,7 @@ export default function ShareSchedulePage() {
             scheduleDate: format(selectedDate, "PPPP", { locale: ptBR }),
             events: eventStrings,
             operatorPhone: selectedOperator.phone.replace('+', ''),
+            config: aiConfig,
         });
         setMessage(result.message);
         if (result.sent) {
@@ -152,13 +154,13 @@ export default function ShareSchedulePage() {
          console.error("Error generating message: ", error);
          toast({
             title: "Erro de IA",
-            description: "Não foi possível gerar ou enviar a mensagem.",
+            description: "Não foi possível gerar ou enviar a mensagem. Verifique a chave de API.",
             variant: "destructive",
         });
     } finally {
         setIsGeneratingMessage(false);
     }
-  }, [events, selectedOperator, selectedDate, toast]);
+  }, [events, selectedOperator, selectedDate, toast, aiConfig]);
 
   const handleShareManually = () => {
     if (!message) {

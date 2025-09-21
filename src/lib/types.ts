@@ -4,6 +4,16 @@ export type TransmissionType = "youtube" | "tv";
 export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
 export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
+// Settings Schemas
+export const AIConfigSchema = z.object({
+  provider: z.enum(['google']),
+  google: z.object({
+    apiKey: z.string().optional(),
+    model: z.string().optional(),
+  }),
+});
+export type AIConfig = z.infer<typeof AIConfigSchema>;
+
 export interface Event {
   id: string;
   name: string;
@@ -41,6 +51,7 @@ export const ReportDataInputSchema = z.object({
   reportData: z.record(z.string(), OperatorReportSchema).describe('A map of operator names to their event counts.'),
   locationReport: z.record(z.string(), z.number()).describe('A map of locations to their event counts.'),
   transmissionReport: TransmissionReportSchema.describe('A report of event counts by transmission type (YouTube vs. TV).'),
+  config: AIConfigSchema.optional(),
 });
 export type ReportDataInput = z.infer<typeof ReportDataInputSchema>;
 
@@ -63,6 +74,7 @@ export const CreateEventFromImageInputSchema = z.object({
     .describe(
       "A photo of the event flyer or details, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+  config: AIConfigSchema.optional(),
 });
 export type CreateEventFromImageInput = z.infer<typeof CreateEventFromImageInputSchema>;
 
@@ -80,6 +92,7 @@ export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutp
 export const SuggestOperatorInputSchema = z.object({
   date: z.string().describe("The full date and time of the event in ISO 8601 format."),
   location: z.string().describe("The venue or place where the event will occur."),
+  config: AIConfigSchema.optional(),
 });
 export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
 
@@ -95,6 +108,7 @@ export const WhatsAppMessageInputSchema = z.object({
   operatorPhone: z.string().describe("The phone number of the operator for sending the message."),
   scheduleDate: z.string().describe("The date of the schedule (e.g., 'terça-feira, 13 de agosto de 2024')."),
   events: z.array(z.string()).describe("A list of formatted event strings, each including time, name, and location."),
+  config: AIConfigSchema.optional(),
 });
 export type WhatsAppMessageInput = z.infer<typeof WhatsAppMessageInputSchema>;
 
@@ -109,6 +123,7 @@ export type WhatsAppMessageOutput = z.infer<typeof WhatsAppMessageOutputSchema>;
 export const DailyAgendaInputSchema = z.object({
   scheduleDate: z.string().describe("The date of the schedule (e.g., 'terça-feira, 13 de agosto de 2024')."),
   events: z.array(z.string()).describe("A list of formatted event strings, each including time, name, and location."),
+  config: AIConfigSchema.optional(),
 });
 export type DailyAgendaInput = z.infer<typeof DailyAgendaInputSchema>;
 
@@ -116,14 +131,3 @@ export const DailyAgendaOutputSchema = z.object({
   message: z.string().describe("The full, friendly, and formatted WhatsApp message for the daily agenda."),
 });
 export type DailyAgendaOutput = z.infer<typeof DailyAgendaOutputSchema>;
-
-// Settings Schemas
-export const AIConfigSchema = z.object({
-  provider: z.enum(['google']),
-  google: z.object({
-    apiKey: z.string().optional(),
-    model: z.string().optional(),
-  }),
-});
-
-export type AIConfig = z.infer<typeof AIConfigSchema>;

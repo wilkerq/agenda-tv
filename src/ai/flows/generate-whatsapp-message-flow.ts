@@ -13,49 +13,13 @@ import {
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
 import 'dotenv/config';
+import { getModel } from '@/lib/ai-provider';
 
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {
   return generateWhatsAppMessageFlow(input);
 }
 
-// Prompt Definition
-const prompt = ai.definePrompt({
-  name: 'generateWhatsAppMessagePrompt',
-  model: 'googleai/gemini-pro',
-  input: { schema: WhatsAppMessageInputSchema },
-  output: { schema: WhatsAppMessageOutputSchema },
-  prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
-
-**REGRAS OBRIGATÓRIAS:**
-1.  **Tom e Linguagem:** Mantenha um tom amigável, mas profissional.
-2.  **Formatação:** Use negrito (asteriscos) para o nome do operador e para a data da agenda.
-3.  **Emojis Específicos:** Use os seguintes emojis EXATAMENTE como especificado:
-    *   👋 no final da saudação (Ex: Olá, *Nome*! 👋).
-    *   📅 antes do cabeçalho "Eventos".
-    *   ✨ no final da mensagem de despedida.
-4.  **Exemplo de Saída:** Siga o formato do exemplo à risca.
-
-**EXEMPLO DE SAÍDA:**
-Olá, *Rodrigo Sousa*! 👋
-
-Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
-
-📅 Eventos:
-- 09:00h: Sessão Ordinária (Plenário Iris Rezende Machado)
-- 14:00h: Reunião da CCJ (Sala Julio da Retifica "CCJR")
-
-Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨
-
-**Dados de Entrada para a Mensagem:**
-- Nome do Operador: {{{operatorName}}}
-- Data da Agenda: {{{scheduleDate}}}
-- Lista de Eventos:
-{{#each events}}
-{{{this}}}
-{{/each}}
-`,
-});
 
 // Flow Definition
 const generateWhatsAppMessageFlow = ai.defineFlow(
@@ -65,6 +29,47 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
     outputSchema: WhatsAppMessageOutputSchema,
   },
   async (input) => {
+
+    const textModel = await getModel(input.config);
+
+    // Prompt Definition
+    const prompt = ai.definePrompt({
+      name: 'generateWhatsAppMessagePrompt',
+      model: textModel,
+      input: { schema: WhatsAppMessageInputSchema },
+      output: { schema: WhatsAppMessageOutputSchema },
+      prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
+
+    **REGRAS OBRIGATÓRIAS:**
+    1.  **Tom e Linguagem:** Mantenha um tom amigável, mas profissional.
+    2.  **Formatação:** Use negrito (asteriscos) para o nome do operador e para a data da agenda.
+    3.  **Emojis Específicos:** Use os seguintes emojis EXATAMENTE como especificado:
+        *   👋 no final da saudação (Ex: Olá, *Nome*! 👋).
+        *   📅 antes do cabeçalho "Eventos".
+        *   ✨ no final da mensagem de despedida.
+    4.  **Exemplo de Saída:** Siga o formato do exemplo à risca.
+
+    **EXEMPLO DE SAÍDA:**
+    Olá, *Rodrigo Sousa*! 👋
+
+    Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
+
+    📅 Eventos:
+    - 09:00h: Sessão Ordinária (Plenário Iris Rezende Machado)
+    - 14:00h: Reunião da CCJ (Sala Julio da Retifica "CCJR")
+
+    Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨
+
+    **Dados de Entrada para a Mensagem:**
+    - Nome do Operador: {{{operatorName}}}
+    - Data da Agenda: {{{scheduleDate}}}
+    - Lista de Eventos:
+    {{#each events}}
+    {{{this}}}
+    {{/each}}
+    `,
+    });
+
     // 1. Generate the message using the LLM
     const { output } = await prompt(input);
     if (!output?.message) {

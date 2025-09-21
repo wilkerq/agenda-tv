@@ -12,19 +12,27 @@ import {
     CreateEventFromImageOutput, 
     CreateEventFromImageOutputSchema 
 } from '@/lib/types';
-
+import { getModel } from '@/lib/ai-provider';
 
 export async function createEventFromImage(input: CreateEventFromImageInput): Promise<CreateEventFromImageOutput> {
     return createEventFromImageFlow(input);
 }
 
+const createEventFromImageFlow = ai.defineFlow(
+    {
+        name: 'createEventFromImageFlow',
+        inputSchema: CreateEventFromImageInputSchema,
+        outputSchema: CreateEventFromImageOutputSchema,
+    },
+    async (input) => {
+        const visionModel = await getModel(undefined, 'vision');
 
-const prompt = ai.definePrompt({
-    name: 'createEventFromImagePrompt',
-    model: 'googleai/gemini-pro-vision',
-    input: { schema: CreateEventFromImageInputSchema },
-    output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your sole function is to extract event details from an event image and apply a fixed set of business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
+        const prompt = ai.definePrompt({
+            name: 'createEventFromImagePrompt',
+            model: visionModel,
+            input: { schema: CreateEventFromImageInputSchema },
+            output: { schema: CreateEventFromImageOutputSchema },
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your sole function is to extract event details from an event image and apply a fixed set of business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
 
 **MANDATORY TWO-STEP PROCESS:**
 
@@ -57,15 +65,8 @@ After extracting the data, apply the following rules to populate the remaining f
 **Image for Analysis:**
 {{media url=photoDataUri}}
 `,
-});
+        });
 
-const createEventFromImageFlow = ai.defineFlow(
-    {
-        name: 'createEventFromImageFlow',
-        inputSchema: CreateEventFromImageInputSchema,
-        outputSchema: CreateEventFromImageOutputSchema,
-    },
-    async (input) => {
         const { output } = await prompt(input);
         return output!;
     }
