@@ -7,7 +7,7 @@ import 'dotenv/config';
 // in their own files and then imported for side-effects in dev.ts or a flow.
 
 const defaultConfig: GenerationCommonConfig = {
-  model: 'googleai/gemini-pro',
+  // Model is now determined dynamically by getModel(), so we remove it from the default config.
 };
 
 export const ai = genkit({

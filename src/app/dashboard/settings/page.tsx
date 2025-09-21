@@ -23,9 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save } from "lucide-react";
 import { useState } from "react";
 
-// Lista de modelos Gemini disponíveis
+// Lista de modelos Gemini disponíveis (usando o nome base)
 const geminiModels = [
-    { value: 'gemini-pro', label: 'Gemini Pro (Texto)' },
+    { value: 'gemini-pro', label: 'Gemini Pro (Texto, Padrão)' },
     { value: 'gemini-pro-vision', label: 'Gemini Pro Vision (Imagem)' },
     { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (Rápido)' },
     { value: 'gemini-1.5-pro-latest', label: 'Gemini 1.5 Pro (Avançado)' },
@@ -48,6 +48,7 @@ export default function SettingsPage() {
   };
   
   // Assegura que o modelo selecionado seja um dos disponíveis na lista
+  // Se o modelo salvo não estiver na lista, ele volta para o padrão 'gemini-pro'.
   const currentModel = geminiModels.some(m => m.value === config.google.model) 
     ? config.google.model 
     : 'gemini-pro';
@@ -88,7 +89,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="google-model">Modelo Padrão</Label>
+                  <Label htmlFor="google-model">Modelo Padrão para Texto</Label>
                   <Select
                     value={currentModel}
                     onValueChange={(value) =>
@@ -110,7 +111,7 @@ export default function SettingsPage() {
                     </SelectContent>
                   </Select>
                    <p className="text-sm text-muted-foreground pt-2">
-                    Lembre-se que o modelo `gemini-pro-vision` é o único que aceita imagens. Os outros são para tarefas de texto.
+                    O modelo 'Gemini Pro Vision' será usado automaticamente para tarefas de imagem. Para as demais, será usado o modelo selecionado aqui.
                   </p>
                 </div>
               </CardContent>
