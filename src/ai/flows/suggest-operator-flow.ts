@@ -32,7 +32,7 @@ export async function suggestOperator(input: OriginalSuggestOperatorInput): Prom
 
 const prompt = ai.definePrompt({
     name: 'suggestOperatorPrompt',
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.5-flash',
     input: { schema: SuggestOperatorInputSchema },
     output: { schema: SuggestOperatorOutputSchema },
     tools: [getEventsForDay],
