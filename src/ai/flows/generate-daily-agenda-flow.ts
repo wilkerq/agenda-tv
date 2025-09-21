@@ -22,7 +22,6 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
 // Prompt Definition
 const prompt = ai.definePrompt({
   name: 'generateDailyAgendaPrompt',
-  model: 'gemini-2.5-flash-image-preview',
   input: { schema: DailyAgendaInputSchema },
   output: { schema: DailyAgendaOutputSchema },
   prompt: `Você é o assistente de comunicação da Alego. Sua tarefa é criar a "Pauta do Dia" em um formato claro e profissional para ser compartilhado internamente (ex: WhatsApp).

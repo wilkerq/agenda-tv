@@ -22,7 +22,6 @@ export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Prom
 // Prompt Definition
 const prompt = ai.definePrompt({
   name: 'generateWhatsAppMessagePrompt',
-  model: 'gemini-2.5-flash-image-preview',
   input: { schema: WhatsAppMessageInputSchema },
   output: { schema: WhatsAppMessageOutputSchema },
   prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
