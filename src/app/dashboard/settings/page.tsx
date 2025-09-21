@@ -83,7 +83,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="google-model">Modelo</Label>
                   <Select
-                    value={config.google.model || "gemini-1.5-flash-latest"}
+                    value={config.google.model || "gemini-2.5-flash-image-preview"}
                     onValueChange={(value) =>
                       setConfig((prev) => ({
                         ...prev,
@@ -95,8 +95,11 @@ export default function SettingsPage() {
                       <SelectValue placeholder="Selecione um modelo" />
                     </SelectTrigger>
                     <SelectContent>
+                       <SelectItem value="gemini-2.5-flash-image-preview">
+                        Gemini 2.5 Flash (Recomendado)
+                      </SelectItem>
                       <SelectItem value="gemini-1.5-flash-latest">
-                        Gemini 1.5 Flash (Recomendado)
+                        Gemini 1.5 Flash
                       </SelectItem>
                       <SelectItem value="gemini-1.0-pro">Gemini 1.0 Pro</SelectItem>
                       <SelectItem value="gemini-pro">Gemini Pro (Legacy)</SelectItem>
