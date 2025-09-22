@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to import events from the official Alego agenda website.
@@ -11,13 +10,24 @@ import { z } from 'zod';
 import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
-import { parse } from 'node-html-parser';
-import { addDays, startOfDay, isValid, format, startOfMonth, endOfMonth, parse as parseDate } from 'date-fns';
+import { addDays, startOfDay, isValid, format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 const ImportAlegoAgendaOutputSchema = z.object({
   count: z.number().describe('The number of new events imported.'),
 });
 export type ImportAlegoAgendaOutput = z.infer<typeof ImportAlegoAgendaOutputSchema>;
+
+// The structure of the event object from the Alego API
+interface AlegoApiEvent {
+    id: string;
+    title: string;
+    start: string; // ISO 8601 format (e.g., "2024-08-13T09:00:00")
+    end: string;
+    url: string;
+    location: string;
+    description: string;
+    class: string;
+}
 
 interface ProcessedEvent {
     name: string;
@@ -48,7 +58,7 @@ const assignOperator = (date: Date, location: string): string => {
 };
 
 // Function to determine transmission type
-const determineTransmission = (eventName: string, location: string): 'youtube' | 'tv' => {
+const determineTransmission = (location: string): 'youtube' | 'tv' => {
     if (location === "Plenário Iris Rezende Machado") {
         return "tv";
     }
@@ -67,65 +77,57 @@ const importAlegoAgendaFlow = ai.defineFlow(
   async () => {
     const processedEvents: ProcessedEvent[] = [];
     const today = new Date();
+    const startDate = startOfMonth(today);
+    const endDate = endOfMonth(addDays(today, 15)); // Fetch for current and next month to cover 15 days
 
-    for (let i = 0; i < 15; i++) {
-        const targetDate = addDays(today, i);
-        const dateString = format(targetDate, 'dd/MM/yyyy');
-        const url = `https://portal.al.go.leg.br/agenda?data=${dateString}`;
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = format(endDate, 'yyyy-MM-dd');
+    
+    // Alego's official AJAX endpoint for calendar events
+    const url = `https://portal.al.go.leg.br/agenda/get_eventos_ajax?start=${startStr}&end=${endStr}`;
+
+    try {
+        const response = await fetch(url, { 
+            cache: 'no-store',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
         
-        try {
-            const response = await fetch(url, { cache: 'no-store' });
-            if (!response.ok) {
-                console.warn(`Failed to fetch agenda for ${dateString}: ${response.statusText}`);
-                continue;
-            }
-            const html = await response.text();
-            const root = parse(html);
-
-            const eventElements = root.querySelectorAll('.compromisso-item');
-            
-            // Robust date extraction from the body's data attribute
-            const bodyDateStr = root.querySelector('body')?.getAttribute('data-dia-selecionado'); // "YYYY-MM-DD"
-            
-            if (!bodyDateStr || eventElements.length === 0) {
-                continue; // No events or date found for this day
-            }
-            
-            const [year, month, day] = bodyDateStr.split('-').map(Number);
-            
-            for (const el of eventElements) {
-                const timeStr = el.querySelector('.compromisso-horario')?.text.trim(); // "HH:mm"
-                const name = el.querySelector('.compromisso-titulo')?.text.trim();
-                const location = el.querySelector('.compromisso-local')?.text.trim();
-                
-                if (!timeStr || !name || !location) {
-                    continue; // Skip if essential info is missing
-                }
-                
-                const [hours, minutes] = timeStr.split(':').map(Number);
-
-                if (isNaN(hours) || isNaN(minutes) || isNaN(day) || isNaN(month) || isNaN(year)) {
-                    continue; // Skip if date/time parts are invalid
-                }
-                
-                const eventDate = new Date(year, month - 1, day, hours, minutes);
-
-                if (!isValid(eventDate)) {
-                    continue;
-                }
-
-                processedEvents.push({
-                    name,
-                    date: eventDate,
-                    location,
-                    transmission: determineTransmission(name, location),
-                    operator: assignOperator(eventDate, location),
-                });
-            }
-
-        } catch (error) {
-            console.error(`Error fetching or parsing agenda for ${dateString}:`, error);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch agenda API: ${response.statusText}`);
         }
+        
+        const apiResponse = await response.json();
+
+        if (!apiResponse.success || !Array.isArray(apiResponse.result)) {
+            throw new Error('Invalid API response structure from Alego');
+        }
+        
+        const apiEvents: AlegoApiEvent[] = apiResponse.result;
+
+        for (const event of apiEvents) {
+            const eventDate = parseISO(event.start);
+
+            if (!isValid(eventDate) || !event.title || !event.location) {
+                continue; // Skip invalid events
+            }
+
+            // Clean up location string
+            const location = event.location.replace(/Local:\s*/, '').trim();
+
+            processedEvents.push({
+                name: event.title,
+                date: eventDate,
+                location: location,
+                transmission: determineTransmission(location),
+                operator: assignOperator(eventDate, location),
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching or processing Alego agenda via API:', error);
+        return { count: 0 }; // Exit if API fails
     }
 
     if (processedEvents.length === 0) {
@@ -150,7 +152,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
     const existingEventsInDb: { name: string, date: Date }[] = [];
 
     for (const monthStr of relevantMonths) {
-        const monthDate = parseDate(monthStr, 'yyyy-MM', new Date());
+        const monthDate = parseISO(monthStr + '-01');
         const start = startOfMonth(monthDate);
         const end = endOfMonth(monthDate);
         const q = query(
