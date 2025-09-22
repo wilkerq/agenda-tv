@@ -68,6 +68,7 @@ export default function ShareSchedulePage() {
     }
 
     setIsFetchingEvents(true);
+    setMessage(""); // Limpa a mensagem ao buscar novos eventos
     try {
       const startOfSelectedDay = startOfDay(selectedDate);
       const endOfSelectedDay = endOfDay(selectedDate);
@@ -113,8 +114,13 @@ export default function ShareSchedulePage() {
 
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+      if (selectedOperatorId && selectedDate) {
+        fetchEvents();
+      } else {
+        setEvents([]);
+        setMessage("");
+      }
+  }, [selectedOperatorId, selectedDate, fetchEvents]);
   
   const handleGenerateMessage = useCallback(async () => {
     if (!selectedOperator || !selectedDate) return;
@@ -180,6 +186,13 @@ export default function ShareSchedulePage() {
   };
 
   const hasEvents = events.length > 0;
+  
+  const getCardDescription = () => {
+      if (isFetchingEvents) return "Buscando eventos...";
+      if (!selectedOperator) return "Selecione um operador para ver a agenda.";
+      if (!hasEvents) return `Nenhum evento encontrado para ${selectedOperator.name} em ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`;
+      return `Agenda de ${selectedOperator.name} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`;
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -229,12 +242,7 @@ export default function ShareSchedulePage() {
           <CardHeader>
             <CardTitle>Agenda do Operador</CardTitle>
             <CardDescription>
-              {isFetchingEvents 
-                ? "Buscando eventos..." 
-                : hasEvents && selectedOperator
-                  ? `Agenda de ${selectedOperator.name} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`
-                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'o operador selecionado'} na data selecionada.`
-              }
+              {getCardDescription()}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
