@@ -1,6 +1,7 @@
 'use server';
 
 import { googleAI } from '@genkit-ai/googleai';
+import { openAI } from '@genkit-ai/openai';
 import { AIConfig } from './types';
 
 /**
@@ -12,21 +13,20 @@ import { AIConfig } from './types';
  */
 export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  // Define default models
-  const defaultTextModel = 'gemini-pro';
-  const defaultVisionModel = 'gemini-pro-vision';
-
-  // Determine the correct model name
-  let modelName: string;
+  const provider = clientConfig?.provider || 'google';
 
   if (modelType === 'vision') {
-    // For vision tasks, always use the specific vision model.
-    modelName = defaultVisionModel;
-  } else {
-    // For text tasks, use the model from client config if available, otherwise fallback to default.
-    modelName = clientConfig?.google?.model || defaultTextModel;
+    // For vision tasks, Google's model is generally preferred and hardcoded for now.
+    // This could be expanded later if needed.
+    return googleAI.model('googleai/gemini-pro-vision');
   }
   
-  // Return the specified model instance, correctly prefixed for Genkit.
+  if (provider === 'openai') {
+    const modelName = clientConfig?.openai?.model || 'gpt-4o';
+    return openAI.model(`openai/${modelName}`);
+  }
+
+  // Default to Google
+  const modelName = clientConfig?.google?.model || 'gemini-1.5-flash-latest';
   return googleAI.model(`googleai/${modelName}`);
 }

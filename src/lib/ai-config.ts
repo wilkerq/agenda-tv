@@ -9,8 +9,12 @@ const defaultConfig: AIConfig = {
   provider: 'google',
   google: {
     apiKey: undefined,
-    model: 'gemini-pro', // Default to a reliable text model
+    model: 'gemini-1.5-flash-latest',
   },
+  openai: {
+    apiKey: undefined,
+    model: 'gpt-4o',
+  }
 };
 
 /**
@@ -28,7 +32,12 @@ export function useAIConfig(): [AIConfig, (config: AIConfig | ((prev: AIConfig) 
         const parsed = AIConfigSchema.safeParse(JSON.parse(storedConfig));
         if (parsed.success) {
           // Merge with default to ensure all keys are present
-          return { ...defaultConfig, ...parsed.data };
+          return { 
+            ...defaultConfig, 
+            ...parsed.data,
+            google: { ...defaultConfig.google, ...parsed.data.google },
+            openai: { ...defaultConfig.openai, ...parsed.data.openai },
+          };
         }
       }
     } catch (error) {

@@ -6,11 +6,15 @@ export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
 // Settings Schemas
 export const AIConfigSchema = z.object({
-  provider: z.enum(['google']),
+  provider: z.enum(['google', 'openai']).default('google'),
   google: z.object({
     apiKey: z.string().optional(),
     model: z.string().optional(),
-  }),
+  }).optional(),
+  openai: z.object({
+    apiKey: z.string().optional(),
+    model: z.string().optional(),
+  }).optional(),
 });
 export type AIConfig = z.infer<typeof AIConfigSchema>;
 
