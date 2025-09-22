@@ -26,7 +26,7 @@ const createEventFromImageFlow = ai.defineFlow(
         outputSchema: CreateEventFromImageOutputSchema,
     },
     async (input) => {
-        const visionModel = await getModel(input.config, 'vision');
+        const visionModel = await getModel(input.config);
 
         const prompt = ai.definePrompt({
             name: 'createEventFromImagePrompt',
@@ -59,9 +59,9 @@ After extracting the data, apply the following rules to populate the remaining f
         *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto".
 
     *   **Rule 2: Weekday Shifts (Default Logic)**
-        *   **Morning (00:00 - 12:00):** The default operator is "Rodrigo Sousa". He should always be assigned unless he is already busy.
+        *   **Morning (00:00 - 12:00):** The default operator is "Rodrigo Sousa".
         *   **Afternoon (12:01 - 18:00):** The operator MUST be one of the following: "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one at random. This rotation is only for the afternoon.
-        *   **Night (after 18:00):** The default operator is "Bruno Michel". He should always be assigned unless he is already busy.
+        *   **Night (after 18:00):** The default operator is "Bruno Michel".
 
 **Image for Analysis:**
 {{media url=photoDataUri}}
