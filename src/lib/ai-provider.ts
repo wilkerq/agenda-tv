@@ -1,7 +1,7 @@
 'use server';
 
 import { googleAI } from '@genkit-ai/googleai';
-import { AIConfig, AIConfigSchema } from './types';
+import { AIConfig } from './types';
 
 /**
  * This is a SERVER-SIDE function that determines which AI model to use based on client-side settings.
@@ -25,7 +25,7 @@ export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vis
   } else {
     // For text tasks, use the model from client config if available, otherwise fallback to default.
     // The key change is here: we prepend 'googleai/' to the model name from settings.
-    modelName = clientConfig?.google.model 
+    modelName = clientConfig?.google?.model 
       ? `googleai/${clientConfig.google.model}` 
       : defaultTextModel;
   }
