@@ -12,25 +12,21 @@ import { AIConfig } from './types';
  */
 export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  // Define default models with the required 'googleai/' prefix
-  const defaultTextModel = 'googleai/gemini-pro';
-  const defaultVisionModel = 'googleai/gemini-pro-vision';
+  // Define default models
+  const defaultTextModel = 'gemini-pro';
+  const defaultVisionModel = 'gemini-pro-vision';
 
   // Determine the correct model name
-  let modelName;
+  let modelName: string;
 
   if (modelType === 'vision') {
     // For vision tasks, always use the specific vision model.
     modelName = defaultVisionModel;
   } else {
     // For text tasks, use the model from client config if available, otherwise fallback to default.
-    // The key change is here: we prepend 'googleai/' to the model name from settings.
-    modelName = clientConfig?.google?.model 
-      ? `googleai/${clientConfig.google.model}` 
-      : defaultTextModel;
+    modelName = clientConfig?.google?.model || defaultTextModel;
   }
   
-  // Return the specified model instance.
-  // The 'as any' is used because Genkit's model types can be complex, but we are returning a valid model instance.
-  return googleAI.model(modelName as any);
+  // Return the specified model instance, correctly prefixed for Genkit.
+  return googleAI.model(`googleai/${modelName}`);
 }
