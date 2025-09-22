@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Event, Operator } from '@/lib/types';
+import type { Event, Operator, AIConfig } from '@/lib/types';
 
 
 const SendDailyAgendaOutputSchema = z.object({
@@ -23,17 +23,23 @@ const SendDailyAgendaOutputSchema = z.object({
 });
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
+const SendDailyAgendaInputSchema = z.object({
+    config: z.any().optional(),
+});
+type SendDailyAgendaInput = z.infer<typeof SendDailyAgendaInputSchema>;
 
-export async function sendDailyAgendaToAll(): Promise<SendDailyAgendaOutput> {
-  return sendDailyAgendaToAllFlow();
+
+export async function sendDailyAgendaToAll(input: SendDailyAgendaInput): Promise<SendDailyAgendaOutput> {
+  return sendDailyAgendaToAllFlow(input);
 }
 
 const sendDailyAgendaToAllFlow = ai.defineFlow(
   {
     name: 'sendDailyAgendaToAllFlow',
+    inputSchema: SendDailyAgendaInputSchema,
     outputSchema: SendDailyAgendaOutputSchema,
   },
-  async () => {
+  async ({ config }) => {
     const operatorsCollection = collection(db, 'operators');
     const operatorsSnapshot = await getDocs(operatorsCollection);
     const operators = operatorsSnapshot.docs.map(doc => doc.data() as Operator);
@@ -83,6 +89,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
             scheduleDate: format(tomorrow, "PPPP", { locale: ptBR }),
             events: eventStrings,
             operatorPhone: operator.phone.replace(/\D/g, ''),
+            config: config,
           });
           messagesSent++;
         }
@@ -99,5 +106,3 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     };
   }
 );
-
-    
