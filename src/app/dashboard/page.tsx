@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
@@ -14,7 +15,7 @@ import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { add, format, startOfDay, endOfDay, getHours } from 'date-fns';
+import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles } from "lucide-react";
@@ -116,6 +117,36 @@ export default function DashboardPage() {
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     try {
+
+      // --- DUPLICATION CHECK ---
+      const startOfTargetDay = startOfDay(eventData.date);
+      const endOfTargetDay = endOfDay(eventData.date);
+
+      const conflictQuery = query(
+        collection(db, "events"),
+        where("name", "==", eventData.name),
+        where("date", ">=", Timestamp.fromDate(startOfTargetDay)),
+        where("date", "<=", Timestamp.fromDate(endOfTargetDay))
+      );
+      
+      const conflictSnapshot = await getDocs(conflictQuery);
+      const conflictingEvents = conflictSnapshot.docs.map(d => d.data());
+
+      for (const existingEvent of conflictingEvents) {
+        const existingDate = (existingEvent.date as Timestamp).toDate();
+        // Check if events are within 2 hours of each other
+        if (Math.abs(differenceInMinutes(eventData.date, existingDate)) < 120) {
+            toast({
+              title: "Evento Duplicado Encontrado",
+              description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
+              variant: "destructive",
+            });
+            throw new Error("Duplicate event");
+        }
+      }
+      // --- END DUPLICATION CHECK ---
+
+
       if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         // Handle single event
         await addDoc(collection(db, "events"), {
@@ -153,13 +184,15 @@ export default function DashboardPage() {
         title: "Sucesso!",
         description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
       });
-    } catch (error) {
-      console.error("Error adding event: ", error);
-      toast({
-        title: "Erro!",
-        description: "Não foi possível adicionar o evento.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+       if (error.message !== "Duplicate event") {
+          console.error("Error adding event: ", error);
+          toast({
+            title: "Erro!",
+            description: "Não foi possível adicionar o evento.",
+            variant: "destructive",
+          });
+       }
       throw error; // Re-throw the error to be caught by the form
     }
   };
@@ -336,3 +369,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
