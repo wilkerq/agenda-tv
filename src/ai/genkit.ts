@@ -1,6 +1,5 @@
 import {genkit, GenerationCommonConfig} from 'genkit';
 import {googleAI} from '@genkit-ai/googleai';
-import {openAI} from '@genkit-ai/openai';
 import 'dotenv/config';
 
 // IMPORTANT: Do not import tools here that also import `ai` from this file.
@@ -19,8 +18,5 @@ export const ai = genkit({
     googleAI({
       apiKey: process.env.GEMINI_API_KEY,
     }),
-    openAI({
-        apiKey: process.env.OPENAI_API_KEY
-    })
   ],
 });

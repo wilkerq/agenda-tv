@@ -1,7 +1,6 @@
 'use server';
 
 import { googleAI } from '@genkit-ai/googleai';
-import { openAI } from '@genkit-ai/openai';
 import { AIConfig } from './types';
 
 /**
@@ -22,8 +21,9 @@ export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vis
   }
   
   if (provider === 'openai') {
-    const modelName = clientConfig?.openai?.model || 'gpt-4o';
-    return openAI.model(`openai/${modelName}`);
+    // This part is now effectively disabled as the openai package is removed.
+    // We will default to Google to prevent errors.
+    console.warn("OpenAI provider selected, but the package is not installed. Defaulting to Google Gemini.");
   }
 
   // Default to Google
