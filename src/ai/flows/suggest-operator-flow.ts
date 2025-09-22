@@ -9,6 +9,7 @@ import { ai } from '@/ai/genkit';
 import { getEventsForDay } from '@/lib/tools';
 import { 
     SuggestOperatorInput,
+    SuggestOperatorInputSchema,
     SuggestOperatorOutput,
     SuggestOperatorOutputSchema 
 } from '@/lib/types';
@@ -31,7 +32,7 @@ export async function suggestOperator(input: SuggestOperatorInput): Promise<Sugg
 const suggestOperatorFlow = ai.defineFlow(
     {
         name: 'suggestOperatorFlow',
-        inputSchema: SuggestOperatorInput, // The flow receives the original input
+        inputSchema: SuggestOperatorInputSchema, // The flow receives the original input
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
