@@ -233,7 +233,7 @@ export default function ShareSchedulePage() {
                 ? "Buscando eventos..." 
                 : hasEvents && selectedOperator
                   ? `Agenda de ${selectedOperator.name} para ${selectedDate ? format(selectedDate, "dd/MM/yyyy") : ''}.`
-                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'o operador'} na data selecionada.`
+                  : `Nenhum evento encontrado para ${selectedOperator?.name || 'o operador selecionado'} na data selecionada.`
               }
             </CardDescription>
           </CardHeader>
