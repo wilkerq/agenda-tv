@@ -29,7 +29,7 @@ const generateDailyAgendaFlow = ai.defineFlow(
   },
   async (input) => {
     
-    const textModel = await getModel(input.config);
+    const textModel = await getModel();
     
     // Prompt Definition
     const prompt = ai.definePrompt({

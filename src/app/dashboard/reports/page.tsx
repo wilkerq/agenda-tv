@@ -15,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import 'jspdf-autotable';
-import { useAIConfig } from "@/lib/ai-config";
 
 type OperatorReport = {
   count: number;
@@ -54,7 +53,6 @@ export default function ReportsPage() {
   const [isAiSummaryLoading, setIsAiSummaryLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState("");
   const { toast } = useToast();
-  const [aiConfig] = useAIConfig();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -155,7 +153,6 @@ export default function ReportsPage() {
         }, {} as Record<string, { count: number; nightCount: number;}>),
         locationReport,
         transmissionReport,
-        config: aiConfig,
     };
 
     try {
@@ -455,5 +452,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    

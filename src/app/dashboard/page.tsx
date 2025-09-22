@@ -21,7 +21,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
-import { useAIConfig } from "@/lib/ai-config";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -46,7 +45,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const [aiConfig] = useAIConfig();
 
   useEffect(() => {
     // Set the initial date on the client side to avoid hydration mismatch
@@ -302,7 +300,7 @@ export default function DashboardPage() {
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <AddEventFromImageForm onSuccess={handleAiSuccess} config={aiConfig} />
+                    <AddEventFromImageForm onSuccess={handleAiSuccess} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -369,10 +367,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-    
-
-    
-
-    

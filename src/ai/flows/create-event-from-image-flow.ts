@@ -15,8 +15,7 @@ import {
 import { getModel } from '@/lib/ai-provider';
 
 export async function createEventFromImage(input: CreateEventFromImageInput): Promise<CreateEventFromImageOutput> {
-    // Pass the config through to the flow implementation
-    return createEventFromImageFlow({ ...input, config: input.config });
+    return createEventFromImageFlow(input);
 }
 
 const createEventFromImageFlow = ai.defineFlow(
@@ -26,7 +25,7 @@ const createEventFromImageFlow = ai.defineFlow(
         outputSchema: CreateEventFromImageOutputSchema,
     },
     async (input) => {
-        const visionModel = await getModel(input.config);
+        const visionModel = await getModel('vision');
 
         const prompt = ai.definePrompt({
             name: 'createEventFromImagePrompt',

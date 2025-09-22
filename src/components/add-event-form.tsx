@@ -40,7 +40,6 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
-import { useAIConfig } from "@/lib/ai-config";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -87,7 +86,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const [operators, setOperators] = React.useState<Operator[]>([]);
   const { toast } = useToast();
-  const [aiConfig] = useAIConfig();
 
   React.useEffect(() => {
     const q = query(collection(db, "operators"));
@@ -144,7 +142,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const result = await suggestOperator({
             date: eventDate.toISOString(),
             location: selectedLocation,
-            config: aiConfig,
         });
 
         if (result.operator && operators.some(op => op.name === result.operator)) {
@@ -170,7 +167,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, operators, aiConfig]);
+  }, [form, toast, operators]);
 
   React.useEffect(() => {
     if (preloadedData) {

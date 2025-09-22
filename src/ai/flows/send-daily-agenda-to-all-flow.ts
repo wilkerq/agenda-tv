@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Event, Operator, AIConfig } from '@/lib/types';
+import type { Event, Operator } from '@/lib/types';
 
 
 const SendDailyAgendaOutputSchema = z.object({
@@ -24,7 +24,7 @@ const SendDailyAgendaOutputSchema = z.object({
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
 const SendDailyAgendaInputSchema = z.object({
-    config: z.any().optional(),
+    // This flow doesn't require any specific input from the client anymore
 });
 type SendDailyAgendaInput = z.infer<typeof SendDailyAgendaInputSchema>;
 
@@ -39,7 +39,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     inputSchema: SendDailyAgendaInputSchema,
     outputSchema: SendDailyAgendaOutputSchema,
   },
-  async ({ config }) => {
+  async (input) => {
     const operatorsCollection = collection(db, 'operators');
     const operatorsSnapshot = await getDocs(operatorsCollection);
     const operators = operatorsSnapshot.docs.map(doc => doc.data() as Operator);
@@ -89,7 +89,6 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
             scheduleDate: format(tomorrow, "PPPP", { locale: ptBR }),
             events: eventStrings,
             operatorPhone: operator.phone.replace(/\D/g, ''),
-            config: config,
           });
           messagesSent++;
         }

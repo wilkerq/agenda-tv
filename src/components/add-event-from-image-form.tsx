@@ -6,17 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { createEventFromImage } from "@/ai/flows/create-event-from-image-flow";
-import { type EventFormData, AIConfig } from "@/lib/types";
+import { type EventFormData } from "@/lib/types";
 import { Loader2, Upload } from "lucide-react";
 import Image from "next/image";
 import { parse } from "date-fns";
 
 type AddEventFromImageFormProps = {
   onSuccess: (data: Partial<EventFormData>) => void;
-  config: AIConfig;
 };
 
-export function AddEventFromImageForm({ onSuccess, config }: AddEventFromImageFormProps) {
+export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,7 +78,7 @@ export function AddEventFromImageForm({ onSuccess, config }: AddEventFromImageFo
       reader.readAsDataURL(file);
       reader.onload = async () => {
         const photoDataUri = reader.result as string;
-        const result = await createEventFromImage({ photoDataUri, config });
+        const result = await createEventFromImage({ photoDataUri });
         
         const preloadedData: Partial<EventFormData> = {};
         if (result.name) preloadedData.name = result.name;

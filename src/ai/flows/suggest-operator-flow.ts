@@ -8,7 +8,7 @@
 import { ai } from '@/ai/genkit';
 import { getEventsForDay } from '@/lib/tools';
 import { 
-    SuggestOperatorInput as OriginalSuggestOperatorInput,
+    SuggestOperatorInput,
     SuggestOperatorOutput,
     SuggestOperatorOutputSchema 
 } from '@/lib/types';
@@ -17,27 +17,21 @@ import { db } from '@/lib/firebase';
 import { z } from 'zod';
 import { getModel } from '@/lib/ai-provider';
 
-// Extend the input to include the list of available operators and AI config
-const SuggestOperatorInputSchema = z.object({
+// Extend the input to include the list of available operators
+const SuggestOperatorFlowInputSchema = z.object({
   date: z.string().describe("The full date and time of the event in ISO 8601 format."),
   location: z.string().describe("The venue or place where the event will occur."),
   availableOperators: z.array(z.string()).describe("A list of all available operator names to choose from."),
-  config: z.any().optional(),
 });
-export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
 
-export async function suggestOperator(input: OriginalSuggestOperatorInput): Promise<SuggestOperatorOutput> {
+export async function suggestOperator(input: SuggestOperatorInput): Promise<SuggestOperatorOutput> {
     return suggestOperatorFlow(input);
 }
 
 const suggestOperatorFlow = ai.defineFlow(
     {
         name: 'suggestOperatorFlow',
-        inputSchema: z.object({ // The flow receives the original input
-          date: z.string(),
-          location: z.string(),
-          config: z.any().optional(),
-        }),
+        inputSchema: SuggestOperatorInput, // The flow receives the original input
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
@@ -53,15 +47,15 @@ const suggestOperatorFlow = ai.defineFlow(
             return { operator: undefined };
         }
         
-        const textModel = await getModel(input.config);
+        const textModel = await getModel();
         
         const prompt = ai.definePrompt({
             name: 'suggestOperatorPrompt',
             model: textModel,
-            input: { schema: SuggestOperatorInputSchema },
+            input: { schema: SuggestOperatorFlowInputSchema },
             output: { schema: SuggestOperatorOutputSchema },
             tools: [getEventsForDay],
-            prompt: `You are an expert scheduling assistant for Alego. Your task is to determine the most suitable operator for an event by following a strict hierarchy of rules. You must use the 'getEventsForDay' tool to check the schedule before making a decision. The current year is 2024.
+            prompt: `You are an expert scheduling assistant for Alego. Your task is to determine the most suitable operator for an event by following a strict hierarchy of rules. You must use the 'getEventsForday' tool to check the schedule before making a decision. The current year is 2024.
 
         **AVAILABLE OPERATORS:**
         {{#each availableOperators}}

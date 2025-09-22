@@ -26,7 +26,7 @@ const summarizeReportsFlow = ai.defineFlow(
     },
     async (input) => {
 
-        const textModel = await getModel(input.config);
+        const textModel = await getModel();
 
         const prompt = ai.definePrompt({
             name: 'summarizeReportsPrompt',
