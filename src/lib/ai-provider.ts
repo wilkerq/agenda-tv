@@ -12,20 +12,8 @@ import { AIConfig } from './types';
  */
 export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  const provider = clientConfig?.provider || 'google';
-
-  if (provider === 'openai') {
-    // OpenAI provider is not configured. Defaulting to Google.
-    // In a real application, you would handle this case, perhaps by throwing an error
-    // or falling back to a default model.
-    console.warn("OpenAI provider selected but not configured. Falling back to Google Gemini.");
-  }
-
-  // Default to Google
-  if (modelType === 'vision') {
-    return googleAI.model('gemini-pro-vision');
-  }
-
+  // The provider logic is simplified as we are defaulting to Google.
+  // The selected text model (e.g., gemini-1.5-flash-latest) is already multimodal and can handle vision.
   const modelName = clientConfig?.google?.model || 'gemini-1.5-flash-latest';
   return googleAI.model(modelName);
 }
