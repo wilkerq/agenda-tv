@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">
-                    <AddEventFromImageForm onSuccess={handleAiSuccess} config={aiConfig}/>
+                    <AddEventFromImageForm onSuccess={handleAiSuccess} config={aiConfig} />
                 </div>
             </DialogContent>
         </Dialog>
@@ -371,4 +371,6 @@ export default function DashboardPage() {
 }
 
     
+    
+
     
