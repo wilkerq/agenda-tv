@@ -1,7 +1,6 @@
 'use server';
 
 import { googleAI } from '@genkit-ai/googleai';
-import { AIConfig } from './types';
 
 /**
  * This is a SERVER-SIDE function that determines which AI model to use.
@@ -11,7 +10,6 @@ import { AIConfig } from './types';
  */
 export async function getModel(modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  // The provider logic is simplified as we are defaulting to Google.
   // The selected text model (e.g., gemini-1.5-flash-latest) is already multimodal and can handle vision.
   const modelName = 'gemini-1.5-flash-latest';
   return googleAI.model(modelName);

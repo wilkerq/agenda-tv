@@ -13,6 +13,15 @@ import {
     CreateEventFromImageOutputSchema 
 } from '@/lib/types';
 import { getModel } from '@/lib/ai-provider';
+import { assignOperator, determineTransmission } from '@/lib/business-logic';
+import { parse, isValid, format } from 'date-fns';
+
+const VisionExtractionSchema = z.object({
+  name: z.string().optional().describe('The full, detailed event name.'),
+  location: z.string().optional().describe('The specific location (e.g., "Plenário Iris Rezende Machado").'),
+  date: z.string().optional().describe("The event date, formatted as 'YYYY-MM-DD'."),
+  time: z.string().nullable().optional().describe("The event time, formatted as 'HH:mm'. If no time is found, this MUST be null."),
+});
 
 export async function createEventFromImage(input: CreateEventFromImageInput): Promise<CreateEventFromImageOutput> {
     return createEventFromImageFlow(input);
@@ -31,35 +40,64 @@ const createEventFromImageFlow = ai.defineFlow(
             name: 'createEventFromImagePrompt',
             model: visionModel,
             input: { schema: CreateEventFromImageInputSchema },
-            output: { schema: CreateEventFromImageOutputSchema },
-            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image and apply business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
+            output: { schema: VisionExtractionSchema },
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST conform to the JSON schema.
 
 **MANDATORY RULES:**
 
 1.  **Data Extraction:**
     *   **Event Name (name):** Extract the full, detailed event name.
-    *   **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende Machado"). If you see "Assembleia Legislativa", infer "Plenário Iris Rezende Machado". If the location is "Comissão de Constituição e Justiça", infer "Sala Julio da Retifica \"CCJR\"".
+    *   **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende Machado", "Comissão de Constituição e Justiça").
     *   **Date (date):** Extract the event date. Format it as 'YYYY-MM-DD'.
     *   **Time (time):** Extract the event time. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
-
-2.  **Business Logic (ABSOLUTE RULES):**
-    *   **Transmission Rule (transmission):**
-        *   If the extracted location is "Plenário Iris Rezende Machado", set \`transmission\` to "tv".
-        *   For ALL other locations, set \`transmission\` to "youtube".
-    *   **Operator Assignment Rule (operator):**
-        *   Assign an operator by following this hierarchy. Do not assign "Wilker Quirino".
-        *   **Rule 1 (Specific Location):** If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto".
-        *   **Rule 2 (Weekday Shifts):**
-            *   **Morning (00:00 - 12:00):** The operator is "Rodrigo Sousa".
-            *   **Afternoon (12:01 - 18:00):** The operator must be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one at random.
-            *   **Night (after 18:00):** The operator is "Bruno Michel".
 
 **Image for Analysis:**
 {{media url=photoDataUri}}
 `,
         });
 
-        const { output } = await prompt(input);
-        return output!;
+        // 1. Extract data from the image using the vision model
+        const { output: visionOutput } = await prompt(input);
+
+        if (!visionOutput) {
+            throw new Error("Failed to extract data from image.");
+        }
+        
+        let finalDate: Date | undefined;
+        let location = visionOutput.location;
+
+        if (visionOutput.date && visionOutput.time) {
+            const dateStr = `${visionOutput.date}T${visionOutput.time}`;
+            const parsedDate = parse(dateStr, "yyyy-MM-dd'T'HH:mm", new Date());
+            if (isValid(parsedDate)) {
+                finalDate = parsedDate;
+            }
+        }
+        
+        // --- Apply Business Logic in Code ---
+        
+        // Normalize location
+        if (location) {
+            if (location.includes("Assembleia Legislativa")) location = "Plenário Iris Rezende Machado";
+            if (location.includes("Comissão de Constituição e Justiça")) location = "Sala Julio da Retifica \"CCJR\"";
+        }
+        
+        // 2. Determine transmission type based on location
+        const transmission = location ? determineTransmission(location) : undefined;
+
+        // 3. Assign operator based on date and location
+        const operator = (finalDate && location) ? await assignOperator(finalDate, location) : undefined;
+
+        // 4. Construct the final output
+        const finalOutput: CreateEventFromImageOutput = {
+            name: visionOutput.name,
+            location: location,
+            date: visionOutput.date,
+            time: visionOutput.time,
+            transmission: transmission,
+            operator: operator,
+        };
+
+        return finalOutput;
     }
 );

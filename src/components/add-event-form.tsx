@@ -40,6 +40,7 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
+import { determineTransmission } from "@/lib/business-logic";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -112,7 +113,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     },
   });
 
-  const handleSuggestOperator = React.useCallback(async () => {
+  const handleAutoPopulation = React.useCallback(async () => {
     const { date: selectedDate, time: selectedTime, location: selectedLocation } = form.getValues();
     
     if (!selectedDate || !selectedTime || !selectedLocation) {
@@ -139,29 +140,40 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(selectedDate);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const result = await suggestOperator({
+        // Suggest Operator
+        const opResult = await suggestOperator({
             date: eventDate.toISOString(),
             location: selectedLocation,
         });
 
-        if (result.operator && operators.some(op => op.name === result.operator)) {
-            form.setValue("operator", result.operator, { shouldValidate: true });
+        if (opResult.operator && operators.some(op => op.name === opResult.operator)) {
+            form.setValue("operator", opResult.operator, { shouldValidate: true });
             toast({
-                title: "Operador Sugerido com IA!",
-                description: `${result.operator} foi selecionado com base na escala.`,
+                title: "Operador Sugerido!",
+                description: `${opResult.operator} foi selecionado com base na escala.`,
             });
         } else {
              toast({
-                title: "Nenhuma sugestão automática",
-                description: "A IA não sugeriu um operador. Verifique a chave de API ou selecione manualmente.",
+                title: "Nenhuma sugestão de operador",
+                description: "Não foi possível sugerir um operador. Selecione manualmente.",
                 variant: "default",
             });
         }
-    } catch (error) {
-        console.error("Error suggesting operator:", error);
+
+        // Determine Transmission
+        const transmissionType = determineTransmission(selectedLocation);
+        form.setValue("transmission", transmissionType, { shouldValidate: true });
         toast({
-            title: "Erro na Sugestão",
-            description: "Não foi possível sugerir um operador. Verifique a chave de API nas configurações.",
+            title: "Transmissão Definida!",
+            description: `Tipo de transmissão definido como "${transmissionType === 'tv' ? 'TV Aberta' : 'YouTube'}"`,
+        });
+
+
+    } catch (error) {
+        console.error("Error during auto-population:", error);
+        toast({
+            title: "Erro na Sugestão Automática",
+            description: "Não foi possível preencher os campos. Verifique o console para detalhes.",
             variant: "destructive",
         });
     } finally {
@@ -303,26 +315,16 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                       ))}
                     </SelectContent>
                   </Select>
-                   <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={handleSuggestOperator}
-                      disabled={isSuggesting}
-                      title="Sugerir operador com IA"
-                    >
-                      {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    </Button>
                 </div>
                  <FormDescription>
-                  Preencha data, hora e local, depois clique no brilho.
+                  Preencha os campos e use o botão de sugestão.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 items-end">
           <FormField
             control={form.control}
             name="date"
@@ -374,7 +376,18 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
-          <FormField
+           <Button
+              type="button"
+              variant="outline"
+              onClick={handleAutoPopulation}
+              disabled={isSuggesting}
+              className="w-full"
+            >
+              {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Sugerir Operador e Transmissão
+            </Button>
+        </div>
+         <FormField
             control={form.control}
             name="transmission"
             render={({ field }) => (
@@ -383,7 +396,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     className="flex items-center space-x-4 pt-2"
                   >
                     <FormItem className="flex items-center space-x-2 space-y-0">
@@ -404,7 +417,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
-        </div>
         <div className="space-y-4 border-t pt-6">
             <FormField
             control={form.control}
