@@ -33,35 +33,27 @@ const createEventFromImageFlow = ai.defineFlow(
             model: visionModel,
             input: { schema: CreateEventFromImageInputSchema },
             output: { schema: CreateEventFromImageOutputSchema },
-            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your sole function is to extract event details from an event image and apply a fixed set of business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image and apply business rules to populate a form. The current year is 2024. Your output MUST conform to the JSON schema.
 
-**MANDATORY TWO-STEP PROCESS:**
+**MANDATORY RULES:**
 
-**Step 1: Data Extraction from Image**
-First, analyze the image to extract the following raw data.
+1.  **Data Extraction:**
+    *   **Event Name (name):** Extract the full, detailed event name.
+    *   **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende Machado"). If you see "Assembleia Legislativa", infer "Plenário Iris Rezende Machado". If the location is "Comissão de Constituição e Justiça", infer "Sala Julio da Retifica \"CCJR\"".
+    *   **Date (date):** Extract the event date. Format it as 'YYYY-MM-DD'.
+    *   **Time (time):** Extract the event time. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
 
-1.  **Event Name (name):** Extract the full, detailed event name.
-2.  **Location (location):** Extract the specific location (e.g., "Plenário Iris Rezende", "Auditório Carlos Vieira"). If a building name is provided, infer the most important hall within it. For example, if you see "Assembleia Legislativa", infer "Plenário Iris Rezende Machado".
-3.  **Date (date):** Extract the event date from the image. Format it as 'YYYY-MM-DD'.
-4.  **Time (time):** Extract the event time from the image. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
-
-**Step 2: Business Rule Application (Mandatory Logic)**
-After extracting the data, apply the following rules to populate the remaining fields. THESE RULES ARE ABSOLUTE AND MUST BE FOLLOWED.
-
-1.  **Transmission Rule (transmission):**
-    *   If the extracted location is "Plenário Iris Rezende Machado", you MUST set the transmission to "tv".
-    *   For ALL other locations, you MUST set the transmission to "youtube".
-
-2.  **Operator Assignment Rule (operator):**
-    *   You MUST assign an operator by following this hierarchy. The first rule that matches determines the operator. Do not assign "Wilker Quirino".
-
-    *   **Rule 1: Specific Location (Highest Priority)**
-        *   If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto".
-
-    *   **Rule 2: Weekday Shifts (Default Logic)**
-        *   **Morning (00:00 - 12:00):** The default operator is "Rodrigo Sousa".
-        *   **Afternoon (12:01 - 18:00):** The operator MUST be one of the following: "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one at random. This rotation is only for the afternoon.
-        *   **Night (after 18:00):** The default operator is "Bruno Michel".
+2.  **Business Logic (ABSOLUTE RULES):**
+    *   **Transmission Rule (transmission):**
+        *   If the extracted location is "Plenário Iris Rezende Machado", set \`transmission\` to "tv".
+        *   For ALL other locations, set \`transmission\` to "youtube".
+    *   **Operator Assignment Rule (operator):**
+        *   Assign an operator by following this hierarchy. Do not assign "Wilker Quirino".
+        *   **Rule 1 (Specific Location):** If the location is "Sala Julio da Retifica \"CCJR\"", the operator MUST be "Mário Augusto".
+        *   **Rule 2 (Weekday Shifts):**
+            *   **Morning (00:00 - 12:00):** The operator is "Rodrigo Sousa".
+            *   **Afternoon (12:01 - 18:00):** The operator must be one of "Ovidio Dias", "Mário Augusto", or "Bruno Michel". Choose one at random.
+            *   **Night (after 18:00):** The operator is "Bruno Michel".
 
 **Image for Analysis:**
 {{media url=photoDataUri}}
