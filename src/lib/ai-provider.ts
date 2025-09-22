@@ -14,19 +14,11 @@ export async function getModel(clientConfig?: AIConfig, modelType: 'text' | 'vis
     
   const provider = clientConfig?.provider || 'google';
 
+  // Default to Google
   if (modelType === 'vision') {
-    // For vision tasks, Google's model is generally preferred and hardcoded for now.
-    // This could be expanded later if needed.
-    return googleAI.model('googleai/gemini-pro-vision');
-  }
-  
-  if (provider === 'openai') {
-    // This part is now effectively disabled as the openai package is removed.
-    // We will default to Google to prevent errors.
-    console.warn("OpenAI provider selected, but the package is not installed. Defaulting to Google Gemini.");
+    return googleAI.model('gemini-pro-vision');
   }
 
-  // Default to Google
   const modelName = clientConfig?.google?.model || 'gemini-1.5-flash-latest';
-  return googleAI.model(`googleai/${modelName}`);
+  return googleAI.model(modelName.startsWith('googleai/') ? modelName : `googleai/${modelName}`);
 }
