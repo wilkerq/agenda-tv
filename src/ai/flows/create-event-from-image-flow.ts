@@ -13,8 +13,10 @@ import {
     CreateEventFromImageOutputSchema 
 } from '@/lib/types';
 import { getModel } from '@/lib/ai-provider';
-import { assignOperator, determineTransmission } from '@/lib/business-logic';
+import { assignOperator } from '@/lib/business-logic';
+import { determineTransmission } from '@/lib/event-logic';
 import { parse, isValid, format } from 'date-fns';
+import { z } from 'zod';
 
 const VisionExtractionSchema = z.object({
   name: z.string().optional().describe('The full, detailed event name.'),

@@ -40,7 +40,7 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
-import { determineTransmission } from "@/lib/business-logic";
+import { determineTransmission } from "@/lib/event-logic";
 
 const locations = [
   "Auditório Francisco Gedda",

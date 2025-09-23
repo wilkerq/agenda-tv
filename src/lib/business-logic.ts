@@ -5,18 +5,6 @@ import { db } from './firebase';
 import { startOfDay, endOfDay, getDay } from 'date-fns';
 
 /**
- * Determines the type of transmission based on the event location.
- * @param location The event location string.
- * @returns 'tv' for the main plenary, 'youtube' otherwise.
- */
-export const determineTransmission = (location: string): 'youtube' | 'tv' => {
-    if (location === "Plenário Iris Rezende Machado") {
-        return "tv";
-    }
-    return "youtube";
-};
-
-/**
  * Fetches the list of available operators from Firestore, excluding 'Wilker Quirino'.
  * @returns A promise that resolves to an array of operator names.
  */

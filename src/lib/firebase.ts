@@ -6,12 +6,12 @@ import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 // Configuração do seu projeto Firebase.
 const firebaseConfig = {
-  apiKey: "AIzaSyAiHptzLoHCtDR2_n9pPVbD89ewX8kd_f8",
-  authDomain: "agenda-alego-v3-72653978-2d924.firebaseapp.com",
-  projectId: "agenda-alego-v3-72653978-2d924",
-  storageBucket: "agenda-alego-v3-72653978-2d924.firebasestorage.app",
-  messagingSenderId: "547317231231",
-  appId: "1:547317231231:web:b965cb0dc294adaba3194a"
+  "projectId": "agenda-alego-openai-4456-b2bd6",
+  "appId": "1:468496928261:web:371cc5cb4a76f29257566c",
+  "apiKey": "AIzaSyCK9BqNa1lqmlmcEqdHYHGMb1kly0orXGs",
+  "authDomain": "agenda-alego-openai-4456-b2bd6.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "468496928261"
 };
 
 
