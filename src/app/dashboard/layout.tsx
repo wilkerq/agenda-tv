@@ -15,7 +15,6 @@ import {
   ListTodo,
   Import,
   Users,
-  Settings, // Adicionado
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -153,16 +152,6 @@ export default function DashboardLayout({
                 <Import className="h-4 w-4" />
                 Importar Agenda
               </Link>
-              <Link
-                href="/dashboard/settings"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/settings" && "bg-slate-700 text-white"
-                )}
-              >
-                <Settings className="h-4 w-4" />
-                Configurações
-              </Link>
             </nav>
           </div>
           <div className="mt-auto p-4">
@@ -266,16 +255,6 @@ export default function DashboardLayout({
                 >
                   <Import className="h-5 w-5" />
                   Importar Agenda
-                </Link>
-                 <Link
-                  href="/dashboard/settings"
-                  className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                     pathname === "/dashboard/settings" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <Settings className="h-5 w-5" />
-                  Configurações
                 </Link>
               </nav>
               <div className="mt-auto">
