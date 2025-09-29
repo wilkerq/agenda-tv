@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     allowedDevOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"]
   },
    env: {
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
 };
 

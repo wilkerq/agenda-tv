@@ -10,7 +10,7 @@ import 'dotenv/config';
 export const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY, // Using OpenAI key with googleAI plugin for OpenAI models
     }),
   ],
 });
