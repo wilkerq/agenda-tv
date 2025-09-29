@@ -1,6 +1,6 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { ai, googleAI } from '@/ai/genkit';
 
 /**
  * This is a SERVER-SIDE function that determines which AI model to use.
@@ -15,5 +15,5 @@ export async function getModel(modelType: 'text' | 'vision' = 'text'): Promise<a
   
   // We reference the model through the centrally configured `ai` object.
   // The googleAI plugin is acting as a proxy to OpenAI.
-  return ai.model(modelName);
+  return googleAI.model(modelName);
 }
