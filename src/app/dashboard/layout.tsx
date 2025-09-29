@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, VisuallyHidden } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, VisuallyHidden } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { getAuth, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -189,7 +189,7 @@ export default function DashboardLayout({
                   <VisuallyHidden>Menu de Navegação</VisuallyHidden>
                 </SheetTitle>
               </SheetHeader>
-              <nav className="flex-1 grid gap-2 p-4 text-lg font-medium">
+              <nav className="flex-1 grid gap-2 p-4 text-lg font-medium overflow-auto">
                 <Link
                   href="/"
                   className="flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700"
