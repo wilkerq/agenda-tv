@@ -27,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, VisuallyHidden } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, VisuallyHidden, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { getAuth, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
