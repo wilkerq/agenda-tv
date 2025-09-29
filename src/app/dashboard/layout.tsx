@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -184,10 +185,10 @@ export default function DashboardLayout({
               <nav className="grid gap-2 text-lg font-medium">
                 <Link
                   href="/"
-                  className="flex items-center gap-2 text-lg font-semibold text-white"
+                  className="flex items-center gap-2 text-lg font-semibold text-white mb-4"
                 >
                   <Package2 className="h-6 w-6" />
-                  <span className="sr-only">Agenda Alego</span>
+                  <span>Agenda Alego</span>
                 </Link>
                 <Link
                   href="/"
@@ -280,3 +281,5 @@ export default function DashboardLayout({
     </div>
   );
 }
+
+    
