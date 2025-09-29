@@ -75,14 +75,14 @@ export default function DashboardLayout({
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-slate-900 text-white md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
+        <div className="flex h-full max-h-screen flex-col">
           <div className="flex h-14 items-center border-b border-slate-700 px-4 lg:h-[60px] lg:px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <Package2 className="h-6 w-6" />
               <span className="">Agenda Alego</span>
             </Link>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
                <Link
                 href="/"
@@ -155,7 +155,7 @@ export default function DashboardLayout({
               </Link>
             </nav>
           </div>
-          <div className="mt-auto p-4">
+          <div className="mt-auto p-4 border-t border-slate-700">
             <Button variant="destructive" className="w-full" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Encerrar Sessão
@@ -176,23 +176,23 @@ export default function DashboardLayout({
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col bg-slate-900 text-white border-r-0">
-               <SheetHeader>
-                <SheetTitle>
-                  <VisuallyHidden>Menu de Navegação</VisuallyHidden>
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="grid gap-2 text-lg font-medium">
-                <Link
+            <SheetContent side="left" className="flex flex-col bg-slate-900 text-white border-r-0 p-0">
+               <SheetHeader className="p-4 border-b border-slate-700">
+                 <Link
                   href="/"
-                  className="flex items-center gap-2 text-lg font-semibold text-white mb-4"
+                  className="flex items-center gap-2 text-lg font-semibold text-white"
                 >
                   <Package2 className="h-6 w-6" />
                   <span>Agenda Alego</span>
                 </Link>
+                <SheetTitle>
+                  <VisuallyHidden>Menu de Navegação</VisuallyHidden>
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex-1 grid gap-2 p-4 text-lg font-medium">
                 <Link
                   href="/"
-                  className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700"
+                  className="flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700"
                 >
                   <Home className="h-5 w-5" />
                   Página Pública
@@ -200,7 +200,7 @@ export default function DashboardLayout({
                 <Link
                   href="/dashboard"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                     pathname === "/dashboard" && "bg-slate-700 text-white"
                   )}
                 >
@@ -210,7 +210,7 @@ export default function DashboardLayout({
                  <Link
                   href="/dashboard/operators"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                     pathname === "/dashboard/operators" && "bg-slate-700 text-white"
                   )}
                 >
@@ -220,7 +220,7 @@ export default function DashboardLayout({
                 <Link
                   href="/dashboard/reports"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                     pathname === "/dashboard/reports" && "bg-slate-700 text-white"
                   )}
                 >
@@ -230,7 +230,7 @@ export default function DashboardLayout({
                 <Link
                   href="/dashboard/share"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                      pathname === "/dashboard/share" && "bg-slate-700 text-white"
                   )}
                 >
@@ -240,7 +240,7 @@ export default function DashboardLayout({
                  <Link
                   href="/dashboard/daily-agenda"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                      pathname === "/dashboard/daily-agenda" && "bg-slate-700 text-white"
                   )}
                 >
@@ -250,7 +250,7 @@ export default function DashboardLayout({
                 <Link
                   href="/dashboard/import"
                   className={cn(
-                    "mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                      pathname === "/dashboard/import" && "bg-slate-700 text-white"
                   )}
                 >
@@ -258,7 +258,7 @@ export default function DashboardLayout({
                   Importar Agenda
                 </Link>
               </nav>
-              <div className="mt-auto">
+              <div className="mt-auto p-4 border-t border-slate-700">
                 <Button variant="destructive" className="w-full" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Encerrar Sessão
@@ -281,5 +281,3 @@ export default function DashboardLayout({
     </div>
   );
 }
-
-    
