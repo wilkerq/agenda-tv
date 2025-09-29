@@ -9,8 +9,9 @@ import 'dotenv/config';
 // Initialize plugins. Keys are pulled from .env.
 export const ai = genkit({
   plugins: [
+    // Configure the googleAI plugin to proxy requests to the OpenAI API.
     googleAI({
-      apiKey: process.env.OPENAI_API_KEY, // Using OpenAI key with googleAI plugin for OpenAI models
+      apiKey: process.env.OPENAI_API_KEY, 
     }),
   ],
 });
