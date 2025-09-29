@@ -40,7 +40,6 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
-import { determineTransmission } from "@/lib/event-logic";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -140,34 +139,32 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(selectedDate);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        // Suggest Operator
-        const opResult = await suggestOperator({
+        const result = await suggestOperator({
             date: eventDate.toISOString(),
             location: selectedLocation,
         });
 
-        if (opResult.operator && operators.some(op => op.name === opResult.operator)) {
-            form.setValue("operator", opResult.operator, { shouldValidate: true });
+        if (result.operator && operators.some(op => op.name === result.operator)) {
+            form.setValue("operator", result.operator, { shouldValidate: true });
             toast({
                 title: "Operador Sugerido!",
-                description: `${opResult.operator} foi selecionado com base na escala.`,
+                description: `${result.operator} foi selecionado pela IA.`,
             });
         } else {
              toast({
                 title: "Nenhuma sugestão de operador",
-                description: "Não foi possível sugerir um operador. Selecione manualmente.",
+                description: "A IA não conseguiu sugerir um operador. Selecione manualmente.",
                 variant: "default",
             });
         }
 
-        // Determine Transmission
-        const transmissionType = determineTransmission(selectedLocation);
-        form.setValue("transmission", transmissionType, { shouldValidate: true });
-        toast({
-            title: "Transmissão Definida!",
-            description: `Tipo de transmissão definido como "${transmissionType === 'tv' ? 'TV Aberta' : 'YouTube'}"`,
-        });
-
+        if (result.transmission) {
+            form.setValue("transmission", result.transmission, { shouldValidate: true });
+            toast({
+                title: "Transmissão Definida!",
+                description: `Tipo de transmissão definido como "${result.transmission === 'tv' ? 'TV Aberta' : 'YouTube'}" pela IA.`,
+            });
+        }
 
     } catch (error) {
         console.error("Error during auto-population:", error);
@@ -384,7 +381,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               className="w-full"
             >
               {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Sugerir Operador e Transmissão
+              Sugerir com IA
             </Button>
         </div>
          <FormField

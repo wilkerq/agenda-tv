@@ -1,3 +1,4 @@
+'use server';
 // This file is a workaround for a circular dependency issue.
 // Do not import anything here that depends on `ai` from `genkit.ts`
 // if it also needs to be imported by `genkit.ts` itself.
@@ -10,3 +11,6 @@ import "./flows/generate-whatsapp-message-flow";
 import "./flows/generate-daily-agenda-flow";
 import "./flows/import-alego-agenda-flow";
 import "./flows/send-daily-agenda-to-all-flow";
+
+// Tools
+import "./tools/get-schedule-tool";

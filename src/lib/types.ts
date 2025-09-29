@@ -4,20 +4,6 @@ export type TransmissionType = "youtube" | "tv";
 export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
 export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
-// Settings Schemas
-export const AIConfigSchema = z.object({
-  provider: z.enum(['google', 'openai']).default('google'),
-  google: z.object({
-    apiKey: z.string().optional(),
-    model: z.string().optional(),
-  }).optional(),
-  openai: z.object({
-    apiKey: z.string().optional(),
-    model: z.string().optional(),
-  }).optional(),
-});
-export type AIConfig = z.infer<typeof AIConfigSchema>;
-
 export interface Event {
   id: string;
   name: string;
@@ -99,6 +85,7 @@ export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
 
 export const SuggestOperatorOutputSchema = z.object({
   operator: z.string().optional().describe('The suggested operator for the event.'),
+  transmission: z.enum(["youtube", "tv"]).optional().describe('The suggested transmission type for the event.'),
 });
 export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
 
@@ -130,3 +117,16 @@ export const DailyAgendaOutputSchema = z.object({
   message: z.string().describe("The full, friendly, and formatted WhatsApp message for the daily agenda."),
 });
 export type DailyAgendaOutput = z.infer<typeof DailyAgendaOutputSchema>;
+
+// AI-related Schemas for get-schedule-tool
+export const ScheduleEventSchema = z.object({
+  name: z.string().describe('The name of the event.'),
+  time: z.string().describe('The time of the event in HH:mm format.'),
+  operator: z.string().describe('The operator assigned to the event.'),
+});
+export type ScheduleEvent = z.infer<typeof ScheduleEventSchema>;
+
+export const DailyScheduleSchema = z.object({
+  events: z.array(ScheduleEventSchema).describe('A list of events for the specified day.'),
+});
+export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
