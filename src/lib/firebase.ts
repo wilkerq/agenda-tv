@@ -5,12 +5,12 @@ import { getAuth } from "firebase/auth";
 
 // Configuração do seu projeto Firebase.
 const firebaseConfig = {
-  "projectId": "agenda-alego-openai-4456-b2bd6",
-  "appId": "1:468496928261:web:371cc5cb4a76f29257566c",
-  "apiKey": "AIzaSyCK9BqNa1lqmlmcEqdHYHGMb1kly0orXGs",
-  "authDomain": "agenda-alego-openai-4456-b2bd6.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "468496928261"
+  "projectId": "agenda-alego-v3-72653978-39fba",
+  "appId": "1:814315709282:web:fbc64b7c698c68cde6823b",
+  "storageBucket": "agenda-alego-v3-72653978-39fba.firebasestorage.app",
+  "apiKey": "AIzaSyDGkB7kxb8oK39K-G_1J4weRoqxMQYKRhA",
+  "authDomain": "agenda-alego-v3-72653978-39fba.firebaseapp.com",
+  "messagingSenderId": "814315709282"
 };
 
 
