@@ -1,6 +1,6 @@
 'use server';
 
-import { ai, googleAI } from '@/ai/genkit';
+import { googleAI } from '@/ai/genkit';
 
 /**
  * This is a SERVER-SIDE function that determines which AI model to use.
