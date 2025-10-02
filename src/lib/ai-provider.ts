@@ -10,8 +10,8 @@ import { googleAI } from '@/ai/genkit';
  */
 export async function getModel(modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  // Use Gemini 1.5 Pro for all tasks.
-  const modelName = 'gemini-1.5-pro-latest';
+  // Use Gemini Pro for text tasks and Gemini 1.5 Pro for vision.
+  const modelName = modelType === 'vision' ? 'gemini-1.5-pro-latest' : 'gemini-pro';
   
   // We reference the model through the centrally configured `ai` object.
   return googleAI.model(modelName);
