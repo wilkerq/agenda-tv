@@ -11,9 +11,6 @@ const nextConfig: NextConfig = {
     serverActions: {},
     allowedDevOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"]
   },
-   env: {
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  },
 };
 
 export default nextConfig;
