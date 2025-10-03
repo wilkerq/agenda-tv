@@ -81,7 +81,7 @@ export default function DailyAgendaPage() {
     
     setIsGeneratingMessage(true);
     try {
-        const eventStrings = events.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
+        const eventStrings = events.map(e => `${e.operator} - ${e.name} (${e.location})`);
         const result = await generateDailyAgenda({
             scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
             events: eventStrings,
