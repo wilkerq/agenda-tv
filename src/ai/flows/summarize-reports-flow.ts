@@ -12,10 +12,12 @@ import {
     ReportSummaryOutput, 
     ReportSummaryOutputSchema 
 } from '@/lib/types';
-import { getModel } from '@/lib/ai-provider';
+import { googleAI } from '@/ai/genkit';
 
 export async function summarizeReports(input: ReportDataInput): Promise<ReportSummaryOutput> {
-    return summarizeReportsFlow(input);
+    // Returning a placeholder as AI is disabled
+    return { summary: "A geração de resumo por IA está temporariamente desativada. Verifique os dados manualmente." };
+    // return summarizeReportsFlow(input);
 }
 
 const summarizeReportsFlow = ai.defineFlow(
@@ -25,8 +27,12 @@ const summarizeReportsFlow = ai.defineFlow(
         outputSchema: ReportSummaryOutputSchema,
     },
     async (input) => {
-
-        const textModel = await getModel();
+        
+        // Returning a placeholder as AI is disabled
+        return { summary: "A geração de resumo por IA está temporariamente desativada." };
+        
+        /*
+        const textModel = googleAI.model('gemini-1.5-flash-latest');
 
         const prompt = ai.definePrompt({
             name: 'summarizeReportsPrompt',
@@ -65,5 +71,6 @@ const summarizeReportsFlow = ai.defineFlow(
 
         const { output } = await prompt(input);
         return output!;
+        */
     }
 );

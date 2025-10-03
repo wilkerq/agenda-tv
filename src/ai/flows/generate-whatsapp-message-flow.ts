@@ -13,13 +13,12 @@ import {
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
 import 'dotenv/config';
-import { getModel } from '@/lib/ai-provider';
+import { googleAI } from '@/ai/genkit';
 
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {
   return generateWhatsAppMessageFlow(input);
 }
-
 
 // Flow Definition
 const generateWhatsAppMessageFlow = ai.defineFlow(
@@ -30,59 +29,21 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
   },
   async (input) => {
 
-    const textModel = await getModel();
+    // --- AI Call Disabled - Using Simple String Formatting ---
+    const greeting = `Olá, *${input.operatorName}*! 👋\n\n`;
+    const scheduleHeader = `Sua agenda para *${input.scheduleDate}* está pronta:\n\n`;
+    const eventsHeader = `📅 Eventos:\n`;
+    const eventList = input.events.join('\n');
+    const closing = `\n\nQualquer dúvida, estou à disposição! Tenha um excelente dia! ✨`;
+    const message = greeting + scheduleHeader + eventsHeader + eventList + closing;
 
-    // Prompt Definition
-    const prompt = ai.definePrompt({
-      name: 'generateWhatsAppMessagePrompt',
-      model: textModel,
-      input: { schema: WhatsAppMessageInputSchema },
-      output: { schema: WhatsAppMessageOutputSchema },
-      prompt: `Você é o assistente de agendamento da Alego. Sua tarefa é criar uma mensagem de WhatsApp clara, profissional e amigável para informar a agenda de um operador.
-
-    **REGRAS OBRIGATÓRIAS:**
-    1.  **Tom e Linguagem:** Mantenha um tom amigável, mas profissional.
-    2.  **Formatação:** Use negrito (asteriscos) para o nome do operador e para a data da agenda.
-    3.  **Emojis Específicos:** Use os seguintes emojis EXATAMENTE como especificado:
-        *   👋 no final da saudação (Ex: Olá, *Nome*! 👋).
-        *   📅 antes do cabeçalho "Eventos".
-        *   ✨ no final da mensagem de despedida.
-    4.  **Exemplo de Saída:** Siga o formato do exemplo à risca.
-
-    **EXEMPLO DE SAÍDA:**
-    Olá, *Rodrigo Sousa*! 👋
-
-    Sua agenda para *terça-feira, 13 de agosto de 2024* está pronta:
-
-    📅 Eventos:
-    - 09:00h: Sessão Ordinária (Plenário Iris Rezende Machado)
-    - 14:00h: Reunião da CCJ (Sala Julio da Retifica "CCJR")
-
-    Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨
-
-    **Dados de Entrada para a Mensagem:**
-    - Nome do Operador: {{{operatorName}}}
-    - Data da Agenda: {{{scheduleDate}}}
-    - Lista de Eventos:
-    {{#each events}}
-    {{{this}}}
-    {{/each}}
-    `,
-    });
-
-    // 1. Generate the message using the LLM
-    const { output } = await prompt(input);
-    if (!output?.message) {
-      throw new Error("Failed to generate message text.");
-    }
-    
     // 2. Send the generated message to the n8n webhook
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     
     if (!webhookUrl || webhookUrl.includes('INSIRA_SUA_URL_AQUI')) {
       console.warn('N8N_WEBHOOK_URL not set. Skipping automatic sending.');
       // Return the message so it can be manually copied
-      return { message: output.message, sent: false };
+      return { message, sent: false };
     }
 
     try {
@@ -93,7 +54,7 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
         },
         body: JSON.stringify({
           phone: input.operatorPhone,
-          message: output.message,
+          message: message,
         }),
       });
 
@@ -101,12 +62,12 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
         throw new Error(`n8n webhook returned status ${response.status}`);
       }
 
-       return { message: output.message, sent: true };
+       return { message, sent: true };
 
     } catch (error) {
       console.error('Error sending message to n8n webhook:', error);
       // Return the message anyway, but indicate it was not sent
-      return { message: output.message, sent: false };
+      return { message, sent: false };
     }
   }
 );
