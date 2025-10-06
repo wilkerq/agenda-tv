@@ -1,50 +1,41 @@
-# Fase 1: Builder - Instala dependências e faz o build da aplicação
-FROM node:18-alpine AS builder
-
-# Define o diretório de trabalho
+# 1. Fase de Instalação de Dependências
+FROM node:18-alpine AS deps
 WORKDIR /app
 
-# Copia os arquivos de gerenciamento de pacotes
-COPY package.json ./
-COPY package-lock.json ./
+# Copia package.json e lockfiles
+COPY package.json package-lock.json* ./
 
-# Instala as dependências de produção
-RUN npm install
+# Instala dependências de produção
+RUN npm ci --only=production
 
-# Copia o restante do código da aplicação
+# 2. Fase de Build do Projeto
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+# Copia dependências da fase anterior
+COPY --from=deps /app/node_modules ./node_modules
+# Copia todo o código-fonte
 COPY . .
 
-# Copia o .env para que o build tenha acesso às variáveis de ambiente
-COPY .env ./.env
-
-# Executa o build de produção
+# Gera o build de produção otimizado
 RUN npm run build
 
-# ---
-
-# Fase 2: Runner - Executa a aplicação a partir do build otimizado
+# 3. Fase Final de Produção
 FROM node:18-alpine AS runner
-
 WORKDIR /app
 
-# Cria um usuário e grupo específicos para a aplicação
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+# Define o ambiente para produção
+ENV NODE_ENV=production
 
-# Copia os artefatos do build da fase anterior
+# Copia os artefatos do build standalone
+COPY --from=builder /app/.next/standalone ./
+# Copia a pasta public para servir arquivos estáticos
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
+# Copia a pasta de assets do Next.js
+COPY --from=builder /app/.next/static ./.next/static
 
-# Define o usuário para rodar a aplicação
-USER nextjs
-
-# Expõe a porta 3050, que será usada para rodar a aplicação
+# Expõe a porta em que o app vai rodar
 EXPOSE 3050
 
-# Define a variável de ambiente para a porta
-ENV PORT 3050
-
-# Comando para iniciar a aplicação na porta 3050
-CMD ["npm", "start"]
+# Comando para iniciar o servidor Next.js
+CMD ["node", "server.js"]
