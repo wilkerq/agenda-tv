@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   experimental: {
-    serverActions: {},
-    allowedDevOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"]
+    serverActions: {
+      allowedOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"]
+    },
   },
 };
 
