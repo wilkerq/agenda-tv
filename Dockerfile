@@ -1,29 +1,33 @@
 # Dockerfile
 
-# --- Estágio de Dependências ---
-FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install --only=production
-
-# --- Estágio de Build ---
+# 1. Estágio de Build
+# Usa uma imagem Node.js completa para instalar dependências e fazer o build
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+
+# Copia os arquivos de manifesto de pacotes e instala dependências
+COPY package*.json ./
+RUN npm install
+
+# Copia o resto do código da aplicação
 COPY . .
+
+# Executa o script de build do Next.js
 RUN npm run build
 
-# --- Estágio Final de Produção ---
+# 2. Estágio de Produção
+# Usa uma imagem Node.js menor (alpine) para a aplicação final
 FROM node:20-alpine AS runner
 WORKDIR /app
+
+# Define o ambiente para produção
 ENV NODE_ENV=production
 
-# Copia os artefatos da build standalone
+# Copia o build otimizado (standalone) do estágio anterior
 COPY --from=builder /app/.next/standalone ./
 
-# Define o usuário e a porta
-USER node
+# Expõe a porta que a aplicação vai rodar
 EXPOSE 3050
 
-# Inicia o servidor
+# Comando para iniciar a aplicação
 CMD ["node", "server.js"]
