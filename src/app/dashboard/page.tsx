@@ -15,7 +15,7 @@ import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes } from 'date-fns';
+import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSameDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles } from "lucide-react";
@@ -115,31 +115,22 @@ export default function DashboardPage() {
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     try {
-
-      // --- DUPLICATION CHECK ---
-      const startOfTargetDay = startOfDay(eventData.date);
-      const endOfTargetDay = endOfDay(eventData.date);
-
-      const conflictQuery = query(
-        collection(db, "events"),
-        where("name", "==", eventData.name),
-        where("date", ">=", Timestamp.fromDate(startOfTargetDay)),
-        where("date", "<=", Timestamp.fromDate(endOfTargetDay))
-      );
       
-      const conflictSnapshot = await getDocs(conflictQuery);
-      const conflictingEvents = conflictSnapshot.docs.map(d => d.data());
+      // --- DUPLICATION CHECK (In-memory) ---
+      // This check is for single, non-repeating events on the currently selected day.
+      if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
+        const conflictingEvent = events.find(existingEvent => 
+            existingEvent.name === eventData.name &&
+            Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
+        );
 
-      for (const existingEvent of conflictingEvents) {
-        const existingDate = (existingEvent.date as Timestamp).toDate();
-        // Check if events are within 2 hours of each other
-        if (Math.abs(differenceInMinutes(eventData.date, existingDate)) < 120) {
-            toast({
-              title: "Evento Duplicado Encontrado",
-              description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
-              variant: "destructive",
-            });
-            throw new Error("Duplicate event");
+        if (conflictingEvent) {
+          toast({
+            title: "Evento Duplicado Encontrado",
+            description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
+            variant: "destructive",
+          });
+          throw new Error("Duplicate event");
         }
       }
       // --- END DUPLICATION CHECK ---
@@ -367,3 +358,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
