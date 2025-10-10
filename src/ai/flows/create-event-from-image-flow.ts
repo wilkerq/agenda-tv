@@ -39,7 +39,7 @@ const createEventFromImageFlow = ai.defineFlow(
     async (input) => {
         
         const llmResponse = await ai.generate({
-            model: 'gemini-pro-vision',
+            model: 'googleai/gemini-pro-vision',
             prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON string.
 
 **MANDATORY RULES:**
