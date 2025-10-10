@@ -48,7 +48,24 @@ const createEventFromImageFlow = ai.defineFlow(
     },
     async (input) => {
         
-        const llmResponse = await prompt(input);
+        const llmResponse = await ai.generate({
+            model: 'googleai/gemini-1.5-pro-vision',
+            prompt: `
+              Você é um assistente especialista em extrair informações de imagens para agendamento de eventos.
+              Analise a imagem fornecida e extraia os seguintes detalhes do evento:
+              - Nome do evento
+              - Local
+              - Data (no formato YYYY-MM-DD)
+              - Hora (no formato HH:mm)
+
+              Se alguma informação não estiver presente na imagem, deixe o campo correspondente vazio.
+              
+              Imagem: {{media url=photoDataUri}}
+            `,
+            output: {
+              schema: CreateEventFromImageOutputSchema,
+            },
+        });
         const output = llmResponse.output();
 
         if (!output) {

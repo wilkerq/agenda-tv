@@ -1,14 +1,16 @@
-import {genkit} from 'genkit';
-import {vertexAI} from '@genkit-ai/google-genai';
+'use server';
+/**
+ * @fileOverview Initializes and configures the Genkit AI instance.
+ * This file sets up the necessary plugins for the AI functionalities.
+ */
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import 'dotenv/config';
 
-// IMPORTANT: Do not import tools here that also import `ai` from this file.
-// It will cause a circular dependency. Tools should be defined and configured
-// in their own files and then imported for side-effects in dev.ts or a flow.
-
-// Initialize plugins for Vertex AI.
+// Initialize plugins for Google AI.
+// The 'use server' directive is crucial for Next.js Server Actions.
 export const ai = genkit({
   plugins: [
-    vertexAI(),
+    googleAI(),
   ],
 });
