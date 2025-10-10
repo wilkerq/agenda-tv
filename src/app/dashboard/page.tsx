@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
                     <CardDescription>
-                       Faça o upload de uma imagem e a IA tentará preencher os detalhes do evento para você, incluindo o operador e o tipo de transmissão, com base nas regras de negócio.
+                       A extração de dados da imagem foi desativada. Preencha os detalhes do evento manualmente.
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">
