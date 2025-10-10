@@ -103,7 +103,7 @@ export default function DashboardPage() {
       console.error("Error fetching events: ", error);
       toast({
         title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a lista de eventos. Verifique suas permissões.",
+        description: "Não foi possível carregar la lista de eventos. Verifique suas permissões.",
         variant: "destructive"
       });
       setLoading(false);
@@ -237,6 +237,8 @@ export default function DashboardPage() {
   const formattedDate = selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : '...';
 
   const handleAiSuccess = (data: Partial<EventFormData>) => {
+    // Since the AI flow is disabled, data will be empty.
+    // We just open the manual add modal.
     setPreloadedEventData(data);
     setAddFromImageModalOpen(false);
     setAddModalOpen(true);
@@ -280,7 +282,7 @@ export default function DashboardPage() {
             <DialogTrigger asChild>
                 <Button size="lg" className="w-full" variant="outline" onClick={() => setAddFromImageModalOpen(true)}>
                     <Sparkles className="mr-2 h-5 w-5" />
-                    Adicionar com IA
+                    Adicionar com Imagem
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[525px]">

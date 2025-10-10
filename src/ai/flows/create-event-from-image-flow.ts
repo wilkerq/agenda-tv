@@ -19,27 +19,6 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
     return createEventFromImageFlow(input);
 }
 
-const prompt = ai.definePrompt(
-  {
-    name: 'createEventFromImagePrompt',
-    input: { schema: CreateEventFromImageInputSchema },
-    output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `
-      Você é um assistente especialista em extrair informações de imagens para agendamento de eventos.
-      Analise a imagem fornecida e extraia os seguintes detalhes do evento:
-      - Nome do evento
-      - Local
-      - Data (no formato YYYY-MM-DD)
-      - Hora (no formato HH:mm)
-
-      Se alguma informação não estiver presente na imagem, deixe o campo correspondente vazio.
-      
-      Imagem: {{media url=photoDataUri}}
-    `,
-  }
-);
-
-
 const createEventFromImageFlow = ai.defineFlow(
     {
         name: 'createEventFromImageFlow',
@@ -47,32 +26,9 @@ const createEventFromImageFlow = ai.defineFlow(
         outputSchema: CreateEventFromImageOutputSchema,
     },
     async (input) => {
-        
-        const llmResponse = await ai.generate({
-            model: 'googleai/gemini-1.5-pro-vision',
-            prompt: `
-              Você é um assistente especialista em extrair informações de imagens para agendamento de eventos.
-              Analise a imagem fornecida e extraia os seguintes detalhes do evento:
-              - Nome do evento
-              - Local
-              - Data (no formato YYYY-MM-DD)
-              - Hora (no formato HH:mm)
-
-              Se alguma informação não estiver presente na imagem, deixe o campo correspondente vazio.
-              
-              Imagem: {{media url=photoDataUri}}
-            `,
-            output: {
-              schema: CreateEventFromImageOutputSchema,
-            },
-        });
-        const output = llmResponse.output();
-
-        if (!output) {
-          throw new Error("A IA não conseguiu gerar uma resposta válida.");
-        }
-
-        // Retorne o resultado diretamente, pois já está no formato correto
-        return output;
+        // AI functionality has been disabled as per user request to replace it with pure logic.
+        // Since implementing OCR is not possible, this flow now returns an empty object,
+        // allowing the UI to proceed to the manual entry form.
+        return {};
     }
 );

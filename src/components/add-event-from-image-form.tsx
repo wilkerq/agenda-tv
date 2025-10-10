@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -74,55 +75,20 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
     setIsLoading(true);
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const photoDataUri = reader.result as string;
-        const result = await createEventFromImage({ photoDataUri });
-        
-        const preloadedData: Partial<EventFormData> = {};
-        if (result.name) preloadedData.name = result.name;
-        if (result.location) preloadedData.location = result.location;
-        if (result.transmission) preloadedData.transmission = result.transmission;
-        if (result.operator) preloadedData.operator = result.operator;
-
-        if (result.date && result.time) {
-            const dateStr = `${result.date}T${result.time}`;
-            const parsedDate = parse(dateStr, "yyyy-MM-dd'T'HH:mm", new Date());
-             if (!isNaN(parsedDate.getTime())) {
-                preloadedData.date = parsedDate;
-            } else {
-                 toast({
-                    title: "Data ou hora inválida",
-                    description: "A IA retornou um formato de data/hora inválido. Por favor, insira manualmente.",
-                    variant: "destructive"
-                });
-            }
-        } else {
-             toast({
-                title: "Data ou Hora não encontrada",
-                description: "A IA não conseguiu determinar a data ou a hora do evento. Por favor, insira manualmente.",
-                variant: "default"
-            });
-        }
-
-
-        toast({
-            title: "Sucesso!",
-            description: "Os detalhes do evento foram extraídos. Revise e salve o evento.",
-        });
-
-        onSuccess(preloadedData);
-      };
-      reader.onerror = (_error) => {
-         throw new Error("Falha ao ler o arquivo de imagem.");
-      };
+      // Since the AI flow is disabled, we don't need to read the file.
+      // We'll just call onSuccess with empty data to open the manual form.
+      await createEventFromImage({ photoDataUri: '' }); // Call is still needed to respect flow
+      onSuccess({});
+      toast({
+        title: "Adicionar Evento Manualmente",
+        description: "A extração por imagem está desativada. Por favor, preencha os detalhes do evento.",
+      });
 
     } catch (error) {
-      console.error("Error creating event from image:", error);
+      console.error("Error in 'create from image' (disabled AI) flow:", error);
       toast({
-        title: "Erro de IA",
-        description: "Não foi possível extrair detalhes da imagem. Verifique se o modelo 'gemini-pro-vision' está selecionado e a chave de API está correta.",
+        title: "Erro",
+        description: "Ocorreu um erro inesperado. Por favor, tente adicionar o evento manualmente.",
         variant: "destructive",
       });
     } finally {
@@ -152,7 +118,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading || !file}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isLoading ? "Analisando..." : "Extrair Detalhes do Evento"}
+          {isLoading ? "Processando..." : "Continuar para Adição Manual"}
         </Button>
       </div>
     </form>
