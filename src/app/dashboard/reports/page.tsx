@@ -202,7 +202,7 @@ export default function ReportsPage() {
         doc.text("Resumo Analítico:", margin, y);
         y += 7;
         doc.setFontSize(10);
-        const splitSummary = doc.splitTextToSize(summary.resumoNarrativo, 180);
+        const splitSummary = doc.splitTextToSize(summary.resumoNarrativo.replace(/📊|🌙|🏆|📍|📡/g, ''), 180);
         doc.text(splitSummary, margin, y);
         y += (splitSummary.length * 5) + 10;
     }

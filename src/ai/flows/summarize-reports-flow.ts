@@ -47,23 +47,31 @@ const summarizeReportsFlow = ai.defineFlow(
 
         // --- GERAÇÃO DE RESUMO COM LÓGICA LOCAL ---
         const summaryParts: string[] = [];
-        summaryParts.push(`No período analisado, foram registrados um total de ${input.totalEvents} eventos.`);
-        if (input.totalNightEvents > 0) {
-            summaryParts.push(`${input.totalNightEvents} destes ocorreram no período noturno.`);
-        }
 
-        if (operadorDestaque.eventos > 0) {
-            summaryParts.push(`O destaque de produtividade foi ${operadorDestaque.nome}, responsável por ${operadorDestaque.eventos} eventos.`);
-        }
+        if (input.totalEvents > 0) {
+            summaryParts.push(`📊 No período analisado, um total de ${input.totalEvents} eventos foram registrados.`);
+            
+            if (input.totalNightEvents > 0) {
+                const nightPercentage = ((input.totalNightEvents / input.totalEvents) * 100).toFixed(1);
+                summaryParts.push(`🌙 ${input.totalNightEvents} (${nightPercentage}%) destes ocorreram no período noturno, mostrando uma atividade significativa após as 18h.`);
+            }
 
-        if (localDestaque.eventos > 0) {
-            summaryParts.push(`O local mais utilizado foi a(o) ${localDestaque.nome}, sediando ${localDestaque.eventos} eventos.`);
-        }
-        
-        if (totalTransmissions > 0) {
-            const tv = input.transmissionReport.find(t => t.nome === 'TV Aberta')?.eventos || 0;
-            const youtube = input.transmissionReport.find(t => t.nome === 'YouTube')?.eventos || 0;
-            summaryParts.push(`Quanto às transmissões, ${youtube} foram via YouTube e ${tv} via TV Aberta.`);
+            if (operadorDestaque.eventos > 0) {
+                const productivityPercentage = ((operadorDestaque.eventos / input.totalEvents) * 100).toFixed(1);
+                summaryParts.push(`🏆 O destaque de produtividade foi ${operadorDestaque.nome}, responsável por ${operadorDestaque.eventos} eventos, o que representa ${productivityPercentage}% do total.`);
+            }
+
+            if (localDestaque.eventos > 0) {
+                summaryParts.push(`📍 O local mais utilizado foi a(o) ${localDestaque.nome}, sediando ${localDestaque.eventos} eventos.`);
+            }
+            
+            if (totalTransmissions > 0) {
+                const tv = input.transmissionReport.find(t => t.nome === 'TV Aberta')?.eventos || 0;
+                const youtube = input.transmissionReport.find(t => t.nome === 'YouTube')?.eventos || 0;
+                summaryParts.push(`📡 Quanto às transmissões, ${youtube} foram via YouTube e ${tv} via TV Aberta.`);
+            }
+        } else {
+            summaryParts.push("Nenhum evento foi registrado no período selecionado. Não há dados para analisar.");
         }
         
         const resumoNarrativo = summaryParts.join(' ');
