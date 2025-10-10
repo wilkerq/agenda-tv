@@ -25,28 +25,29 @@ export interface Operator {
 }
 
 // AI-related Schemas for summarizeReports flow
-const OperatorReportSchema = z.object({
-  count: z.number(),
-  nightCount: z.number(),
+const ReportItemSchema = z.object({
+  nome: z.string(),
+  eventos: z.number(),
 });
+export type ReportItem = z.infer<typeof ReportItemSchema>;
 
-const TransmissionReportSchema = z.object({
-  youtube: z.number(),
-  tv: z.number(),
-});
 
 export const ReportDataInputSchema = z.object({
   totalEvents: z.number().describe('The total number of events.'),
   totalNightEvents: z.number().describe('The total number of events happening at or after 6 PM.'),
-  reportData: z.record(z.string(), OperatorReportSchema).describe('A map of operator names to their event counts.'),
-  locationReport: z.record(z.string(), z.number()).describe('A map of locations to their event counts.'),
-  transmissionReport: TransmissionReportSchema.describe('A report of event counts by transmission type (YouTube vs. TV).'),
+  reportData: z.array(ReportItemSchema).describe('A list of operators and their event counts.'),
+  locationReport: z.array(ReportItemSchema).describe('A list of locations and their event counts.'),
+  transmissionReport: z.array(ReportItemSchema).describe('A list of transmission types and their event counts.'),
 });
 export type ReportDataInput = z.infer<typeof ReportDataInputSchema>;
 
 
 export const ReportSummaryOutputSchema = z.object({
-  summary: z.string().describe('A concise, data-driven summary of the reports in portuguese.'),
+  resumoNarrativo: z.string().describe('A concise, data-driven summary of the reports in portuguese.'),
+  destaques: z.object({
+    operador: ReportItemSchema,
+    local: ReportItemSchema,
+  })
 });
 export type ReportSummaryOutput = z.infer<typeof ReportSummaryOutputSchema>;
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, onSnapshot, orderBy, query, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Event, ReportDataInput } from "@/lib/types";
+import type { Event, ReportDataInput, ReportItem, ReportSummaryOutput } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -51,7 +51,7 @@ export default function ReportsPage() {
   const [transmissionReport, setTransmissionReport] = useState<TransmissionReport>({ youtube: 0, tv: 0 });
   const [loading, setLoading] = useState(true);
   const [isAiSummaryLoading, setIsAiSummaryLoading] = useState(false);
-  const [aiSummary, setAiSummary] = useState("");
+  const [aiSummary, setAiSummary] = useState<ReportSummaryOutput | null>(null);
   const { toast } = useToast();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
@@ -126,7 +126,7 @@ export default function ReportsPage() {
       setLocationReport(newLocationReport);
       setTransmissionReport(newTransmissionReport);
       setLoading(false);
-      setAiSummary(""); // Reset AI summary when filters change
+      setAiSummary(null); // Reset AI summary when filters change
     }, (error) => {
         console.error("Error fetching reports: ", error);
         toast({
@@ -139,25 +139,29 @@ export default function ReportsPage() {
 
     return () => unsubscribe();
   }, [selectedYear, selectedMonth, toast]);
+  
+  const sortedOperators = useMemo(() => Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count), [reportData]);
+  const sortedLocations = useMemo(() => Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]), [locationReport]);
+
 
   const handleGenerateSummary = async () => {
     setIsAiSummaryLoading(true);
-    setAiSummary("");
+    setAiSummary(null);
 
     const reportToSummarize: ReportDataInput = {
         totalEvents,
         totalNightEvents,
-        reportData: Object.entries(reportData).reduce((acc, [key, value]) => {
-            acc[key] = { count: value.count, nightCount: value.nightCount };
-            return acc;
-        }, {} as Record<string, { count: number; nightCount: number;}>),
-        locationReport,
-        transmissionReport,
+        reportData: sortedOperators.map(op => ({ nome: op, eventos: reportData[op].count })),
+        locationReport: sortedLocations.map(loc => ({ nome: loc, eventos: locationReport[loc] })),
+        transmissionReport: [
+            { nome: 'YouTube', eventos: transmissionReport.youtube },
+            { nome: 'TV Aberta', eventos: transmissionReport.tv },
+        ]
     };
 
     try {
         const result = await summarizeReports(reportToSummarize);
-        setAiSummary(result.summary);
+        setAiSummary(result);
     } catch (error) {
         console.error("Error generating AI summary: ", error);
         toast({
@@ -192,12 +196,12 @@ export default function ReportsPage() {
     doc.text(`Transmissões (TV Aberta): ${transmissionReport.tv}`, margin + 70, y);
     y += 10;
 
-    if (aiSummary) {
+    if (aiSummary?.resumoNarrativo) {
         doc.setFontSize(14);
         doc.text("Resumo da IA:", margin, y);
         y += 7;
         doc.setFontSize(10);
-        const splitSummary = doc.splitTextToSize(aiSummary, 180);
+        const splitSummary = doc.splitTextToSize(aiSummary.resumoNarrativo, 180);
         doc.text(splitSummary, margin, y);
         y += (splitSummary.length * 5) + 10;
     }
@@ -224,10 +228,6 @@ export default function ReportsPage() {
 
     doc.save(`relatorio_eventos_${selectedMonth}_${selectedYear}.pdf`);
   };
-
-
-  const sortedOperators = Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count);
-  const sortedLocations = Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]);
   
   const reportTitle = useMemo(() => {
     const monthLabel = months.find(m => m.value === selectedMonth)?.label;
@@ -294,9 +294,9 @@ export default function ReportsPage() {
                       <span>Analisando dados e gerando insights...</span>
                   </div>
               )}
-              {aiSummary && (
+              {aiSummary?.resumoNarrativo && (
                   <div className="prose prose-sm max-w-full text-foreground">
-                      <p>{aiSummary}</p>
+                      <p>{aiSummary.resumoNarrativo}</p>
                   </div>
               )}
               {!isAiSummaryLoading && !aiSummary && totalEvents === 0 && (
