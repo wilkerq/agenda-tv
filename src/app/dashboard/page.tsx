@@ -287,7 +287,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
                     <CardDescription>
-                       A extração por imagem está desativada. Clique em 'Continuar' para preencher os detalhes manualmente.
+                       Envie uma imagem (flyer, post, etc.) e nossa IA tentará extrair os detalhes do evento para preencher o formulário para você.
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">
