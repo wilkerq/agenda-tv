@@ -287,7 +287,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
                     <CardDescription>
-                       Envie um card, flyer ou print para que a IA extraia os detalhes do evento automaticamente.
+                       A extração por imagem está desativada. Clique em 'Continuar' para preencher os detalhes manualmente.
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">

@@ -20,22 +20,22 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
     return createEventFromImageFlow(input);
 }
 
-const prompt = ai.definePrompt({
-    name: 'createEventFromImagePrompt',
-    input: { schema: CreateEventFromImageInputSchema },
-    output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are an expert event information extractor. Your task is to analyze an image (like a flyer or a screenshot) and extract the key details of an event.
+// const prompt = ai.definePrompt({
+//     name: 'createEventFromImagePrompt',
+//     input: { schema: CreateEventFromImageInputSchema },
+//     output: { schema: CreateEventFromImageOutputSchema },
+//     prompt: `You are an expert event information extractor. Your task is to analyze an image (like a flyer or a screenshot) and extract the key details of an event.
 
-    - Event Name (name): Extract the main title or name of the event.
-    - Location (location): Extract the venue or location.
-    - Date (date): Extract the full date and format it as 'YYYY-MM-DD'. If the year is not specified, assume the current year or the next logical year if the date has passed.
-    - Time (time): Extract the start time and format it as 'HH:mm'. If no time is found, this can be null.
-    - Transmission (transmission): Based on the context, determine if the event is likely to be broadcast on 'youtube' or 'tv'. If unsure, default to 'youtube'.
+//     - Event Name (name): Extract the main title or name of the event.
+//     - Location (location): Extract the venue or location.
+//     - Date (date): Extract the full date and format it as 'YYYY-MM-DD'. If the year is not specified, assume the current year or the next logical year if the date has passed.
+//     - Time (time): Extract the start time and format it as 'HH:mm'. If no time is found, this can be null.
+//     - Transmission (transmission): Based on the context, determine if the event is likely to be broadcast on 'youtube' or 'tv'. If unsure, default to 'youtube'.
     
-    Analyze the following image and return the extracted information in a structured JSON format.
+//     Analyze the following image and return the extracted information in a structured JSON format.
     
-    Image: {{media url=photoDataUri}}`,
-});
+//     Image: {{media url=photoDataUri}}`,
+// });
 
 
 const createEventFromImageFlow = ai.defineFlow(
@@ -45,14 +45,8 @@ const createEventFromImageFlow = ai.defineFlow(
         outputSchema: CreateEventFromImageOutputSchema,
     },
     async (input) => {
-        const visionModel = await getModel('vision');
-
-        const { output } = await prompt(input, { model: visionModel });
-
-        if (!output) {
-            throw new Error("The AI model was unable to extract event data from the image.");
-        }
-        
-        return output;
+        // AI functionality has been disabled. Return an empty object.
+        // This flow now serves only to pass the user to the manual entry form.
+        return {};
     }
 );
