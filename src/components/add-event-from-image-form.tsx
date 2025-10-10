@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,10 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
+    processFile(selectedFile);
+  };
+  
+  const processFile = (selectedFile: File | null) => {
     setFile(selectedFile);
 
     if (selectedFile) {
@@ -34,11 +38,39 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
       setPreview(null);
     }
   };
-  
+
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            processFile(file);
+            toast({
+              title: "Imagem Colada!",
+              description: "A imagem da sua área de transferência foi carregada.",
+            });
+            event.preventDefault(); // Evita que a imagem seja colada em outro lugar
+            break;
+          }
+        }
+      }
+    };
+    
+    window.addEventListener("paste", handlePaste);
+
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, [toast]);
+
+
   const handleRemoveImage = () => {
     setFile(null);
     setPreview(null);
-    // Reset the input value
     const input = document.getElementById('image-upload') as HTMLInputElement;
     if (input) {
         input.value = '';
@@ -62,7 +94,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
       
       const parsedData: Partial<EventFormData> = {
         ...result,
-        date: result.date ? new Date(result.date + 'T12:00:00') : undefined, // Add time to avoid timezone issues
+        date: result.date ? new Date(result.date + 'T12:00:00') : undefined,
       }
       
       onSuccess(parsedData);
@@ -118,7 +150,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
                   </label>
                   <p className="pl-1">ou arraste e solte</p>
                 </div>
-                <p className="text-xs text-gray-500">PNG, JPG, WEBP até 10MB</p>
+                 <p className="text-xs text-gray-500">Cole uma imagem aqui (Ctrl+V)</p>
               </>
             )}
           </div>
