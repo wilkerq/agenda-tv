@@ -1,18 +1,8 @@
-# Arquivos e pastas do Docker
 Dockerfile
 .dockerignore
-
-# Dependências
 node_modules
-
-# Build do Next.js
+npm-debug.log
+README.md
 .next
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Arquivos de ambiente locais (se houver)
-.env.local
+.git
+.gitignore
