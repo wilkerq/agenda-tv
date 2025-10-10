@@ -1,5 +1,5 @@
 import {genkit} from 'genkit';
-import {googleAI as googleAI} from '@genkit-ai/google-genai';
+import {googleAI as googleAI, vertexAI} from '@genkit-ai/google-genai';
 import 'dotenv/config';
 
 // IMPORTANT: Do not import tools here that also import `ai` from this file.
@@ -7,9 +7,10 @@ import 'dotenv/config';
 // in their own files and then imported for side-effects in dev.ts or a flow.
 
 // Initialize plugins.
+// Switching to vertexAI() to use the correct Vertex AI endpoint and resolve 404 errors.
 export const ai = genkit({
   plugins: [
-    googleAI({ apiVersion: 'v1' }), // Force API version to v1
+    vertexAI(),
   ],
 });
 
