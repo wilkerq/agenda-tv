@@ -13,6 +13,7 @@ import {
     ReportSummaryOutput, 
     ReportSummaryOutputSchema 
 } from '@/lib/types';
+import { z } from 'zod';
 
 export async function summarizeReports(input: ReportDataInput): Promise<ReportSummaryOutput> {
     return summarizeReportsFlow(input);
@@ -28,7 +29,6 @@ const summarizeReportsFlow = ai.defineFlow(
         
         const llmResponse = await ai.generate({
             model: googleAI.model('gemini-1.5-pro-latest'),
-            output: { schema: ReportSummaryOutputSchema },
             prompt: `
               Você é um analista de dados especialista da Assembleia Legislativa de Goiás (Alego).
               Sua tarefa é criar um resumo conciso e perspicaz em um único parágrafo, em português do Brasil,
@@ -48,16 +48,19 @@ const summarizeReportsFlow = ai.defineFlow(
               4.  Incorpore o número de eventos noturnos, se for um dado relevante.
               5.  Mantenha a linguagem profissional, objetiva e baseada em dados.
               6.  O resumo deve ser um parágrafo único e coeso.
-              7.  Sua saída deve ser um objeto JSON contendo apenas a chave "summary".
+              7.  Sua saída deve ser uma string JSON contendo um único objeto com a chave "summary". Ex: {"summary": "..."}
 
               Gere o resumo.
             `,
         });
 
-        const summary = llmResponse.output();
-        if (!summary) {
+        const summaryText = llmResponse.text();
+        if (!summaryText) {
             throw new Error("AI failed to generate a summary.");
         }
+        const summary = JSON.parse(summaryText);
+        ReportSummaryOutputSchema.parse(summary); // Validate the object
+
         return summary;
     }
 );

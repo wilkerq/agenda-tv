@@ -24,6 +24,7 @@ const VisionExtractionSchema = z.object({
   date: z.string().optional().describe("The event date, formatted as 'YYYY-MM-DD'."),
   time: z.string().nullable().optional().describe("The event time, formatted as 'HH:mm'. If no time is found, this MUST be null."),
 });
+type VisionExtraction = z.infer<typeof VisionExtractionSchema>;
 
 export async function createEventFromImage(input: CreateEventFromImageInput): Promise<CreateEventFromImageOutput> {
     return createEventFromImageFlow(input);
@@ -40,8 +41,7 @@ const createEventFromImageFlow = ai.defineFlow(
         // 1. Extract data from the image using the vision model
         const llmResponse = await ai.generate({
             model: googleAI.model('gemini-1.5-pro-latest'),
-            output: { schema: VisionExtractionSchema },
-            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON object.
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON string.
 
 **MANDATORY RULES:**
 
@@ -56,11 +56,14 @@ const createEventFromImageFlow = ai.defineFlow(
 `,
         });
         
-        const visionOutput = llmResponse.output();
-
-        if (!visionOutput) {
-            throw new Error("Failed to extract data from image.");
+        const visionText = llmResponse.text();
+        if (!visionText) {
+            throw new Error("Failed to get a response from the AI model.");
         }
+        
+        const visionOutput: VisionExtraction = JSON.parse(visionText);
+        VisionExtractionSchema.parse(visionOutput); // Validate the parsed object
+
         
         let finalDate: Date | undefined;
         let location = visionOutput.location;

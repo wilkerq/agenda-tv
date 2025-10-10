@@ -18,15 +18,10 @@ import { ptBR } from 'date-fns/locale';
 
 // Exported wrapper function
 export async function generateDailyAgenda(input: DailyAgendaInput): Promise<DailyAgendaOutput> {
-     // Using simple string formatting as AI is disabled for this flow
-    const header = `*PAUTA DO DIA* 🎬\n\n*${input.scheduleDate}*\n\n`;
-    const eventList = input.events.join('\n');
-    const message = header + eventList;
-    
-    return { message };
+    return generateDailyAgendaFlow(input);
 }
 
-// Flow Definition (AI functionality disabled, using string formatting)
+// Flow Definition
 const generateDailyAgendaFlow = ai.defineFlow(
   {
     name: 'generateDailyAgendaFlow',
@@ -35,10 +30,11 @@ const generateDailyAgendaFlow = ai.defineFlow(
   },
   async (input) => {
     
+    // Using simple string formatting as AI is disabled for this flow
     const header = `*PAUTA DO DIA* 🎬\n\n*${input.scheduleDate}*\n\n`;
     const eventList = input.events.join('\n');
     const message = header + eventList;
-
+    
     return { message };
   }
 );
