@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for suggesting an event operator and transmission type using AI.
@@ -16,9 +17,8 @@ import { assignOperator } from '@/lib/business-logic';
 import { determineTransmission } from '@/lib/event-logic';
 import { ai } from '@/ai/genkit';
 
-
+// By default, we use business logic. The AI flow is preserved but not used.
 export async function suggestOperator(input: SuggestOperatorInput): Promise<SuggestOperatorOutput> {
-    // --- AI Call Disabled - Using Business Logic Directly ---
     const eventDate = new Date(input.date);
     const location = input.location;
 
@@ -35,7 +35,8 @@ export async function suggestOperator(input: SuggestOperatorInput): Promise<Sugg
     };
 }
 
-// The original AI flow is preserved below but is currently not used by the exported function.
+// The AI-driven flow is defined below but not exported by default.
+// To use it, you would change the export above to point to this flow.
 const suggestOperatorFlow = ai.defineFlow(
     {
         name: 'suggestOperatorFlow',
@@ -43,7 +44,8 @@ const suggestOperatorFlow = ai.defineFlow(
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
-        // AI logic would go here. For now, we use the direct business logic above.
+        // This is where AI logic would be implemented.
+        // For now, it mirrors the business logic for consistency.
         const eventDate = new Date(input.date);
         const operator = await assignOperator(eventDate, input.location);
         const transmission = determineTransmission(input.location);
