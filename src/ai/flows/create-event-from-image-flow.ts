@@ -38,9 +38,8 @@ const createEventFromImageFlow = ai.defineFlow(
     },
     async (input) => {
         
-        // 1. Extract data from the image using the vision model
         const llmResponse = await ai.generate({
-            model: googleAI.model('gemini-1.5-pro-latest'),
+            model: googleAI.model('gemini-pro-vision'),
             prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON string.
 
 **MANDATORY RULES:**
@@ -62,7 +61,7 @@ const createEventFromImageFlow = ai.defineFlow(
         }
         
         const visionOutput: VisionExtraction = JSON.parse(visionText);
-        VisionExtractionSchema.parse(visionOutput); // Validate the parsed object
+        VisionExtractionSchema.parse(visionOutput);
 
         
         let finalDate: Date | undefined;
@@ -76,21 +75,14 @@ const createEventFromImageFlow = ai.defineFlow(
             }
         }
         
-        // --- Apply Business Logic in Code ---
-        
-        // Normalize location
         if (location) {
             if (location.includes("Assembleia Legislativa")) location = "Plenário Iris Rezende Machado";
             if (location.includes("Comissão de Constituição e Justiça")) location = "Sala Julio da Retifica \"CCJR\"";
         }
         
-        // 2. Determine transmission type based on location
         const transmission = location ? determineTransmission(location) : undefined;
-
-        // 3. Assign operator based on date and location
         const operator = (finalDate && location) ? await assignOperator(finalDate, location) : undefined;
 
-        // 4. Construct the final output
         const finalOutput: CreateEventFromImageOutput = {
             name: visionOutput.name,
             location: location,

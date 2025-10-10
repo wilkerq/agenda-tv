@@ -28,7 +28,7 @@ const summarizeReportsFlow = ai.defineFlow(
     async (input) => {
         
         const llmResponse = await ai.generate({
-            model: googleAI.model('gemini-1.5-pro-latest'),
+            model: googleAI.model('gemini-pro'),
             prompt: `
               Você é um analista de dados especialista da Assembleia Legislativa de Goiás (Alego).
               Sua tarefa é criar um resumo conciso e perspicaz em um único parágrafo, em português do Brasil,
@@ -59,7 +59,7 @@ const summarizeReportsFlow = ai.defineFlow(
             throw new Error("AI failed to generate a summary.");
         }
         const summary = JSON.parse(summaryText);
-        ReportSummaryOutputSchema.parse(summary); // Validate the object
+        ReportSummaryOutputSchema.parse(summary);
 
         return summary;
     }
