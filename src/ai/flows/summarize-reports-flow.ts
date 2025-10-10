@@ -28,6 +28,7 @@ const summarizeReportsFlow = ai.defineFlow(
         
         const llmResponse = await ai.generate({
             model: googleAI.model('gemini-1.5-pro-latest'),
+            output: { schema: ReportSummaryOutputSchema },
             prompt: `
               Você é um analista de dados especialista da Assembleia Legislativa de Goiás (Alego).
               Sua tarefa é criar um resumo conciso e perspicaz em um único parágrafo, em português do Brasil,
@@ -47,12 +48,16 @@ const summarizeReportsFlow = ai.defineFlow(
               4.  Incorpore o número de eventos noturnos, se for um dado relevante.
               5.  Mantenha a linguagem profissional, objetiva e baseada em dados.
               6.  O resumo deve ser um parágrafo único e coeso.
+              7.  Sua saída deve ser um objeto JSON contendo apenas a chave "summary".
 
               Gere o resumo.
             `,
         });
 
-        const summaryText = llmResponse.text();
-        return { summary: summaryText };
+        const summary = llmResponse.output();
+        if (!summary) {
+            throw new Error("AI failed to generate a summary.");
+        }
+        return summary;
     }
 );

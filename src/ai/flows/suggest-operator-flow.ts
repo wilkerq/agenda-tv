@@ -17,26 +17,12 @@ import { assignOperator } from '@/lib/business-logic';
 import { determineTransmission } from '@/lib/event-logic';
 import { ai } from '@/ai/genkit';
 
-// By default, we use business logic. The AI flow is preserved but not used.
+// By default, we use business logic. The AI flow is preserved but can be used for more complex scenarios.
 export async function suggestOperator(input: SuggestOperatorInput): Promise<SuggestOperatorOutput> {
-    const eventDate = new Date(input.date);
-    const location = input.location;
-
-    // 1. Determine transmission type based on location
-    const transmission = determineTransmission(location);
-
-    // 2. Assign operator based on date and location using existing business logic
-    const operator = await assignOperator(eventDate, location);
-
-    // 3. Construct and return the output
-    return {
-        operator,
-        transmission,
-    };
+    return suggestOperatorFlow(input);
 }
 
-// The AI-driven flow is defined below but not exported by default.
-// To use it, you would change the export above to point to this flow.
+// The AI-driven flow is defined below.
 const suggestOperatorFlow = ai.defineFlow(
     {
         name: 'suggestOperatorFlow',
@@ -44,12 +30,22 @@ const suggestOperatorFlow = ai.defineFlow(
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
-        // This is where AI logic would be implemented.
-        // For now, it mirrors the business logic for consistency.
+        // For this task, we will rely on deterministic business logic instead of a generative AI call.
+        // This ensures consistency and predictability. The Genkit flow structure is maintained 
+        // to allow for future enhancements with AI if needed.
+        
         const eventDate = new Date(input.date);
+        
+        // 1. Assign operator based on date and location using existing business logic
         const operator = await assignOperator(eventDate, input.location);
+
+        // 2. Determine transmission type based on location
         const transmission = determineTransmission(input.location);
 
-        return { operator, transmission };
+        // 3. Construct and return the output
+        return { 
+            operator, 
+            transmission 
+        };
     }
 );
