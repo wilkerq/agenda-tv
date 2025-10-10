@@ -13,7 +13,6 @@ import {
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
 import 'dotenv/config';
-import { googleAI } from '@/ai/genkit';
 
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {

@@ -5,17 +5,16 @@
  * - createEventFromImage - A function that extracts event details from an image.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, googleAI } from '@/ai/genkit';
 import { 
     CreateEventFromImageInput, 
     CreateEventFromImageInputSchema, 
     CreateEventFromImageOutput, 
     CreateEventFromImageOutputSchema 
 } from '@/lib/types';
-import { getModel } from '@/lib/ai-provider';
 import { assignOperator } from '@/lib/business-logic';
 import { determineTransmission } from '@/lib/event-logic';
-import { parse, isValid, format } from 'date-fns';
+import { parse, isValid } from 'date-fns';
 import { z } from 'zod';
 
 const VisionExtractionSchema = z.object({
@@ -36,14 +35,11 @@ const createEventFromImageFlow = ai.defineFlow(
         outputSchema: CreateEventFromImageOutputSchema,
     },
     async (input) => {
-        const visionModel = await getModel('vision');
-
-        const prompt = ai.definePrompt({
-            name: 'createEventFromImagePrompt',
-            model: visionModel,
-            input: { schema: CreateEventFromImageInputSchema },
-            output: { schema: VisionExtractionSchema },
-            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST conform to the JSON schema.
+        
+        // 1. Extract data from the image using the vision model
+        const llmResponse = await ai.generate({
+            model: googleAI.model('gemini-1.5-pro-latest'),
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON object that conforms to the following schema: ${JSON.stringify(VisionExtractionSchema.jsonSchema())}
 
 **MANDATORY RULES:**
 
@@ -54,12 +50,11 @@ const createEventFromImageFlow = ai.defineFlow(
     *   **Time (time):** Extract the event time. Format it as 'HH:mm'. If you cannot find a specific time, you MUST return \`null\` for this field. Do not invent a time.
 
 **Image for Analysis:**
-{{media url=photoDataUri}}
+{{media url=${input.photoDataUri}}}
 `,
         });
-
-        // 1. Extract data from the image using the vision model
-        const { output: visionOutput } = await prompt(input);
+        
+        const visionOutput = JSON.parse(llmResponse.text);
 
         if (!visionOutput) {
             throw new Error("Failed to extract data from image.");

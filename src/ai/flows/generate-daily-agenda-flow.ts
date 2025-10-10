@@ -17,7 +17,7 @@ import { ptBR } from 'date-fns/locale';
 
 // Exported wrapper function
 export async function generateDailyAgenda(input: DailyAgendaInput): Promise<DailyAgendaOutput> {
-    // --- AI Call Disabled - Using Simple String Formatting ---
+     // Using simple string formatting as AI is disabled for this flow
     const header = `*PAUTA DO DIA* 🎬\n\n*${input.scheduleDate}*\n\n`;
     const eventList = input.events.join('\n');
     const message = header + eventList;
@@ -25,7 +25,7 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
     return { message };
 }
 
-// Flow Definition (kept for potential future re-activation)
+// Flow Definition (AI functionality disabled, using string formatting)
 const generateDailyAgendaFlow = ai.defineFlow(
   {
     name: 'generateDailyAgendaFlow',
@@ -34,7 +34,6 @@ const generateDailyAgendaFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // --- Using simple string formatting instead of AI ---
     const header = `*PAUTA DO DIA* 🎬\n\n*${input.scheduleDate}*\n\n`;
     const eventList = input.events.join('\n');
     const message = header + eventList;
