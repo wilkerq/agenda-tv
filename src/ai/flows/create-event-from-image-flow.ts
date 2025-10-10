@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for creating an event from an image using AI.
@@ -39,7 +40,8 @@ const createEventFromImageFlow = ai.defineFlow(
         // 1. Extract data from the image using the vision model
         const llmResponse = await ai.generate({
             model: googleAI.model('gemini-1.5-pro-latest'),
-            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON object that conforms to the following schema: ${JSON.stringify(VisionExtractionSchema.jsonSchema())}
+            output: { schema: VisionExtractionSchema },
+            prompt: `You are an automation robot for the Goiás Legislative Assembly (Alego). Your function is to extract event details from an image. The current year is 2024. Your output MUST be a valid JSON object.
 
 **MANDATORY RULES:**
 
@@ -54,7 +56,7 @@ const createEventFromImageFlow = ai.defineFlow(
 `,
         });
         
-        const visionOutput = JSON.parse(llmResponse.text);
+        const visionOutput = llmResponse.output();
 
         if (!visionOutput) {
             throw new Error("Failed to extract data from image.");
