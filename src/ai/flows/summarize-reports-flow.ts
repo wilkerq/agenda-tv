@@ -27,15 +27,32 @@ const summarizeReportsFlow = ai.defineFlow(
     },
     async (input) => {
         
-        // AI Call Disabled to prevent 404 errors. Returning a default summary.
-        console.warn("AI call in summarizeReportsFlow is disabled. Returning default summary.");
+        const llmResponse = await ai.generate({
+            model: 'gemini-1.5-pro',
+            prompt: `
+              Você é um analista de dados especialista da Assembleia Legislativa de Goiás (Alego).
+              Sua tarefa é gerar um resumo conciso e informativo em português, em um único parágrafo, com base nos dados de eventos fornecidos.
+              
+              Dados para Análise:
+              - Total de Eventos: ${input.totalEvents}
+              - Total de Eventos Noturnos (após 18h): ${input.totalNightEvents}
+              - Eventos por Operador: ${JSON.stringify(input.reportData, null, 2)}
+              - Eventos por Local: ${JSON.stringify(input.locationReport, null, 2)}
+              - Eventos por Tipo de Transmissão: ${JSON.stringify(input.transmissionReport, null, 2)}
 
-        const summary = {
-            summary: `No período, foram registrados ${input.totalEvents} eventos. A funcionalidade de resumo por IA está temporariamente usando uma resposta padrão para evitar erros de conexão.`
-        };
+              Destaque os pontos mais importantes, como o operador com mais eventos, o local mais utilizado, e qualquer outra tendência relevante que você identificar. Seja direto e objetivo.
+            `,
+            output: {
+              schema: ReportSummaryOutputSchema,
+            },
+        });
         
-        ReportSummaryOutputSchema.parse(summary);
-
+        const summary = llmResponse.output();
+        
+        if (!summary) {
+            throw new Error("A IA não conseguiu gerar um resumo válido.");
+        }
+        
         return summary;
     }
 );

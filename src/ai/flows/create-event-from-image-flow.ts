@@ -19,6 +19,27 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
     return createEventFromImageFlow(input);
 }
 
+const prompt = ai.definePrompt(
+  {
+    name: 'createEventFromImagePrompt',
+    input: { schema: CreateEventFromImageInputSchema },
+    output: { schema: CreateEventFromImageOutputSchema },
+    prompt: `
+      Você é um assistente especialista em extrair informações de imagens para agendamento de eventos.
+      Analise a imagem fornecida e extraia os seguintes detalhes do evento:
+      - Nome do evento
+      - Local
+      - Data (no formato YYYY-MM-DD)
+      - Hora (no formato HH:mm)
+
+      Se alguma informação não estiver presente na imagem, deixe o campo correspondente vazio.
+      
+      Imagem: {{media url=photoDataUri}}
+    `,
+  }
+);
+
+
 const createEventFromImageFlow = ai.defineFlow(
     {
         name: 'createEventFromImageFlow',
@@ -27,18 +48,14 @@ const createEventFromImageFlow = ai.defineFlow(
     },
     async (input) => {
         
-        // AI Call Disabled to prevent 404 errors. Returning a default object.
-        console.warn("AI call in createEventFromImageFlow is disabled. Returning default empty object.");
+        const llmResponse = await prompt(input);
+        const output = llmResponse.output();
 
-        const finalOutput: CreateEventFromImageOutput = {
-            name: "",
-            location: undefined,
-            date: undefined,
-            time: null,
-            transmission: "youtube",
-            operator: undefined,
-        };
+        if (!output) {
+          throw new Error("A IA não conseguiu gerar uma resposta válida.");
+        }
 
-        return finalOutput;
+        // Retorne o resultado diretamente, pois já está no formato correto
+        return output;
     }
 );
