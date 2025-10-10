@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube, FileDown } from "lucide-react";
+import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube, FileDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
@@ -50,8 +51,8 @@ export default function ReportsPage() {
   const [locationReport, setLocationReport] = useState<LocationReport>({});
   const [transmissionReport, setTransmissionReport] = useState<TransmissionReport>({ youtube: 0, tv: 0 });
   const [loading, setLoading] = useState(true);
-  const [isAiSummaryLoading, setIsAiSummaryLoading] = useState(false);
-  const [aiSummary, setAiSummary] = useState<ReportSummaryOutput | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summary, setSummary] = useState<ReportSummaryOutput | null>(null);
   const { toast } = useToast();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
@@ -126,7 +127,7 @@ export default function ReportsPage() {
       setLocationReport(newLocationReport);
       setTransmissionReport(newTransmissionReport);
       setLoading(false);
-      setAiSummary(null); // Reset AI summary when filters change
+      setSummary(null); // Reset summary when filters change
     }, (error) => {
         console.error("Error fetching reports: ", error);
         toast({
@@ -145,8 +146,8 @@ export default function ReportsPage() {
 
 
   const handleGenerateSummary = async () => {
-    setIsAiSummaryLoading(true);
-    setAiSummary(null);
+    setIsSummaryLoading(true);
+    setSummary(null);
 
     const reportToSummarize: ReportDataInput = {
         totalEvents,
@@ -161,16 +162,16 @@ export default function ReportsPage() {
 
     try {
         const result = await summarizeReports(reportToSummarize);
-        setAiSummary(result);
+        setSummary(result);
     } catch (error) {
-        console.error("Error generating AI summary: ", error);
+        console.error("Error generating summary: ", error);
         toast({
             title: "Erro ao gerar resumo",
-            description: "Não foi possível conectar com o serviço de IA. Verifique sua chave de API.",
+            description: "Ocorreu um erro ao processar os dados do relatório.",
             variant: "destructive"
         });
     } finally {
-        setIsAiSummaryLoading(false);
+        setIsSummaryLoading(false);
     }
   };
   
@@ -196,12 +197,12 @@ export default function ReportsPage() {
     doc.text(`Transmissões (TV Aberta): ${transmissionReport.tv}`, margin + 70, y);
     y += 10;
 
-    if (aiSummary?.resumoNarrativo) {
+    if (summary?.resumoNarrativo) {
         doc.setFontSize(14);
-        doc.text("Resumo da IA:", margin, y);
+        doc.text("Resumo Analítico:", margin, y);
         y += 7;
         doc.setFontSize(10);
-        const splitSummary = doc.splitTextToSize(aiSummary.resumoNarrativo, 180);
+        const splitSummary = doc.splitTextToSize(summary.resumoNarrativo, 180);
         doc.text(splitSummary, margin, y);
         y += (splitSummary.length * 5) + 10;
     }
@@ -282,35 +283,35 @@ export default function ReportsPage() {
         <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Resumo com Inteligência Artificial
+                <Activity className="h-5 w-5 text-primary" />
+                Resumo Analítico
               </CardTitle>
               <CardDescription>Clique no botão para gerar uma análise dos dados do período selecionado.</CardDescription>
             </CardHeader>
             <CardContent>
-              {isAiSummaryLoading && (
+              {isSummaryLoading && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin" />
                       <span>Analisando dados e gerando insights...</span>
                   </div>
               )}
-              {aiSummary?.resumoNarrativo && (
+              {summary?.resumoNarrativo && (
                   <div className="prose prose-sm max-w-full text-foreground">
-                      <p>{aiSummary.resumoNarrativo}</p>
+                      <p>{summary.resumoNarrativo}</p>
                   </div>
               )}
-              {!isAiSummaryLoading && !aiSummary && totalEvents === 0 && (
+              {!isSummaryLoading && !summary && totalEvents === 0 && (
                   <p className="text-muted-foreground">Nenhum dado para gerar resumo neste período.</p>
               )}
             </CardContent>
             <CardFooter>
-              <Button onClick={handleGenerateSummary} disabled={isAiSummaryLoading || totalEvents === 0}>
-                {isAiSummaryLoading ? (
+              <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || totalEvents === 0}>
+                {isSummaryLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <Bot className="mr-2 h-4 w-4" />
+                  <Activity className="mr-2 h-4 w-4" />
                 )}
-                Gerar Resumo com IA
+                Gerar Resumo
               </Button>
             </CardFooter>
           </Card>

@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview A flow for summarizing event report data using pre-processing.
+ * @fileOverview A flow for summarizing event report data using pre-processing and local logic.
  *
  * - summarizeReports - A function that generates a summary for report data.
  */
@@ -42,43 +43,34 @@ const summarizeReportsFlow = ai.defineFlow(
         // --- LÓGICA DE PRÉ-PROCESSAMENTO ---
         const operadorDestaque = encontrarDestaque(input.reportData);
         const localDestaque = encontrarDestaque(input.locationReport);
+        const totalTransmissions = input.transmissionReport.reduce((acc, item) => acc + item.eventos, 0);
 
-        // --- MONTAGEM DO PROMPT REFINADO ---
-        const prompt = `
-            Você é um analista de comunicação de dados da Assembleia Legislativa de Goiás (Alego), localizado em Goiás, Brasil.
-            Sua tarefa é redigir um resumo informativo e profissional em um único parágrafo, utilizando os dados e os pontos de destaque já calculados.
-
-            **Contexto Geral:**
-            - Total de Eventos Analisados: ${input.totalEvents}
-            - Total de Eventos Noturnos (após 18h): ${input.totalNightEvents}
-
-            **Pontos de Destaque (já calculados):**
-            - Operador com mais atividade: ${operadorDestaque.nome} (${operadorDestaque.eventos} eventos)
-            - Local mais utilizado: ${localDestaque.nome} (${localDestaque.eventos} eventos)
-            - Detalhes de transmissão: ${JSON.stringify(input.transmissionReport)}
-
-            **Sua Tarefa:**
-            Com base estritamente nos fatos apresentados, escreva um parágrafo conciso e coeso para um relatório gerencial. Incorpore os 'Pontos de Destaque' de forma fluida na narrativa.
-        `;
-
-        // --- CHAMADA PARA A IA ---
-        const llmResponse = await ai.generate({
-            model: 'googleai/gemini-1.5-pro',
-            prompt: prompt,
-            config: {
-                temperature: 0.3, // Baixa temperatura para respostas mais factuais e menos criativas
-            },
-        });
-
-        const resumo = llmResponse.output() as string;
-        
-        if (!resumo) {
-            throw new Error("A IA não conseguiu gerar um resumo válido.");
+        // --- GERAÇÃO DE RESUMO COM LÓGICA LOCAL ---
+        const summaryParts: string[] = [];
+        summaryParts.push(`No período analisado, foram registrados um total de ${input.totalEvents} eventos.`);
+        if (input.totalNightEvents > 0) {
+            summaryParts.push(`${input.totalNightEvents} destes ocorreram no período noturno.`);
         }
 
+        if (operadorDestaque.eventos > 0) {
+            summaryParts.push(`O destaque de produtividade foi ${operadorDestaque.nome}, responsável por ${operadorDestaque.eventos} eventos.`);
+        }
+
+        if (localDestaque.eventos > 0) {
+            summaryParts.push(`O local mais utilizado foi a(o) ${localDestaque.nome}, sediando ${localDestaque.eventos} eventos.`);
+        }
+        
+        if (totalTransmissions > 0) {
+            const tv = input.transmissionReport.find(t => t.nome === 'TV Aberta')?.eventos || 0;
+            const youtube = input.transmissionReport.find(t => t.nome === 'YouTube')?.eventos || 0;
+            summaryParts.push(`Quanto às transmissões, ${youtube} foram via YouTube e ${tv} via TV Aberta.`);
+        }
+        
+        const resumoNarrativo = summaryParts.join(' ');
+        
         // --- RETORNO ESTRUTURADO ---
         return {
-            resumoNarrativo: resumo,
+            resumoNarrativo: resumoNarrativo,
             destaques: {
                 operador: operadorDestaque,
                 local: localDestaque,
