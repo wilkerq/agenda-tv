@@ -12,7 +12,6 @@ import {
     DailyAgendaOutputSchema,
 } from '@/lib/types';
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@/ai/genkit';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

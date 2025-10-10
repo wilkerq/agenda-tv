@@ -6,7 +6,7 @@
  * - summarizeReports - A function that generates a summary for report data.
  */
 
-import { ai, googleAI } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { 
     ReportDataInput, 
     ReportDataInputSchema, 

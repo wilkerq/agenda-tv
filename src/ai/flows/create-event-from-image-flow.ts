@@ -6,7 +6,7 @@
  * - createEventFromImage - A function that extracts event details from an image.
  */
 
-import { ai, googleAI } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { 
     CreateEventFromImageInput, 
     CreateEventFromImageInputSchema, 
