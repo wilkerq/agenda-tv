@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +41,6 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -480,24 +480,14 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
            )}
         </div>
         <div className="flex justify-end">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                >
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSubmitting ? "Adicionando..." : "Adicionar Evento"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="font-semibold">Adicionar Evento Manualmente</p>
-                <p>A extração por imagem está desativada. Por favor, preencha os detalhes do evento.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Adicionando..." : "Adicionar Evento"}
+            </Button>
         </div>
       </form>
     </Form>

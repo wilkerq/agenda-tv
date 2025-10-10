@@ -237,8 +237,6 @@ export default function DashboardPage() {
   const formattedDate = selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : '...';
 
   const handleAiSuccess = (data: Partial<EventFormData>) => {
-    // Since the AI flow is disabled, data will be empty.
-    // We just open the manual add modal.
     setPreloadedEventData(data);
     setAddFromImageModalOpen(false);
     setAddModalOpen(true);
@@ -289,7 +287,7 @@ export default function DashboardPage() {
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
                     <CardDescription>
-                       A extração de dados da imagem foi desativada. Preencha os detalhes do evento manualmente.
+                       Envie um card, flyer ou print para que a IA extraia os detalhes do evento automaticamente.
                     </CardDescription>
                 </DialogHeader>
                 <div className="py-4">

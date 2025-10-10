@@ -1,6 +1,7 @@
+
 'use server';
 
-import { googleAI } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 /**
  * This is a SERVER-SIDE function that determines which AI model to use.
@@ -11,7 +12,7 @@ import { googleAI } from '@/ai/genkit';
 export async function getModel(modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
   // Use Gemini Pro for text tasks and Gemini 1.5 Pro for vision.
-  const modelName = modelType === 'vision' ? 'gemini-1.5-pro-latest' : 'gemini-pro';
+  const modelName = modelType === 'vision' ? 'gemini-1.5-pro-vision' : 'gemini-1.5-pro';
   
   // We reference the model through the centrally configured `ai` object.
   return googleAI.model(modelName);

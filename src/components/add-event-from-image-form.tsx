@@ -64,7 +64,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file) {
+    if (!file || !previewUrl) {
       toast({
         title: "Nenhuma imagem selecionada",
         description: "Por favor, selecione ou cole uma imagem para continuar.",
@@ -75,20 +75,44 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
     setIsLoading(true);
 
     try {
-      // Since the AI flow is disabled, we don't need to read the file.
-      // We'll just call onSuccess with empty data to open the manual form.
-      await createEventFromImage({ photoDataUri: '' }); // Call is still needed to respect flow
-      onSuccess({});
+      const result = await createEventFromImage({ photoDataUri: previewUrl });
+      
+      let preloadedData: Partial<EventFormData> = {
+          name: result.name,
+          location: result.location,
+          transmission: result.transmission
+      };
+
+      if (result.date && result.time) {
+          // Attempt to parse the combined date and time string
+          const parsedDate = parse(`${result.date} ${result.time}`, 'yyyy-MM-dd HH:mm', new Date());
+          if (!isNaN(parsedDate.getTime())) {
+              preloadedData.date = parsedDate;
+          } else {
+             toast({
+                title: "Formato de Data/Hora Inválido",
+                description: `A IA retornou uma data ou hora que não pôde ser processada: ${result.date} ${result.time}`,
+                variant: "destructive"
+            });
+          }
+      } else if (result.date) {
+           const parsedDate = parse(result.date, 'yyyy-MM-dd', new Date());
+            if (!isNaN(parsedDate.getTime())) {
+              preloadedData.date = parsedDate;
+          }
+      }
+
+      onSuccess(preloadedData);
       toast({
-        title: "Adicionar Evento Manualmente",
-        description: "A extração por imagem está desativada. Por favor, preencha os detalhes do evento.",
+        title: "Dados Extraídos com Sucesso!",
+        description: "Por favor, revise os campos e complete as informações pendentes.",
       });
 
     } catch (error) {
-      console.error("Error in 'create from image' (disabled AI) flow:", error);
+      console.error("Error creating event from image:", error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro inesperado. Por favor, tente adicionar o evento manualmente.",
+        title: "Erro ao Extrair Dados",
+        description: "Não foi possível processar a imagem. Verifique sua chave de API e o console para mais detalhes.",
         variant: "destructive",
       });
     } finally {
@@ -118,7 +142,7 @@ export function AddEventFromImageForm({ onSuccess }: AddEventFromImageFormProps)
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading || !file}>
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isLoading ? "Processando..." : "Continuar para Adição Manual"}
+          {isLoading ? "Processando..." : "Extrair Informações"}
         </Button>
       </div>
     </form>
