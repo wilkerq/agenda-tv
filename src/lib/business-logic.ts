@@ -1,3 +1,4 @@
+
 'use server';
 
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
@@ -21,7 +22,7 @@ export const getAvailableOperators = async (): Promise<string[]> => {
  * @param date The date to fetch events for.
  * @returns A promise that resolves to an array of event data.
  */
-const getEventsForDay = async (date: Date): Promise<{operator: string}[]> => {
+const getEventsForDay = async (date: Date): Promise<{transmissionOperator?: string}[]> => {
     const startOfTargetDay = startOfDay(date);
     const endOfTargetDay = endOfDay(date);
 
@@ -35,18 +36,18 @@ const getEventsForDay = async (date: Date): Promise<{operator: string}[]> => {
     
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
-      return { operator: data.operator };
+      return { transmissionOperator: data.transmissionOperator };
     });
 };
 
 /**
- * Assigns an operator based on business rules, including location, time of day, and availability.
+ * Assigns a transmission operator based on business rules, including location, time of day, and availability.
  * @param date The date and time of the event.
  * @param location The location of the event.
  * @param availableOperators A list of operator names to choose from.
  * @returns A promise that resolves to the name of the suggested operator.
  */
-export const assignOperator = async (date: Date, location: string, availableOperators?: string[]): Promise<string> => {
+export const assignTransmissionOperator = async (date: Date, location: string, availableOperators?: string[]): Promise<string> => {
     const operators = availableOperators || await getAvailableOperators();
     if (operators.length === 0) return 'Nenhum disponível';
 
@@ -59,7 +60,7 @@ export const assignOperator = async (date: Date, location: string, availableOper
     }
 
     const eventsToday = await getEventsForDay(date);
-    const assignedOperatorsToday = new Set(eventsToday.map(e => e.operator));
+    const assignedOperatorsToday = new Set(eventsToday.map(e => e.transmissionOperator).filter(Boolean));
 
     // Rule 2: Weekday Shifts (Monday to Friday)
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {

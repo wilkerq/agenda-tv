@@ -12,7 +12,10 @@ export interface Event {
   location: string;
   transmission: TransmissionType;
   color: string;
-  operator: string;
+  transmissionOperator?: string;
+  cinematographicReporter?: string;
+  reporter?: string;
+  producer?: string;
   status: EventStatus;
   turn: EventTurn;
 }
@@ -74,7 +77,7 @@ export const CreateEventFromImageOutputSchema = z.object({
   date: z.string().optional().describe("The extracted date of the event in 'YYYY-MM-DD' format."),
   time: z.string().nullable().optional().describe("The extracted time of the event in 'HH:mm' format."),
   transmission: z.enum(["youtube", "tv", "pauta"]).optional().describe('The type of transmission.'),
-  operator: z.string().optional().describe('The operator responsible for the event.'),
+  transmissionOperator: z.string().optional().describe('The transmission operator responsible for the event.'),
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
 
@@ -86,7 +89,7 @@ export const SuggestOperatorInputSchema = z.object({
 export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
 
 export const SuggestOperatorOutputSchema = z.object({
-  operator: z.string().optional().describe('The suggested operator for the event.'),
+  transmissionOperator: z.string().optional().describe('The suggested transmission operator for the event.'),
   transmission: z.enum(["youtube", "tv", "pauta"]).optional().describe('The suggested transmission type for the event.'),
 });
 export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
@@ -124,7 +127,7 @@ export type DailyAgendaOutput = z.infer<typeof DailyAgendaOutputSchema>;
 export const ScheduleEventSchema = z.object({
   name: z.string().describe('The name of the event.'),
   time: z.string().describe('The time of the event in HH:mm format.'),
-  operator: z.string().describe('The operator assigned to the event.'),
+  transmissionOperator: z.string().optional().describe('The transmission operator assigned to the event.'),
 });
 export type ScheduleEvent = z.infer<typeof ScheduleEventSchema>;
 

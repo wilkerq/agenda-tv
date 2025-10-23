@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper } from "lucide-react";
+import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper, Video, Mic, Clipboard } from "lucide-react";
 
 type EventDetailCardProps = {
     date: Date;
@@ -75,8 +75,11 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
                             <div className="flex flex-col gap-3">
                                 <div className="flex-1">
                                     <h3 className="text-lg font-semibold">{event.name}</h3>
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
-                                        <span className="flex items-center"><User className="mr-1.5 h-4 w-4 flex-shrink-0" /> {event.operator}</span>
+                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
+                                        <span className="flex items-center"><User className="mr-1.5 h-4 w-4 flex-shrink-0" /> Op. Transmissão: {event.transmissionOperator || "N/A"}</span>
+                                        <span className="flex items-center"><Video className="mr-1.5 h-4 w-4 flex-shrink-0" /> Rep. Cinematográfico: {event.cinematographicReporter || "N/A"}</span>
+                                        <span className="flex items-center"><Mic className="mr-1.5 h-4 w-4 flex-shrink-0" /> Repórter: {event.reporter || "N/A"}</span>
+                                        <span className="flex items-center"><Clipboard className="mr-1.5 h-4 w-4 flex-shrink-0" /> Produtor: {event.producer || "N/A"}</span>
                                         <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4 flex-shrink-0" /> {event.location}</span>
                                         <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4 flex-shrink-0" /> {format(event.date, 'HH:mm')}</span>
                                     </div>

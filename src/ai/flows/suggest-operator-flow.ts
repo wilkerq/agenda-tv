@@ -13,7 +13,7 @@ import {
     SuggestOperatorOutput, 
     SuggestOperatorOutputSchema 
 } from '@/lib/types';
-import { assignOperator } from '@/lib/business-logic';
+import { assignTransmissionOperator } from '@/lib/business-logic';
 import { determineTransmission } from '@/lib/event-logic';
 import { ai } from '@/ai/genkit';
 
@@ -37,14 +37,14 @@ const suggestOperatorFlow = ai.defineFlow(
         const eventDate = new Date(input.date);
         
         // 1. Assign operator based on date and location using existing business logic
-        const operator = await assignOperator(eventDate, input.location);
+        const operator = await assignTransmissionOperator(eventDate, input.location);
 
         // 2. Determine transmission type based on location
         const transmission = determineTransmission(input.location);
 
         // 3. Construct and return the output
         return { 
-            operator, 
+            transmissionOperator: operator, 
             transmission 
         };
     }

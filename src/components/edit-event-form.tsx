@@ -58,7 +58,10 @@ const formSchema = z.object({
   transmission: z.enum(["youtube", "tv", "pauta"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
-  operator: z.string({ required_error: "O operador é obrigatório." }),
+  transmissionOperator: z.string().optional(),
+  cinematographicReporter: z.string().optional(),
+  reporter: z.string().optional(),
+  producer: z.string().optional(),
 });
 
 type EditEventFormProps = {
@@ -91,7 +94,10 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       date: event.date,
       time: format(event.date, "HH:mm"),
       transmission: event.transmission,
-      operator: event.operator,
+      transmissionOperator: event.transmissionOperator || "",
+      cinematographicReporter: event.cinematographicReporter || "",
+      reporter: event.reporter || "",
+      producer: event.producer || "",
     },
   });
 
@@ -109,7 +115,10 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             location: values.location,
             date: eventDate,
             transmission: values.transmission as TransmissionType,
-            operator: values.operator,
+            transmissionOperator: values.transmissionOperator,
+            cinematographicReporter: values.cinematographicReporter,
+            reporter: values.reporter,
+            producer: values.producer,
         };
 
         await onEditEvent(event.id, eventData);
@@ -130,7 +139,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             </DialogHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pt-4">
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-2 gap-8">
                 <FormField
                     control={form.control}
                     name="name"
@@ -171,35 +180,86 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     </FormItem>
                     )}
                 />
-                <FormField
-                    control={form.control}
-                    name="operator"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Operador</FormLabel>
-                        <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        >
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Selecione o operador" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {operators.map((operator) => (
-                            <SelectItem key={operator.id} value={operator.name}>
-                                {operator.name}
-                            </SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
                 </div>
-                <div className="grid md:grid-cols-3 gap-8">
+                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <FormField
+                        control={form.control}
+                        name="transmissionOperator"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Op. de Transmissão</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
+                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="cinematographicReporter"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Rep. Cinematográfico</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
+                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="reporter"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Repórter</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
+                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="producer"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Produtor</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
+                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+                <div className="grid md:grid-cols-2 gap-8">
                 <FormField
                     control={form.control}
                     name="date"
@@ -251,6 +311,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     </FormItem>
                     )}
                 />
+                </div>
                 <FormField
                     control={form.control}
                     name="transmission"
@@ -287,7 +348,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     </FormItem>
                     )}
                 />
-                </div>
                  <DialogFooter>
                     <DialogClose asChild>
                         <Button type="button" variant="outline">Cancelar</Button>
@@ -307,5 +367,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    

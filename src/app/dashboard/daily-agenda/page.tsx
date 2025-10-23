@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -81,7 +82,7 @@ export default function DailyAgendaPage() {
     
     setIsGeneratingMessage(true);
     try {
-        const eventStrings = events.map(e => `${e.operator} - ${e.name} (${e.location})`);
+        const eventStrings = events.map(e => `${e.transmissionOperator || 'N/A'} (Op) / ${e.cinematographicReporter || 'N/A'} (Rep) - ${e.name} (${e.location})`);
         const result = await generateDailyAgenda({
             scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
             events: eventStrings,

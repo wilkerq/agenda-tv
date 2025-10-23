@@ -92,7 +92,10 @@ export default function DashboardPage() {
           transmission: data.transmission,
           date: eventDate,
           color: data.color || getRandomColor(),
-          operator: data.operator,
+          transmissionOperator: data.transmissionOperator,
+          cinematographicReporter: data.cinematographicReporter,
+          reporter: data.reporter,
+          producer: data.producer,
           status: getEventStatus(eventDate),
           turn: getEventTurn(eventDate),
         };
@@ -267,7 +270,7 @@ export default function DashboardPage() {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
                <CardDescription>
-                Ao preencher os campos de data, hora e local, a IA sugerirá o operador mais adequado com base nas regras de negócio e na escala.
+                Ao preencher os campos de data, hora e local, a IA sugerirá o operador de transmissão mais adequado.
               </CardDescription>
             </DialogHeader>
             <div className="py-4">
@@ -358,5 +361,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

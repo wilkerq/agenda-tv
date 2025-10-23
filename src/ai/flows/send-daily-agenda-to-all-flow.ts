@@ -57,7 +57,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       try {
         const eventsQuery = query(
           collection(db, "events"),
-          where("operator", "==", operator.name),
+          where("transmissionOperator", "==", operator.name),
           where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
           where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
           orderBy("date", "asc")
@@ -65,18 +65,11 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
         const eventsSnapshot = await getDocs(eventsQuery);
         
-        // Definitive fix: Explicitly construct the event object to ensure type safety.
         const operatorEvents: Event[] = eventsSnapshot.docs.map(doc => {
             const data = doc.data() as Omit<Event, 'id' | 'date'> & { date: Timestamp };
             return {
                 id: doc.id,
-                name: data.name,
-                location: data.location,
-                transmission: data.transmission,
-                color: data.color,
-                operator: data.operator,
-                status: data.status,
-                turn: data.turn,
+                ...data,
                 date: data.date.toDate(),
             };
         });

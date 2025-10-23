@@ -84,7 +84,7 @@ export default function ReportsPage() {
           transmission: data.transmission,
           date: (data.date as Timestamp).toDate(),
           color: data.color,
-          operator: data.operator,
+          transmissionOperator: data.transmissionOperator,
         } as Event;
       });
 
@@ -94,15 +94,16 @@ export default function ReportsPage() {
       let nightEventsCount = 0;
 
       eventsData.forEach(event => {
-        if (event.operator) {
-          if (!newReportData[event.operator]) {
-            newReportData[event.operator] = { count: 0, nightCount: 0, events: [] };
+        const operator = event.transmissionOperator;
+        if (operator) {
+          if (!newReportData[operator]) {
+            newReportData[operator] = { count: 0, nightCount: 0, events: [] };
           }
-          newReportData[event.operator].count++;
-          newReportData[event.operator].events.push(event);
+          newReportData[operator].count++;
+          newReportData[operator].events.push(event);
           
           if (event.date.getHours() >= 18) {
-            newReportData[event.operator].nightCount++;
+            newReportData[operator].nightCount++;
           }
         }
         
@@ -210,7 +211,7 @@ export default function ReportsPage() {
     if (sortedOperators.length > 0) {
       autoTable(doc, {
           startY: y,
-          head: [['Operador', 'Eventos Totais', 'Eventos Noturnos']],
+          head: [['Op. de Transmissão', 'Eventos Totais', 'Eventos Noturnos']],
           body: sortedOperators.map(op => [op, reportData[op].count, reportData[op].nightCount]),
           theme: 'striped',
       });
@@ -361,7 +362,7 @@ export default function ReportsPage() {
         <div className="grid gap-6 md:grid-cols-2">
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Eventos por Operador</CardTitle>
+              <CardTitle>Eventos por Op. de Transmissão</CardTitle>
               <CardDescription>Eventos totais e noturnos por operador em {reportTitle}.</CardDescription>
             </CardHeader>
             <CardContent>

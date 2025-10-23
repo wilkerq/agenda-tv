@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -73,7 +74,7 @@ export default function ShareSchedulePage() {
 
       const q = query(
         collection(db, "events"),
-        where("operator", "==", selectedOperator.name),
+        where("transmissionOperator", "==", selectedOperator.name),
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
         where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
         orderBy("date", "asc")
@@ -90,7 +91,6 @@ export default function ShareSchedulePage() {
           date: eventDate,
           transmission: data.transmission,
           color: data.color,
-          operator: data.operator,
           status: getEventStatus(eventDate),
           turn: getEventTurn(eventDate),
         } as Event;

@@ -61,7 +61,10 @@ const formSchema = z.object({
   transmission: z.enum(["youtube", "tv", "pauta"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
-  operator: z.string({ required_error: "O operador é obrigatório." }),
+  transmissionOperator: z.string().optional(),
+  cinematographicReporter: z.string().optional(),
+  reporter: z.string().optional(),
+  producer: z.string().optional(),
   repeats: z.boolean().default(false),
   repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repeatCount: z.coerce.number().int().min(1).optional(),
@@ -107,7 +110,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       location: undefined,
       time: "",
       transmission: "youtube",
-      operator: undefined,
+      transmissionOperator: "",
+      cinematographicReporter: "",
+      reporter: "",
+      producer: "",
       repeats: false,
       repeatCount: 1,
     },
@@ -145,11 +151,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             location: selectedLocation,
         });
 
-        if (result.operator && operators.some(op => op.name === result.operator)) {
-            form.setValue("operator", result.operator, { shouldValidate: true });
+        if (result.transmissionOperator && operators.some(op => op.name === result.transmissionOperator)) {
+            form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
             toast({
                 title: "Operador Sugerido!",
-                description: `${result.operator} foi selecionado pela IA.`,
+                description: `${result.transmissionOperator} foi selecionado como operador de transmissão pela IA.`,
             });
         } else {
              toast({
@@ -187,7 +193,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         date: preloadedData.date ? new Date(preloadedData.date) : undefined,
         time: preloadedData.date ? format(new Date(preloadedData.date), "HH:mm") : "",
         transmission: preloadedData.transmission || "youtube",
-        operator: preloadedData.operator || undefined,
+        transmissionOperator: preloadedData.transmissionOperator || "",
+        cinematographicReporter: preloadedData.cinematographicReporter || "",
+        reporter: preloadedData.reporter || "",
+        producer: preloadedData.producer || "",
         repeats: false,
         repeatCount: 1,
       });
@@ -210,7 +219,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           location: values.location,
           date: eventDate,
           transmission: values.transmission as TransmissionType,
-          operator: values.operator,
+          transmissionOperator: values.transmissionOperator,
+          cinematographicReporter: values.cinematographicReporter,
+          reporter: values.reporter,
+          producer: values.producer,
       };
 
       const repeatSettings = values.repeats ? {
@@ -226,7 +238,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         date: undefined,
         time: "",
         transmission: "youtube",
-        operator: undefined,
+        transmissionOperator: "",
+        cinematographicReporter: "",
+        reporter: "",
+        producer: "",
         repeats: false,
         repeatFrequency: undefined,
         repeatCount: 1,
@@ -248,7 +263,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-2 gap-8">
           <FormField
             control={form.control}
             name="name"
@@ -289,39 +304,89 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="operator"
-            render={({ field }) => (
-              <FormItem>
-                 <FormLabel>Operador</FormLabel>
-                <div className="flex gap-2">
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o operador" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {operators.map((operator) => (
-                        <SelectItem key={operator.id} value={operator.name}>
-                          {operator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                 <FormDescription>
-                  Preencha os campos e use o botão de sugestão.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+             <FormField
+                control={form.control}
+                name="transmissionOperator"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Op. de Transmissão</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="cinematographicReporter"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Rep. Cinematográfico</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="reporter"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Repórter</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="producer"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Produtor</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
+                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
+         <FormDescription>
+            Preencha os campos de data, hora e local, depois use o botão de sugestão para preencher o Op. de Transmissão.
+        </FormDescription>
+
         <div className="grid md:grid-cols-3 gap-8 items-end">
           <FormField
             control={form.control}
@@ -499,5 +564,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
-
-    

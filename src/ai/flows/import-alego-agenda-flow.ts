@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to import events from the official Alego agenda website.
@@ -11,6 +12,7 @@ import { collection, writeBatch, getDocs, query, where, Timestamp, doc } from 'f
 import { db } from '@/lib/firebase';
 import { getRandomColor } from '@/lib/utils';
 import { addDays, startOfDay, isValid, format, parseISO, endOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { assignTransmissionOperator } from '@/lib/business-logic';
 
 const ImportAlegoAgendaOutputSchema = z.object({
   count: z.number().describe('The number of new events imported.'),
@@ -34,28 +36,8 @@ interface ProcessedEvent {
     date: Date;
     location: string;
     transmission: 'youtube' | 'tv';
-    operator: string;
+    transmissionOperator: string;
 }
-
-// Function to assign operator based on rules
-const assignOperator = (date: Date, location: string): string => {
-    const hour = date.getHours();
-
-    // Rule 1: Specific Location
-    if (location === 'Sala Julio da Retifica "CCJR"') {
-        return "Mário Augusto";
-    }
-
-    // Rule 2: Weekday Shifts
-    if (hour < 12) {
-        return "Rodrigo Sousa"; // Morning default
-    }
-    if (hour >= 12 && hour < 18) { // Afternoon rotation
-        const operators = ["Ovidio Dias", "Mário Augusto", "Bruno Michel"];
-        return operators[Math.floor(Math.random() * operators.length)];
-    }
-    return "Bruno Michel"; // Night default
-};
 
 // Function to determine transmission type
 const determineTransmission = (location: string): 'youtube' | 'tv' => {
@@ -124,7 +106,7 @@ const importAlegoAgendaFlow = ai.defineFlow(
                 date: eventDate,
                 location: location,
                 transmission: determineTransmission(location),
-                operator: assignOperator(eventDate, location),
+                transmissionOperator: await assignTransmissionOperator(eventDate, location),
             });
         }
     } catch (error) {

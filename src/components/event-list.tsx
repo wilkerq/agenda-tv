@@ -1,7 +1,7 @@
 
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic } from "lucide-react";
 import { format } from "date-fns";
 
 type EventListProps = {
@@ -54,8 +54,10 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
           <div className="flex flex-col sm:flex-row justify-between sm:items-start">
             <div className="flex-1">
               <h3 className="text-lg font-semibold pr-20">{event.name}</h3>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
-                <span className="flex items-center"><User className="mr-1.5 h-4 w-4" /> {event.operator}</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 text-sm text-muted-foreground mt-2">
+                <span className="flex items-center"><User className="mr-1.5 h-4 w-4" /> {event.transmissionOperator || "N/A"}</span>
+                <span className="flex items-center"><Video className="mr-1.5 h-4 w-4" /> {event.cinematographicReporter || "N/A"}</span>
+                <span className="flex items-center"><Mic className="mr-1.5 h-4 w-4" /> {event.reporter || "N/A"}</span>
                 <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4" /> {event.location}</span>
                 <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4" /> {format(event.date, 'HH:mm')}</span>
               </div>

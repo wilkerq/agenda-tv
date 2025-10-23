@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit tool for fetching the daily event schedule from Firestore.
@@ -41,7 +42,7 @@ export const getScheduleTool = ai.defineTool(
             return {
                 name: data.name,
                 time: format(eventDate, 'HH:mm'),
-                operator: data.operator,
+                transmissionOperator: data.transmissionOperator,
             };
         });
 
