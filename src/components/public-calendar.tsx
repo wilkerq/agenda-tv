@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -14,7 +15,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Sun, Moon, Cloud, CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarIcon, User, Video, Mic, Clipboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Event } from '@/lib/types';
 import { CalendarEventCard } from './calendar-event-card';
@@ -29,15 +30,24 @@ type PublicCalendarProps = {
   onDateSelect: (date: Date) => void;
 };
 
-const turnIcons = {
-    'Manhã': <Sun className="mr-1 h-4 w-4" />,
-    'Tarde': <Cloud className="mr-1 h-4 w-4" />,
-    'Noite': <Moon className="mr-1 h-4 w-4" />,
+const roleIcons: Record<string, React.ReactNode> = {
+    'transmissionOperator': <User className="mr-1 h-4 w-4" />,
+    'cinematographicReporter': <Video className="mr-1 h-4 w-4" />,
+    'reporter': <Mic className="mr-1 h-4 w-4" />,
+    'producer': <Clipboard className="mr-1 h-4 w-4" />,
 };
+
+const roleLabels: Record<string, string> = {
+    'transmissionOperator': 'Op. Transmissão',
+    'cinematographicReporter': 'Rep. Cinematográfico',
+    'reporter': 'Repórter',
+    'producer': 'Produtor',
+};
+
 
 export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedTurns, setSelectedTurns] = useState<string[]>(['Manhã', 'Tarde', 'Noite']);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   const start = startOfMonth(currentMonth);
   const end = endOfMonth(currentMonth);
@@ -54,9 +64,11 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
 
 
   const filteredEvents = useMemo(() => {
-    if (selectedTurns.length === 3) return events;
-    return events.filter(event => selectedTurns.includes(event.turn));
-  }, [events, selectedTurns]);
+    if (selectedRoles.length === 0) return events;
+    return events.filter(event => 
+        selectedRoles.some(role => !!(event as any)[role])
+    );
+  }, [events, selectedRoles]);
 
   const eventsByDate = useMemo(() => {
     const map = new Map<string, Event[]>();
@@ -89,13 +101,14 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
             <ToggleGroup 
               type="multiple" 
               variant="outline" 
-              value={selectedTurns}
-              onValueChange={(value) => setSelectedTurns(value.length > 0 ? value : ['Manhã', 'Tarde', 'Noite'])}
+              value={selectedRoles}
+              onValueChange={setSelectedRoles}
               className='flex-wrap justify-start'
+              aria-label="Filtrar por função"
             >
-              {Object.entries(turnIcons).map(([turn, icon]) => (
-                <ToggleGroupItem key={turn} value={turn} aria-label={turn} className='flex gap-1 px-2 sm:px-3'>
-                  {icon} <span className="sm:inline">{turn}</span>
+              {Object.entries(roleIcons).map(([role, icon]) => (
+                <ToggleGroupItem key={role} value={role} aria-label={roleLabels[role]} className='flex gap-1 px-2 sm:px-3'>
+                  {icon} <span className="hidden sm:inline">{roleLabels[role]}</span>
                 </ToggleGroupItem>
               ))}
             </ToggleGroup>
