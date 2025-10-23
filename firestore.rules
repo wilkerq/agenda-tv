@@ -1,18 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que qualquer pessoa liste e leia eventos (necessário para a página pública)
-    // Apenas usuários autenticados podem criar, editar ou apagar.
+    // Permite que qualquer usuário autenticado leia e escreva na coleção de eventos.
     match /events/{eventId} {
-      allow get, list: if true;
-      allow create, update, delete: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
 
-    // Permite que qualquer pessoa liste e leia operadores (necessário para os formulários)
-    // Apenas usuários autenticados podem criar, editar ou apagar.
+    // Regras para as novas coleções de pessoal
+    // Apenas usuários autenticados podem gerenciar (ler, criar, atualizar, deletar) pessoal.
+    match /transmission_operators/{operatorId} {
+      allow read, write: if request.auth != null;
+    }
+    match /cinematographic_reporters/{reporterId} {
+      allow read, write: if request.auth != null;
+    }
+    match /reporters/{reporterId} {
+      allow read, write: if request.auth != null;
+    }
+    match /producers/{producerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Regra para a coleção antiga 'operators' (apenas para leitura/deleção durante a migração)
     match /operators/{operatorId} {
-      allow get, list: if true;
-      allow create, update, delete: if request.auth != null;
+        allow read, delete: if request.auth != null;
+        allow create, update: if false; // Impede novas escritas
     }
   }
 }
