@@ -90,6 +90,7 @@ export default function DashboardPage() {
           name: data.name,
           location: data.location,
           transmission: data.transmission,
+          pauta: data.pauta,
           date: eventDate,
           color: data.color || getRandomColor(),
           transmissionOperator: data.transmissionOperator,

@@ -11,6 +11,7 @@ export interface Event {
   date: Date;
   location: string;
   transmission: TransmissionType;
+  pauta?: string;
   color: string;
   transmissionOperator?: string;
   cinematographicReporter?: string;

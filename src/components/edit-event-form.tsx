@@ -38,6 +38,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType, EventFormData, Operator } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Textarea } from "./ui/textarea";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -56,8 +57,9 @@ const formSchema = z.object({
   }),
   time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
   transmission: z.enum(["youtube", "tv", "pauta"], {
-    required_error: "Você precisa selecionar um tipo de transmissão.",
+    required_error: "Você precisa selecionar um tipo de evento.",
   }),
+  pauta: z.string().optional(),
   transmissionOperator: z.string().optional(),
   cinematographicReporter: z.string().optional(),
   reporter: z.string().optional(),
@@ -113,12 +115,15 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       date: event.date,
       time: format(event.date, "HH:mm"),
       transmission: event.transmission,
+      pauta: event.pauta || "",
       transmissionOperator: event.transmissionOperator || "",
       cinematographicReporter: event.cinematographicReporter || "",
       reporter: event.reporter || "",
       producer: event.producer || "",
     },
   });
+
+  const transmission = form.watch("transmission");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -134,6 +139,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             location: values.location,
             date: eventDate,
             transmission: values.transmission as TransmissionType,
+            pauta: values.pauta,
             transmissionOperator: values.transmissionOperator,
             cinematographicReporter: values.cinematographicReporter,
             reporter: values.reporter,
@@ -363,6 +369,27 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     </FormItem>
                     )}
                 />
+
+                {transmission === 'pauta' && (
+                  <FormField
+                    control={form.control}
+                    name="pauta"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Texto da Pauta</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Digite o texto da pauta, roteiro ou script aqui..."
+                            className="resize-y min-h-[120px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                  <DialogFooter>
                     <DialogClose asChild>
                         <Button type="button" variant="outline">Cancelar</Button>
@@ -382,5 +409,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    

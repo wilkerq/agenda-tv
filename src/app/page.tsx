@@ -50,6 +50,7 @@ export default function HomePage() {
           name: data.name,
           location: data.location,
           transmission: data.transmission,
+          pauta: data.pauta,
           date: eventDate,
           color: data.color,
           operator: data.operator,
@@ -137,4 +138,5 @@ export default function HomePage() {
     </div>
   );
 }
+
 

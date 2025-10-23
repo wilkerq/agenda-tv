@@ -41,6 +41,7 @@ import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "./ui/textarea";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -59,8 +60,9 @@ const formSchema = z.object({
   }),
   time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
   transmission: z.enum(["youtube", "tv", "pauta"], {
-    required_error: "Você precisa selecionar um tipo de transmissão.",
+    required_error: "Você precisa selecionar um tipo de evento.",
   }),
+  pauta: z.string().optional(),
   transmissionOperator: z.string().optional(),
   cinematographicReporter: z.string().optional(),
   reporter: z.string().optional(),
@@ -129,6 +131,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       location: undefined,
       time: "",
       transmission: "youtube",
+      pauta: "",
       transmissionOperator: "",
       cinematographicReporter: "",
       reporter: "",
@@ -188,7 +191,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             form.setValue("transmission", result.transmission, { shouldValidate: true });
             toast({
                 title: "Transmissão Definida!",
-                description: `Tipo de transmissão definido como "${result.transmission === 'tv' ? 'TV Aberta' : 'YouTube'}" pela IA.`,
+                description: `Tipo de evento definido como "${result.transmission === 'tv' ? 'TV Aberta' : 'YouTube'}" pela IA.`,
             });
         }
 
@@ -212,6 +215,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         date: preloadedData.date ? new Date(preloadedData.date) : undefined,
         time: preloadedData.date ? format(new Date(preloadedData.date), "HH:mm") : "",
         transmission: preloadedData.transmission || "youtube",
+        pauta: preloadedData.pauta || "",
         transmissionOperator: preloadedData.transmissionOperator || "",
         cinematographicReporter: preloadedData.cinematographicReporter || "",
         reporter: preloadedData.reporter || "",
@@ -223,6 +227,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   }, [preloadedData, form]);
 
   const repeats = form.watch("repeats");
+  const transmission = form.watch("transmission");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -238,6 +243,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           location: values.location,
           date: eventDate,
           transmission: values.transmission as TransmissionType,
+          pauta: values.pauta,
           transmissionOperator: values.transmissionOperator,
           cinematographicReporter: values.cinematographicReporter,
           reporter: values.reporter,
@@ -257,6 +263,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         date: undefined,
         time: "",
         transmission: "youtube",
+        pauta: "",
         transmissionOperator: "",
         cinematographicReporter: "",
         reporter: "",
@@ -501,6 +508,27 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
+
+          {transmission === 'pauta' && (
+            <FormField
+              control={form.control}
+              name="pauta"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Texto da Pauta</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Digite o texto da pauta, roteiro ou script aqui..."
+                      className="resize-y min-h-[120px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
         <div className="space-y-4 border-t pt-6">
             <FormField
             control={form.control}
