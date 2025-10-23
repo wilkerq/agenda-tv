@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -16,6 +15,7 @@ import {
   ListTodo,
   Import,
   Users,
+  Tv,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,17 @@ export default function DashboardLayout({
     }
   };
 
+  const navLinks = [
+    { href: "/", label: "Página Pública", icon: Home },
+    { href: "/panel", label: "Painel de TV", icon: Tv },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/operators", label: "Gerenciar Pessoal", icon: Users },
+    { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
+    { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
+    { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
+    { href: "/dashboard/import", label: "Importar Agenda", icon: Import },
+  ];
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-slate-900 text-white md:block">
@@ -84,75 +95,19 @@ export default function DashboardLayout({
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-               <Link
-                href="/"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700"
-                )}
-              >
-                <Home className="h-4 w-4" />
-                Página Pública
-              </Link>
-              <Link
-                href="/dashboard"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard" && "bg-slate-700 text-white"
-                )}
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/operators"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/operators" && "bg-slate-700 text-white"
-                )}
-              >
-                <Users className="h-4 w-4" />
-                Gerenciar Operadores
-              </Link>
-              <Link
-                href="/dashboard/reports"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/reports" && "bg-slate-700 text-white"
-                )}
-              >
-                <LineChart className="h-4 w-4" />
-                Relatórios
-              </Link>
-              <Link
-                href="/dashboard/share"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/share" && "bg-slate-700 text-white"
-                )}
-              >
-                <Share2 className="h-4 w-4" />
-                Compartilhar Agenda
-              </Link>
-              <Link
-                href="/dashboard/daily-agenda"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/daily-agenda" && "bg-slate-700 text-white"
-                )}
-              >
-                <ListTodo className="h-4 w-4" />
-                Pauta do Dia
-              </Link>
-              <Link
-                href="/dashboard/import"
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
-                  pathname === "/dashboard/import" && "bg-slate-700 text-white"
-                )}
-              >
-                <Import className="h-4 w-4" />
-                Importar Agenda
-              </Link>
+              {navLinks.map(({ href, label, icon: Icon }) => (
+                 <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-slate-300 transition-all hover:text-white hover:bg-slate-700",
+                    pathname === href && "bg-slate-700 text-white"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              ))}
             </nav>
           </div>
           <div className="mt-auto p-4 border-t border-slate-700">
@@ -190,73 +145,19 @@ export default function DashboardLayout({
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex-1 grid gap-2 p-4 text-lg font-medium overflow-auto">
-                <Link
-                  href="/"
-                  className="flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700"
-                >
-                  <Home className="h-5 w-5" />
-                  Página Pública
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                    pathname === "/dashboard" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <LayoutDashboard className="h-5 w-5" />
-                  Dashboard
-                </Link>
-                 <Link
-                  href="/dashboard/operators"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                    pathname === "/dashboard/operators" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <Users className="h-5 w-5" />
-                  Gerenciar Operadores
-                </Link>
-                <Link
-                  href="/dashboard/reports"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                    pathname === "/dashboard/reports" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <LineChart className="h-5 w-5" />
-                  Relatórios
-                </Link>
-                <Link
-                  href="/dashboard/share"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                     pathname === "/dashboard/share" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <Share2 className="h-5 w-5" />
-                  Compartilhar Agenda
-                </Link>
-                 <Link
-                  href="/dashboard/daily-agenda"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                     pathname === "/dashboard/daily-agenda" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <ListTodo className="h-5 w-5" />
-                  Pauta do Dia
-                </Link>
-                <Link
-                  href="/dashboard/import"
-                  className={cn(
-                    "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
-                     pathname === "/dashboard/import" && "bg-slate-700 text-white"
-                  )}
-                >
-                  <Import className="h-5 w-5" />
-                  Importar Agenda
-                </Link>
+                 {navLinks.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className={cn(
+                        "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
+                        pathname === href && "bg-slate-700 text-white"
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {label}
+                    </Link>
+                  ))}
               </nav>
               <div className="mt-auto p-4 border-t border-slate-700">
                 <Button variant="destructive" className="w-full" onClick={handleLogout}>

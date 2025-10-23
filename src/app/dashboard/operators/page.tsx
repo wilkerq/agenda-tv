@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, FC } from "react";
@@ -278,7 +277,7 @@ export default function OperatorsPage() {
        <Alert>
           <AlertTitle>Aviso de Reestruturação</AlertTitle>
           <AlertDescription>
-            As coleções de dados do pessoal foram reestruturadas. Por favor, cadastre novamente os operadores e outros membros da equipe em suas respectivas abas.
+            As coleções de dados do pessoal foram reestruturadas. Por favor, cadastre os membros da equipe em suas respectivas abas.
           </AlertDescription>
         </Alert>
       <Tabs defaultValue="transmission_operators" className="w-full">
