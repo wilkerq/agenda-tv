@@ -1,13 +1,15 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permite que qualquer usuário autenticado leia e escreva na coleção de eventos.
-    match /events/{eventId} {
+  
+    // Regra geral: Apenas usuários autenticados podem ler ou escrever.
+    // As regras específicas para coleções abaixo sobrescrevem esta.
+    match /{document=**} {
       allow read, write: if request.auth != null;
     }
-
-    // Regras para as novas coleções de pessoal
-    // Apenas usuários autenticados podem gerenciar (ler, criar, atualizar, deletar) pessoal.
+    
+    // As coleções de pessoal só podem ser modificadas por usuários autenticados.
     match /transmission_operators/{operatorId} {
       allow read, write: if request.auth != null;
     }
@@ -21,10 +23,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Regra para a coleção antiga 'operators' (apenas para leitura/deleção durante a migração)
-    match /operators/{operatorId} {
-        allow read, delete: if request.auth != null;
-        allow create, update: if false; // Impede novas escritas
+    // A coleção de eventos pode ser lida por qualquer pessoa, mas apenas
+    // usuários autenticados podem criar, atualizar ou deletar eventos.
+    match /events/{eventId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
     }
   }
 }

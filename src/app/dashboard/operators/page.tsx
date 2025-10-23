@@ -53,61 +53,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     defaultValues: { name: "", phone: "" },
   });
 
-  const migrateOldOperators = useCallback(async () => {
-    // Esta função só deve ser executada para a nova coleção de operadores de transmissão
-    if (collectionName !== 'transmission_operators') return;
-
-    try {
-        const oldOperatorsCol = collection(db, 'operators');
-        const newOperatorsCol = collection(db, 'transmission_operators');
-
-        const oldSnapshot = await getDocs(oldOperatorsCol);
-        const newSnapshot = await getDocs(newOperatorsCol);
-
-        if (oldSnapshot.empty) {
-            return; // Nenhum dado antigo para migrar
-        }
-
-        const newOperatorsData = new Map(newSnapshot.docs.map(doc => [doc.data().name, doc.data()]));
-        
-        const batch = writeBatch(db);
-        let migrationCount = 0;
-
-        oldSnapshot.forEach(oldDoc => {
-            const oldData = oldDoc.data() as Omit<Personnel, 'id'>;
-            // Apenas migra se um operador com o mesmo nome não existir na nova coleção
-            if (!newOperatorsData.has(oldData.name)) {
-                const newDocRef = doc(newOperatorsCol);
-                batch.set(newDocRef, oldData);
-                migrationCount++;
-            }
-            // Deleta o documento antigo após a verificação
-            batch.delete(oldDoc.ref);
-        });
-
-        if (migrationCount > 0) {
-            await batch.commit();
-            toast({
-                title: 'Migração Concluída!',
-                description: `${migrationCount} operador(es) foram movidos com sucesso para a nova estrutura.`,
-            });
-        } else {
-             await batch.commit(); // Commit para deletar os antigos mesmo que não haja novos para migrar
-        }
-    } catch (error) {
-        console.error("Erro ao migrar operadores:", error);
-        toast({
-            title: "Erro na Migração",
-            description: "Não foi possível migrar os operadores da estrutura antiga. Verifique o console.",
-            variant: "destructive",
-        });
-    }
-  }, [collectionName, toast]);
-
   useEffect(() => {
-    // Executa a migração na montagem do componente, se aplicável
-    migrateOldOperators();
-    
     const q = query(collection(db, collectionName));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedPersonnel: Personnel[] = [];
@@ -123,7 +69,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     });
 
     return () => unsubscribe();
-  }, [toast, collectionName, title, migrateOldOperators]);
+  }, [toast, collectionName, title]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     setIsSubmitting(true);
@@ -330,9 +276,9 @@ export default function OperatorsPage() {
         <CardDescription>Adicione, edite ou remova membros da equipe para cada função.</CardDescription>
       </CardHeader>
        <Alert>
-          <AlertTitle>Aviso</AlertTitle>
+          <AlertTitle>Aviso de Reestruturação</AlertTitle>
           <AlertDescription>
-            As coleções de dados do pessoal foram reestruturadas. Se você tinha operadores cadastrados anteriormente, eles foram migrados automaticamente para a aba "Op. de Transmissão".
+            As coleções de dados do pessoal foram reestruturadas. Por favor, cadastre novamente os operadores e outros membros da equipe em suas respectivas abas.
           </AlertDescription>
         </Alert>
       <Tabs defaultValue="transmission_operators" className="w-full">

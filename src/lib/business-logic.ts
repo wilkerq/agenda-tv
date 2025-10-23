@@ -10,7 +10,7 @@ import { startOfDay, endOfDay, getDay } from 'date-fns';
  * @returns A promise that resolves to an array of operator names.
  */
 export const getAvailableOperators = async (): Promise<string[]> => {
-    const operatorsCollection = collection(db, 'operators');
+    const operatorsCollection = collection(db, 'transmission_operators');
     const operatorsSnapshot = await getDocs(query(operatorsCollection));
     return operatorsSnapshot.docs
         .map(doc => doc.data().name as string)

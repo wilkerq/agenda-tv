@@ -40,7 +40,7 @@ export default function ShareSchedulePage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const q = query(collection(db, "operators"));
+    const q = query(collection(db, "transmission_operators"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedOperators: Operator[] = [];
       querySnapshot.forEach((doc) => {
@@ -201,7 +201,7 @@ export default function ShareSchedulePage() {
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
-                <Label htmlFor="operator">Operador</Label>
+                <Label htmlFor="operator">Operador de Transmissão</Label>
                 <Select value={selectedOperatorId} onValueChange={setSelectedOperatorId}>
                 <SelectTrigger id="operator">
                     <SelectValue placeholder="Selecione um operador" />
