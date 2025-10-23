@@ -16,6 +16,7 @@ import {
   Import,
   Users,
   Tv,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export default function DashboardLayout({
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
     { href: "/dashboard/import", label: "Importar Agenda", icon: Import },
+    { href: "/dashboard/logs", label: "Logs de Auditoria", icon: History },
   ];
 
   return (

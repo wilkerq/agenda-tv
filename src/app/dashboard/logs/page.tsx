@@ -1,0 +1,150 @@
+
+"use client";
+
+import { useState, useEffect } from "react";
+import { collection, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { History, Loader2, FilePen, Trash2, FilePlus, User } from "lucide-react";
+import { JsonViewer } from '@textea/json-viewer';
+import { useTheme } from 'next-themes';
+
+type AuditLogAction = 'create' | 'update' | 'delete';
+
+interface AuditLog {
+    id: string;
+    action: AuditLogAction;
+    collectionName: string;
+    documentId: string;
+    userEmail: string;
+    timestamp: Date;
+    before?: object;
+    after?: object;
+}
+
+const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>; className: string }> = {
+    create: { text: "Criação", icon: FilePlus, className: "bg-green-100 text-green-800 border-green-200" },
+    update: { text: "Atualização", icon: FilePen, className: "bg-blue-100 text-blue-800 border-blue-200" },
+    delete: { text: "Exclusão", icon: Trash2, className: "bg-red-100 text-red-800 border-red-200" },
+};
+
+export default function LogsPage() {
+    const [logs, setLogs] = useState<AuditLog[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { theme } = useTheme();
+
+    useEffect(() => {
+        const logsCollection = collection(db, "audit_logs");
+        const q = query(logsCollection, orderBy("timestamp", "desc"));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const logsData = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    timestamp: (data.timestamp as Timestamp).toDate(),
+                } as AuditLog;
+            });
+            setLogs(logsData);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching audit logs: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const renderJsonViewer = (data: object) => (
+        <div className="p-2 rounded-md bg-slate-50 dark:bg-slate-800 my-2 text-sm text-foreground">
+           <JsonViewer 
+                value={data} 
+                theme={theme === 'dark' ? "dark" : "light"}
+                style={{ backgroundColor: 'transparent' }}
+                displayDataTypes={false}
+           />
+        </div>
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Logs de Auditoria</CardTitle>
+                <CardDescription>
+                    Uma trilha de todas as criações, atualizações e exclusões de eventos no sistema.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {loading ? (
+                    <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                    </div>
+                ) : logs.length === 0 ? (
+                    <div className="text-center py-10">
+                        <History className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <p className="mt-4 font-medium">Nenhum log encontrado</p>
+                        <p className="text-sm text-muted-foreground">As alterações nos eventos aparecerão aqui.</p>
+                    </div>
+                ) : (
+                    <Accordion type="single" collapsible className="w-full">
+                        {logs.map(log => {
+                            const details = actionDetails[log.action];
+                            const Icon = details.icon;
+                            return (
+                                <AccordionItem value={log.id} key={log.id}>
+                                    <AccordionTrigger>
+                                        <div className="flex items-center gap-4 w-full text-left">
+                                             <Badge className={details.className}>
+                                                <Icon className="mr-2 h-4 w-4" />
+                                                {details.text}
+                                            </Badge>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-foreground">
+                                                    Evento: { (log.after as any)?.name || (log.before as any)?.name || log.documentId }
+                                                </p>
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                   <User className="h-3 w-3" /> <span>{log.userEmail}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-sm text-muted-foreground pr-4">
+                                                {format(log.timestamp, "dd/MM/yy 'às' HH:mm:ss", { locale: ptBR })}
+                                            </span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <Card className="bg-muted/50 p-4">
+                                            <h4 className="font-semibold mb-2">Detalhes da Alteração</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {log.before && (
+                                                    <div>
+                                                        <h5 className="text-sm font-medium text-red-600">Antes</h5>
+                                                        {renderJsonViewer(log.before)}
+                                                    </div>
+                                                )}
+                                                {log.after && (
+                                                     <div>
+                                                        <h5 className="text-sm font-medium text-green-600">Depois</h5>
+                                                        {renderJsonViewer(log.after)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                             {!log.before && !log.after && (
+                                                <p className="text-sm text-muted-foreground">Não há dados detalhados para esta ação.</p>
+                                            )}
+                                        </Card>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            );
+                        })}
+                    </Accordion>
+                )}
+            </CardContent>
+        </Card>
+    );
+}

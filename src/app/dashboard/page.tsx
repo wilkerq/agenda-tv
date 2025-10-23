@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
@@ -21,6 +21,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
+import { logAction } from "@/lib/audit-log";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -118,6 +119,7 @@ export default function DashboardPage() {
 
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
+    if (!user) throw new Error("Usuário não autenticado.");
     try {
       
       // --- DUPLICATION CHECK (In-memory) ---
@@ -142,11 +144,19 @@ export default function DashboardPage() {
 
       if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         // Handle single event
-        await addDoc(collection(db, "events"), {
+        const docRef = await addDoc(collection(db, "events"), {
           ...eventData,
           date: Timestamp.fromDate(eventData.date),
           color: getRandomColor(),
         });
+        await logAction({
+            action: 'create',
+            collectionName: 'events',
+            documentId: docRef.id,
+            user: user,
+            newData: eventData,
+        });
+
       } else {
         // Handle recurring events
         const batch = writeBatch(db);
@@ -154,12 +164,22 @@ export default function DashboardPage() {
         let currentDate = new Date(eventData.date); // Use a new variable for iteration
 
         for (let i = 0; i < repeatSettings.count; i++) {
-          const newEvent = {
+          const newEventRef = doc(eventsCollection);
+          const newEventData = {
             ...eventData,
-            date: Timestamp.fromDate(currentDate), // Use the iterating date
+            date: currentDate,
             color: getRandomColor(),
           };
-          batch.set(doc(eventsCollection), newEvent);
+          batch.set(newEventRef, { ...newEventData, date: Timestamp.fromDate(currentDate) });
+
+           await logAction({
+                action: 'create',
+                collectionName: 'events',
+                documentId: newEventRef.id,
+                user: user,
+                newData: newEventData,
+                batchId: `recurring-${Date.now()}` // Group recurring events
+            });
 
           // Increment date for the next iteration
           if (repeatSettings.frequency === 'daily') {
@@ -191,7 +211,24 @@ export default function DashboardPage() {
   };
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
+    if (!user) {
+        toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
+        return;
+    }
     try {
+      const eventRef = doc(db, "events", eventId);
+      const eventSnap = await getDoc(eventRef);
+
+      if(eventSnap.exists()) {
+          await logAction({
+              action: 'delete',
+              collectionName: 'events',
+              documentId: eventId,
+              user: user,
+              oldData: eventSnap.data(),
+          });
+      }
+
       await deleteDoc(doc(db, "events", eventId));
       toast({
         title: "Evento Excluído!",
@@ -205,11 +242,28 @@ export default function DashboardPage() {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
+    if (!user) {
+        toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para editar um evento.", variant: "destructive" });
+        throw new Error("User not authenticated");
+    }
     try {
       const eventRef = doc(db, "events", eventId);
+      const eventSnap = await getDoc(eventRef);
+      
+      if(eventSnap.exists()) {
+        await logAction({
+            action: 'update',
+            collectionName: 'events',
+            documentId: eventId,
+            user: user,
+            oldData: eventSnap.data(),
+            newData: { ...eventData, date: Timestamp.fromDate(eventData.date) },
+        });
+      }
+      
       await updateDoc(eventRef, {
         ...eventData,
         date: Timestamp.fromDate(eventData.date), // Convert to Timestamp
@@ -227,7 +281,7 @@ export default function DashboardPage() {
       });
       throw error; // Re-throw to be caught by the form
     }
-  }, [toast]);
+  }, [toast, user]);
 
 
   const handleOpenEditModal = (event: Event) => {

@@ -136,3 +136,18 @@ export const DailyScheduleSchema = z.object({
   events: z.array(ScheduleEventSchema).describe('A list of events for the specified day.'),
 });
 export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
+
+
+// Audit Log Types
+export type AuditLogAction = 'create' | 'update' | 'delete';
+
+export interface AuditLog {
+    id: string;
+    action: AuditLogAction;
+    collectionName: string;
+    documentId: string;
+    userEmail: string;
+    timestamp: Date;
+    before?: object;
+    after?: object;
+}
