@@ -85,22 +85,41 @@ type AddEventFormProps = {
   onSuccess?: () => void;
 };
 
+type Personnel = {
+  id: string;
+  name: string;
+};
+
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
-  const [operators, setOperators] = React.useState<Operator[]>([]);
   const { toast } = useToast();
 
+  const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
+  const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
+  const [reporters, setReporters] = React.useState<Personnel[]>([]);
+  const [producers, setProducers] = React.useState<Personnel[]>([]);
+
   React.useEffect(() => {
-    const q = query(collection(db, "operators"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedOperators: Operator[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+    const collections = {
+      'transmission_operators': setTransmissionOperators,
+      'cinematographic_reporters': setCinematographicReporters,
+      'reporters': setReporters,
+      'producers': setProducers
+    };
+
+    const unsubscribers = Object.entries(collections).map(([collectionName, setter]) => {
+      const q = query(collection(db, collectionName));
+      return onSnapshot(q, (querySnapshot) => {
+        const personnel: Personnel[] = [];
+        querySnapshot.forEach((doc) => {
+          personnel.push({ id: doc.id, name: (doc.data() as { name: string }).name });
+        });
+        setter(personnel.sort((a, b) => a.name.localeCompare(b.name)));
       });
-      setOperators(fetchedOperators.sort((a,b) => a.name.localeCompare(b.name)));
     });
-    return () => unsubscribe();
+
+    return () => unsubscribers.forEach(unsub => unsub());
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -151,7 +170,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             location: selectedLocation,
         });
 
-        if (result.transmissionOperator && operators.some(op => op.name === result.transmissionOperator)) {
+        if (result.transmissionOperator && transmissionOperators.some(op => op.name === result.transmissionOperator)) {
             form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
             toast({
                 title: "Operador Sugerido!",
@@ -183,7 +202,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, operators]);
+  }, [form, toast, transmissionOperators]);
 
   React.useEffect(() => {
     if (preloadedData) {
@@ -317,7 +336,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                            {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -335,7 +354,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                            {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -353,7 +372,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                            {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -371,7 +390,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                            {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                     <FormMessage />

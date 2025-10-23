@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, FC } from "react";
 import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
@@ -9,174 +10,165 @@ import * as z from "zod";
 import type { Operator } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, Trash2, Edit, Users } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Loader2, PlusCircle, Trash2, Edit } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-const operatorSchema = z.object({
+const personnelSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
-  phone: z.string().min(10, "O telefone deve ser válido."),
+  phone: z.string().min(10, "O telefone deve ser válido.").optional(),
 });
 
-const initialOperators = [
-  { name: 'Rodrigo', phone: '+5562981234219' },
-  { name: 'Bruno', phone: '+5562995193003' },
-  { name: 'Mario', phone: '+5562999060960' },
-  { name: 'Ovideo', phone: '+5562982729985' },
-];
+type Personnel = z.infer<typeof personnelSchema> & { id: string };
 
-export default function OperatorsPage() {
-  const [operators, setOperators] = useState<Operator[]>([]);
+const initialData: Record<string, { name: string; phone?: string }[]> = {
+  transmission_operators: [
+    { name: 'Rodrigo', phone: '+5562981234219' },
+    { name: 'Bruno', phone: '+5562995193003' },
+    { name: 'Mario', phone: '+5562999060960' },
+    { name: 'Ovideo', phone: '+5562982729985' },
+  ],
+  cinematographic_reporters: [],
+  reporters: [],
+  producers: [],
+};
+
+const collectionTitles: Record<string, string> = {
+  transmission_operators: "Operadores de Transmissão",
+  cinematographic_reporters: "Repórteres Cinematográficos",
+  reporters: "Repórteres",
+  producers: "Produtores",
+};
+
+interface PersonnelTabProps {
+  collectionName: string;
+  title: string;
+}
+
+const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
+  const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [editingOperator, setEditingOperator] = useState<Operator | null>(null);
+  const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof operatorSchema>>({
-    resolver: zodResolver(operatorSchema),
+  const form = useForm<z.infer<typeof personnelSchema>>({
+    resolver: zodResolver(personnelSchema),
     defaultValues: { name: "", phone: "" },
   });
 
   const seedInitialData = useCallback(async () => {
-    const operatorsCollection = collection(db, "operators");
-    const snapshot = await getDocs(operatorsCollection);
-    if (snapshot.empty) {
-      const batch = writeBatch(db);
-      initialOperators.forEach(op => {
-        const docRef = doc(operatorsCollection);
-        batch.set(docRef, op);
-      });
-      await batch.commit();
-      toast({ title: "Operadores Iniciais", description: "Dados iniciais dos operadores foram semeados." });
+    const dataToSeed = initialData[collectionName];
+    if (dataToSeed && dataToSeed.length > 0) {
+      const personnelCollection = collection(db, collectionName);
+      const snapshot = await getDocs(personnelCollection);
+      if (snapshot.empty) {
+        const batch = writeBatch(db);
+        dataToSeed.forEach(p => {
+          const docRef = doc(personnelCollection);
+          batch.set(docRef, p);
+        });
+        await batch.commit();
+        toast({ title: `Dados Iniciais para ${title}`, description: "Dados iniciais foram semeados." });
+      }
     }
-  }, [toast]);
+  }, [toast, collectionName, title]);
 
   useEffect(() => {
     seedInitialData();
     
-    const q = query(collection(db, "operators"));
+    const q = query(collection(db, collectionName));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedOperators: Operator[] = [];
+      const fetchedPersonnel: Personnel[] = [];
       querySnapshot.forEach((doc) => {
-        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+        fetchedPersonnel.push({ id: doc.id, ...doc.data() } as Personnel);
       });
-      setOperators(fetchedOperators.sort((a, b) => a.name.localeCompare(b.name)));
+      setPersonnel(fetchedPersonnel.sort((a, b) => a.name.localeCompare(b.name)));
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching operators: ", error);
-      toast({ title: "Erro", description: "Não foi possível buscar os operadores.", variant: "destructive" });
+      console.error(`Error fetching ${collectionName}: `, error);
+      toast({ title: "Erro", description: `Não foi possível buscar ${title}.`, variant: "destructive" });
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [toast, seedInitialData]);
+  }, [toast, seedInitialData, collectionName, title]);
 
-  const handleAddOperator = async (values: z.infer<typeof operatorSchema>) => {
+  const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "operators"), values);
-      toast({ title: "Sucesso!", description: "Operador adicionado." });
+      await addDoc(collection(db, collectionName), values);
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
       form.reset();
       setAddModalOpen(false);
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível adicionar o operador.", variant: "destructive" });
+      toast({ title: "Erro", description: `Não foi possível adicionar.`, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleEditOperator = async (values: z.infer<typeof operatorSchema>) => {
-    if (!editingOperator) return;
+  const handleEditPersonnel = async (values: z.infer<typeof personnelSchema>) => {
+    if (!editingPersonnel) return;
     setIsSubmitting(true);
     try {
-      await updateDoc(doc(db, "operators", editingOperator.id), values);
-      toast({ title: "Sucesso!", description: "Operador atualizado." });
-      setEditingOperator(null);
+      await updateDoc(doc(db, collectionName, editingPersonnel.id), values);
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
+      setEditingPersonnel(null);
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível atualizar o operador.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteOperator = async (id: string) => {
+  const handleDeletePersonnel = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "operators", id));
-      toast({ title: "Sucesso!", description: "Operador removido." });
+      await deleteDoc(doc(db, collectionName, id));
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível remover o operador.", variant: "destructive" });
+      toast({ title: "Erro", description: "Não foi possível remover.", variant: "destructive" });
     }
   };
   
-  const openEditModal = (operator: Operator) => {
-    setEditingOperator(operator);
-    form.reset(operator);
+  const openEditModal = (person: Personnel) => {
+    setEditingPersonnel(person);
+    form.reset(person);
   }
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Gerenciar Operadores</CardTitle>
-          <CardDescription>Adicione, edite ou remova operadores do sistema.</CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>Adicione, edite ou remova membros da equipe.</CardDescription>
         </div>
         <Dialog open={isAddModalOpen} onOpenChange={setAddModalOpen}>
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Operador
+                    Adicionar
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Adicionar Novo Operador</DialogTitle>
+                    <DialogTitle>Adicionar Novo Membro</DialogTitle>
                 </DialogHeader>
                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleAddOperator)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(handleAddPersonnel)} className="space-y-4">
                         <FormField
                             control={form.control}
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Nome</FormLabel>
-                                    <FormControl><Input placeholder="Nome do Operador" {...field} /></FormControl>
+                                    <FormControl><Input placeholder="Nome do membro" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -219,21 +211,21 @@ export default function OperatorsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {operators.length > 0 ? operators.map((op) => (
-              <TableRow key={op.id}>
-                <TableCell className="font-medium">{op.name}</TableCell>
-                <TableCell>{op.phone}</TableCell>
+            {personnel.length > 0 ? personnel.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium">{p.name}</TableCell>
+                <TableCell>{p.phone || "N/A"}</TableCell>
                 <TableCell className="text-right">
-                  <Dialog open={editingOperator?.id === op.id} onOpenChange={(isOpen) => !isOpen && setEditingOperator(null)}>
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(op)}>
+                  <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
                           <Edit className="h-4 w-4" />
                       </Button>
                        <DialogContent>
                           <DialogHeader>
-                              <DialogTitle>Editar Operador</DialogTitle>
+                              <DialogTitle>Editar Membro</DialogTitle>
                           </DialogHeader>
                           <Form {...form}>
-                              <form onSubmit={form.handleSubmit(handleEditOperator)} className="space-y-4">
+                              <form onSubmit={form.handleSubmit(handleEditPersonnel)} className="space-y-4">
                                   <FormField
                                       control={form.control}
                                       name="name"
@@ -278,12 +270,12 @@ export default function OperatorsPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. Isso irá remover permanentemente o operador.
+                          Esta ação não pode ser desfeita. Isso irá remover permanentemente o membro da equipe.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteOperator(op.id)}>Continuar</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleDeletePersonnel(p.id)}>Continuar</AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -292,7 +284,7 @@ export default function OperatorsPage() {
             )) : (
                 <TableRow>
                     <TableCell colSpan={3} className="text-center h-24">
-                        Nenhum operador encontrado. Comece adicionando um.
+                        Nenhum membro encontrado. Comece adicionando um.
                     </TableCell>
                 </TableRow>
             )}
@@ -302,4 +294,38 @@ export default function OperatorsPage() {
       </CardContent>
     </Card>
   );
+};
+
+
+export default function OperatorsPage() {
+  return (
+    <div className="space-y-6">
+      <CardHeader className="p-0">
+        <CardTitle>Gerenciar Pessoal</CardTitle>
+        <CardDescription>Adicione, edite ou remova membros da equipe para cada função.</CardDescription>
+      </CardHeader>
+      <Tabs defaultValue="transmission_operators" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="transmission_operators">Op. de Transmissão</TabsTrigger>
+          <TabsTrigger value="cinematographic_reporters">Rep. Cinematográficos</TabsTrigger>
+          <TabsTrigger value="reporters">Repórteres</TabsTrigger>
+          <TabsTrigger value="producers">Produtores</TabsTrigger>
+        </TabsList>
+        <TabsContent value="transmission_operators">
+          <PersonnelTab collectionName="transmission_operators" title="Operadores de Transmissão" />
+        </TabsContent>
+        <TabsContent value="cinematographic_reporters">
+          <PersonnelTab collectionName="cinematographic_reporters" title="Repórteres Cinematográficos" />
+        </TabsContent>
+        <TabsContent value="reporters">
+          <PersonnelTab collectionName="reporters" title="Repórteres" />
+        </TabsContent>
+        <TabsContent value="producers">
+          <PersonnelTab collectionName="producers" title="Produtores" />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
 }
+
+    

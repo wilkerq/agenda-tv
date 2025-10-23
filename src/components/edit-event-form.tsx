@@ -70,20 +70,39 @@ type EditEventFormProps = {
   onClose: () => void;
 };
 
+type Personnel = {
+  id: string;
+  name: string;
+};
+
 export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [operators, setOperators] = React.useState<Operator[]>([]);
 
-   React.useEffect(() => {
-    const q = query(collection(db, "operators"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const fetchedOperators: Operator[] = [];
-      querySnapshot.forEach((doc) => {
-        fetchedOperators.push({ id: doc.id, ...doc.data() } as Operator);
+  const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
+  const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
+  const [reporters, setReporters] = React.useState<Personnel[]>([]);
+  const [producers, setProducers] = React.useState<Personnel[]>([]);
+
+  React.useEffect(() => {
+    const collections = {
+      'transmission_operators': setTransmissionOperators,
+      'cinematographic_reporters': setCinematographicReporters,
+      'reporters': setReporters,
+      'producers': setProducers
+    };
+
+    const unsubscribers = Object.entries(collections).map(([collectionName, setter]) => {
+      const q = query(collection(db, collectionName));
+      return onSnapshot(q, (querySnapshot) => {
+        const personnel: Personnel[] = [];
+        querySnapshot.forEach((doc) => {
+          personnel.push({ id: doc.id, name: (doc.data() as { name: string }).name });
+        });
+        setter(personnel.sort((a, b) => a.name.localeCompare(b.name)));
       });
-      setOperators(fetchedOperators.sort((a,b) => a.name.localeCompare(b.name)));
     });
-    return () => unsubscribe();
+
+    return () => unsubscribers.forEach(unsub => unsub());
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -193,7 +212,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                    {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -211,7 +230,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                    {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -229,7 +248,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                    {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -247,7 +266,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
+                                    {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <FormMessage />
