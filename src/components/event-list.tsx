@@ -1,13 +1,39 @@
 
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper } from "lucide-react";
 import { format } from "date-fns";
 
 type EventListProps = {
   events: Event[];
   onDeleteEvent?: (eventId: string) => void;
   onEditEvent?: (event: Event) => void;
+};
+
+const renderTransmission = (transmission: Event['transmission']) => {
+  if (transmission === 'tv') {
+    return (
+      <div className="flex items-center gap-2">
+        <Tv className="h-4 w-4 text-blue-600" />
+        <Youtube className="h-4 w-4 text-red-600" />
+        <span>TV Aberta e YouTube</span>
+      </div>
+    );
+  }
+  if (transmission === 'pauta') {
+    return (
+      <div className="flex items-center gap-2">
+        <Newspaper className="h-4 w-4 text-gray-600" />
+        <span>Pauta</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Youtube className="h-4 w-4 text-red-600" />
+      <span>YouTube</span>
+    </div>
+  );
 };
 
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
@@ -35,18 +61,7 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 sm:mt-0 text-sm font-semibold">
-                {event.transmission === 'tv' ? (
-                    <div className="flex items-center gap-2">
-                        <Tv className="h-4 w-4 text-blue-600" />
-                        <Youtube className="h-4 w-4 text-red-600" />
-                        <span>TV Aberta e YouTube</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2">
-                        <Youtube className="h-4 w-4 text-red-600" />
-                        <span>YouTube</span>
-                    </div>
-                )}
+                {renderTransmission(event.transmission)}
             </div>
           </div>
           

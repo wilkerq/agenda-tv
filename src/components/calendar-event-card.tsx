@@ -1,8 +1,9 @@
+
 import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
-import { User, Tv, Youtube } from 'lucide-react';
+import { User, Tv, Youtube, Newspaper } from 'lucide-react';
 
 type CalendarEventCardProps = {
   event: Event;
@@ -13,6 +14,22 @@ const statusColors = {
   Concluído: 'bg-green-500/20 text-green-700 border-green-500/50',
   Cancelado: 'bg-red-500/20 text-red-700 border-red-500/50',
 };
+
+const renderTransmissionIcon = (transmission: Event['transmission']) => {
+  if (transmission === 'tv') {
+    return (
+      <div className="flex items-center gap-1">
+        <Tv className="h-3 w-3 text-blue-600" />
+        <Youtube className="h-3 w-3 text-red-600" />
+      </div>
+    );
+  }
+  if (transmission === 'pauta') {
+    return <Newspaper className="h-3 w-3 text-gray-600" />;
+  }
+  return <Youtube className="h-3 w-3 text-red-600" />;
+};
+
 
 export function CalendarEventCard({ event }: CalendarEventCardProps) {
   return (
@@ -30,16 +47,7 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
         <span className="truncate">{event.operator}</span>
       </div>
       <div className='hidden sm:flex justify-end mt-1'>
-          {event.transmission === 'tv' ? (
-              <div className="flex items-center gap-1">
-                  <Tv className="h-3 w-3 text-blue-600" />
-                  <Youtube className="h-3 w-3 text-red-600" />
-              </div>
-          ) : (
-              <div className="flex items-center">
-                  <Youtube className="h-3 w-3 text-red-600" />
-              </div>
-          )}
+          {renderTransmissionIcon(event.transmission)}
       </div>
     </div>
   );

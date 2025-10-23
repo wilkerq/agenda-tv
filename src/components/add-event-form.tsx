@@ -58,7 +58,7 @@ const formSchema = z.object({
     required_error: "A data do evento é obrigatória.",
   }),
   time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
-  transmission: z.enum(["youtube", "tv"], {
+  transmission: z.enum(["youtube", "tv", "pauta"], {
     required_error: "Você precisa selecionar um tipo de transmissão.",
   }),
   operator: z.string({ required_error: "O operador é obrigatório." }),
@@ -408,6 +408,12 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <RadioGroupItem value="tv" />
                       </FormControl>
                       <FormLabel className="font-normal">TV Aberta</FormLabel>
+                    </FormItem>
+                    <FormItem className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value="pauta" />
+                      </FormControl>
+                      <FormLabel className="font-normal">Pauta</FormLabel>
                     </FormItem>
                   </RadioGroup>
                 </FormControl>
