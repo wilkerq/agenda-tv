@@ -1,9 +1,11 @@
+
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Package2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "../theme-toggle";
 
 export function Header() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export function Header() {
           </div>
         </Link>
         <nav className="flex items-center gap-4">
+           <ThemeToggle />
            <Button 
             variant="default"
             onClick={() => router.push('/login')}

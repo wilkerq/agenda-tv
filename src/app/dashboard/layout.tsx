@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -33,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { getAuth, signOut, onAuthStateChanged, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { app } from "@/lib/firebase";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DashboardLayout({
   children,
@@ -120,8 +122,8 @@ export default function DashboardLayout({
           </div>
         </div>
       </div>
-      <div className="flex flex-col bg-slate-50">
-        <header className="flex h-14 items-center gap-4 border-b bg-white px-4 lg:h-[60px] lg:px-6">
+      <div className="flex flex-col bg-slate-50 dark:bg-slate-950">
+        <header className="flex h-14 items-center gap-4 border-b bg-white dark:bg-slate-900 px-4 lg:h-[60px] lg:px-6">
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -172,6 +174,7 @@ export default function DashboardLayout({
           <div className="w-full flex-1">
             <h1 className="text-lg font-semibold md:text-xl">Painel Administrativo</h1>
           </div>
+          <ThemeToggle />
           <Button variant="ghost" size="icon" className="rounded-full" onClick={handleLogout}>
             <LogOut className="h-5 w-5" />
             <span className="sr-only">Encerrar sessão</span>
