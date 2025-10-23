@@ -10,7 +10,7 @@ const firebaseConfig = {
   projectId: "agenda-alego-v3-72653978-2d924",
   storageBucket: "agenda-alego-v3-72653978-2d924.firebasestorage.app",
   messagingSenderId: "547317231231",
-  appId: "1:547317231231:web:b965cb0dc294adaba3194a"
+  appId: "1:547317231231:web:76251ee44f43c657a3194a"
 };
 
 
@@ -21,3 +21,4 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 export { app, db, auth };
+
