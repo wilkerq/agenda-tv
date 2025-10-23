@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -70,7 +71,7 @@ export default function PanelPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-white">
-        <div className="container mx-auto p-4 flex-grow">
+        <div className="p-4 flex-grow">
             <main className="flex-1 space-y-8">
                 <div className="text-center py-4">
                     <h1 className="text-4xl font-bold">Painel de Eventos - TV Alego</h1>
