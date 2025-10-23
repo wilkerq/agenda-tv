@@ -193,7 +193,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Nenhum</SelectItem>
                                     {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -212,7 +211,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Nenhum</SelectItem>
                                     {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -231,7 +229,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Nenhum</SelectItem>
                                     {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -250,7 +247,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="">Nenhum</SelectItem>
                                     {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -367,3 +363,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    

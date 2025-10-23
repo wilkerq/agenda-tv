@@ -317,7 +317,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
                             {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -336,7 +335,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
                             {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -355,7 +353,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
                             {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -374,7 +371,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
                             {operators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -564,3 +560,5 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
+
+    
