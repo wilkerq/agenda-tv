@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -81,7 +82,7 @@ export function PanelCalendar({ events }: PanelCalendarProps) {
                     isToday(day) && 'text-primary'
                 )}>
                   <p className='text-sm capitalize'>{format(day, 'EEE', { locale: ptBR })}</p>
-                  <p className='text-2xl'>{format(day, 'd')}</p>
+                  <p className='text-xl'>{format(day, 'd')}</p>
                 </div>
                 
                 <div className="mt-2 space-y-2 overflow-y-auto flex-1">
@@ -91,7 +92,7 @@ export function PanelCalendar({ events }: PanelCalendarProps) {
                     ))
                   ) : (
                      <div className="flex items-center justify-center h-full">
-                        <p className="text-sm text-slate-500">Nenhum evento</p>
+                        <p className="text-xs text-slate-500">Nenhum evento</p>
                     </div>
                   )}
                 </div>
