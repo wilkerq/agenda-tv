@@ -3,7 +3,7 @@ import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
-import { User, Tv, Youtube, Newspaper, Video } from 'lucide-react';
+import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard } from 'lucide-react';
 
 type CalendarEventCardProps = {
   event: Event;
@@ -50,6 +50,18 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
         <Video className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.cinematographicReporter || 'N/A'}</span>
       </div>
+       {event.reporter && (
+        <div className="flex items-center text-muted-foreground mt-1 truncate">
+          <Mic className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">{event.reporter}</span>
+        </div>
+      )}
+      {event.producer && (
+         <div className="flex items-center text-muted-foreground mt-1 truncate">
+          <Clipboard className="h-3 w-3 mr-1 flex-shrink-0" />
+          <span className="truncate">{event.producer}</span>
+        </div>
+      )}
       <div className='flex justify-end mt-1'>
           {renderTransmissionIcon(event.transmission)}
       </div>
