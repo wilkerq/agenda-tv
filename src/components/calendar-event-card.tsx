@@ -42,15 +42,15 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
     >
       <p className="font-semibold truncate">{event.name}</p>
       <p className="text-muted-foreground text-[10px] sm:text-xs">{format(event.date, 'HH:mm')}</p>
-       <div className="hidden sm:flex items-center text-muted-foreground mt-1 truncate">
+       <div className="flex items-center text-muted-foreground mt-1 truncate">
         <User className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.transmissionOperator || 'N/A'}</span>
       </div>
-       <div className="hidden sm:flex items-center text-muted-foreground mt-1 truncate">
+       <div className="flex items-center text-muted-foreground mt-1 truncate">
         <Video className="h-3 w-3 mr-1 flex-shrink-0" />
         <span className="truncate">{event.cinematographicReporter || 'N/A'}</span>
       </div>
-      <div className='hidden sm:flex justify-end mt-1'>
+      <div className='flex justify-end mt-1'>
           {renderTransmissionIcon(event.transmission)}
       </div>
     </div>

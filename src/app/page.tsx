@@ -53,7 +53,10 @@ export default function HomePage() {
           pauta: data.pauta,
           date: eventDate,
           color: data.color,
-          operator: data.operator,
+          transmissionOperator: data.transmissionOperator,
+          cinematographicReporter: data.cinematographicReporter,
+          reporter: data.reporter,
+          producer: data.producer,
           status,
           turn,
         };
@@ -138,5 +141,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
