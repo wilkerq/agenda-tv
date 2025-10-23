@@ -1,33 +1,42 @@
 
 'use server';
 
-import { collection, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
-import type { User } from 'firebase/auth';
 import type { AuditLogAction } from './types';
 
 interface LogActionParams {
     action: AuditLogAction;
     collectionName: string;
     documentId: string;
-    user: User;
+    userEmail: string;
     newData?: any;
     oldData?: any;
     batchId?: string;
 }
 
-// Helper to convert Firestore Timestamps to serializable strings
+// Helper to convert complex objects to a serializable format
 const serializeData = (data: any): any => {
-    if (!data) return data;
-    const serialized = { ...data };
-    for (const key in serialized) {
-        if (serialized[key] instanceof Timestamp) {
-            serialized[key] = serialized[key].toDate().toISOString();
-        } else if (typeof serialized[key] === 'object' && serialized[key] !== null) {
-            // Recursively serialize nested objects (if any)
-            serialized[key] = serializeData(serialized[key]);
+    if (data === null || data === undefined) return data;
+    
+    // Create a deep copy to avoid modifying original objects
+    const serialized = JSON.parse(JSON.stringify(data));
+
+    // Recursively convert any Date or Timestamp objects to ISO strings
+    const convertDates = (obj: any) => {
+        for (const key in obj) {
+            if (obj[key] instanceof Timestamp) {
+                obj[key] = obj[key].toDate().toISOString();
+            } else if (obj[key] instanceof Date) {
+                 obj[key] = obj[key].toISOString();
+            }
+            else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                convertDates(obj[key]);
+            }
         }
-    }
+    };
+
+    convertDates(serialized);
     return serialized;
 };
 
@@ -36,7 +45,7 @@ export const logAction = async ({
     action,
     collectionName,
     documentId,
-    user,
+    userEmail,
     newData,
     oldData,
     batchId,
@@ -46,8 +55,8 @@ export const logAction = async ({
             action,
             collectionName,
             documentId,
-            userEmail: user.email,
-            timestamp: serverTimestamp(),
+            userEmail,
+            timestamp: new Date(), // Use a standard Date object
         };
 
         if (oldData) {
@@ -60,11 +69,16 @@ export const logAction = async ({
             logData.batchId = batchId;
         }
 
+        // Convert the timestamp to a Firestore Timestamp just before writing
+        logData.timestamp = Timestamp.fromDate(logData.timestamp);
+        
         await addDoc(collection(db, 'audit_logs'), logData);
 
     } catch (error) {
         console.error("Error writing to audit log:", error);
-        // Optionally, re-throw or handle the error as needed,
-        // but typically you don't want a logging failure to stop a primary action.
+        // This log is critical for debugging, do not remove.
+        console.error("Failed log data:", JSON.stringify({ action, collectionName, documentId, userEmail, batchId }, null, 2));
     }
 };
+
+    

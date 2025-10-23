@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    if (!user) throw new Error("Usuário não autenticado.");
+    if (!user || !user.email) throw new Error("Usuário não autenticado.");
     try {
       
       // --- DUPLICATION CHECK (In-memory) ---
@@ -153,7 +153,7 @@ export default function DashboardPage() {
             action: 'create',
             collectionName: 'events',
             documentId: docRef.id,
-            user: user,
+            userEmail: user.email,
             newData: eventData,
         });
 
@@ -162,6 +162,7 @@ export default function DashboardPage() {
         const batch = writeBatch(db);
         const eventsCollection = collection(db, "events");
         let currentDate = new Date(eventData.date); // Use a new variable for iteration
+        const batchId = `recurring-${Date.now()}`;
 
         for (let i = 0; i < repeatSettings.count; i++) {
           const newEventRef = doc(eventsCollection);
@@ -176,9 +177,9 @@ export default function DashboardPage() {
                 action: 'create',
                 collectionName: 'events',
                 documentId: newEventRef.id,
-                user: user,
+                userEmail: user.email,
                 newData: newEventData,
-                batchId: `recurring-${Date.now()}` // Group recurring events
+                batchId: batchId
             });
 
           // Increment date for the next iteration
@@ -211,7 +212,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (!user) {
+    if (!user || !user.email) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
         return;
     }
@@ -224,7 +225,7 @@ export default function DashboardPage() {
               action: 'delete',
               collectionName: 'events',
               documentId: eventId,
-              user: user,
+              userEmail: user.email,
               oldData: eventSnap.data(),
           });
       }
@@ -245,7 +246,7 @@ export default function DashboardPage() {
   }, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
-    if (!user) {
+    if (!user || !user.email) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para editar um evento.", variant: "destructive" });
         throw new Error("User not authenticated");
     }
@@ -258,7 +259,7 @@ export default function DashboardPage() {
             action: 'update',
             collectionName: 'events',
             documentId: eventId,
-            user: user,
+            userEmail: user.email,
             oldData: eventSnap.data(),
             newData: { ...eventData, date: Timestamp.fromDate(eventData.date) },
         });
@@ -416,3 +417,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
