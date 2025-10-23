@@ -256,7 +256,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     name="transmission"
                     render={({ field }) => (
                     <FormItem className="space-y-3">
-                        <FormLabel>Tipo de Transmissão</FormLabel>
+                        <FormLabel>Tipo de Evento</FormLabel>
                         <FormControl>
                         <RadioGroup
                             onValueChange={field.onChange}
@@ -307,3 +307,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    
