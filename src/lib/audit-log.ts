@@ -24,6 +24,7 @@ const serializeData = (data: any): any => {
 
     // Recursively convert any Date or Timestamp objects to ISO strings
     const convertDates = (obj: any) => {
+        if (!obj) return;
         for (const key in obj) {
             if (obj[key] instanceof Timestamp) {
                 obj[key] = obj[key].toDate().toISOString();
@@ -56,7 +57,7 @@ export const logAction = async ({
             collectionName,
             documentId,
             userEmail,
-            timestamp: new Date(), // Use a standard Date object
+            timestamp: Timestamp.fromDate(new Date()),
         };
 
         if (oldData) {
@@ -68,9 +69,6 @@ export const logAction = async ({
         if (batchId) {
             logData.batchId = batchId;
         }
-
-        // Convert the timestamp to a Firestore Timestamp just before writing
-        logData.timestamp = Timestamp.fromDate(logData.timestamp);
         
         await addDoc(collection(db, 'audit_logs'), logData);
 
@@ -80,5 +78,3 @@ export const logAction = async ({
         console.error("Failed log data:", JSON.stringify({ action, collectionName, documentId, userEmail, batchId }, null, 2));
     }
 };
-
-    
