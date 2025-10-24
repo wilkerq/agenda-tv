@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp, getFirestore } from "firebase/firestore";
 import { db } from './firebase';
 import { startOfDay, endOfDay, getDay } from 'date-fns';
 import type { TransmissionType } from "./types";
@@ -32,9 +32,9 @@ interface ProductionPersonnel extends Personnel {
  * @returns A promise that resolves to an array of personnel objects.
  */
 const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
-    const personnelCollection = collection(db, collectionName);
+    const personnelCollectionRef = collection(db, collectionName);
     try {
-        const snapshot = await getDocs(query(personnelCollection));
+        const snapshot = await getDocs(query(personnelCollectionRef));
         return snapshot.docs.map(doc => ({
             id: doc.id,
             name: doc.data().name as string,
@@ -42,8 +42,8 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
         }));
     } catch (serverError) {
         const permissionError = new FirestorePermissionError({
-          path: personnelCollection.path,
-          operation: 'list',
+            path: personnelCollectionRef.path,
+            operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         throw serverError; // Re-throw to stop execution
@@ -51,9 +51,9 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
 };
 
 const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
-     const personnelCollection = collection(db, 'production_personnel');
+    const personnelCollectionRef = collection(db, 'production_personnel');
     try {
-        const snapshot = await getDocs(query(personnelCollection));
+        const snapshot = await getDocs(query(personnelCollectionRef));
         return snapshot.docs.map(doc => ({
             id: doc.id,
             name: doc.data().name as string,
@@ -63,7 +63,7 @@ const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
         }));
     } catch (serverError) {
         const permissionError = new FirestorePermissionError({
-          path: personnelCollection.path,
+          path: personnelCollectionRef.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -80,9 +80,9 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
     const start = startOfDay(date);
     const end = endOfDay(date);
 
-    const eventsCollection = collection(db, 'events');
+    const eventsCollectionRef = collection(db, 'events');
     const q = query(
-      eventsCollection,
+      eventsCollectionRef,
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end))
     );
@@ -91,7 +91,7 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
         return querySnapshot.docs.map(doc => doc.data());
     } catch (serverError) {
         const permissionError = new FirestorePermissionError({
-          path: eventsCollection.path,
+          path: eventsCollectionRef.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -280,4 +280,3 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
     };
 };
-
