@@ -84,6 +84,11 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
             operatorPhone: operator.phone.replace(/\D/g, ''),
           });
           messagesSent++;
+          
+          // Wait for 30 seconds before sending the next message
+          if (operators.indexOf(operator) < operators.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 30000));
+          }
         }
       } catch (error) {
         console.error(`Failed to send agenda to ${operator.name}:`, error);
