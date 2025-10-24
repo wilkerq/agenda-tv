@@ -59,6 +59,8 @@ export default function HomePage() {
           producer: data.producer,
           status,
           turn,
+          departure: data.departure ? (data.departure as Timestamp).toDate() : undefined,
+          arrival: data.arrival ? (data.arrival as Timestamp).toDate() : undefined,
         };
       });
       setEvents(eventsData);

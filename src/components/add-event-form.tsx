@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,7 +6,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Sparkles, Plane } from "lucide-react";
+import { CalendarIcon, Loader2, Sparkles, Plane, LogOut, LogIn } from "lucide-react";
 import * as React from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -62,9 +63,7 @@ const transmissionOptions = [
 const formSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
   location: z.string({ required_error: "O local do evento é obrigatório." }),
-  date: z.date({
-    required_error: "A data do evento é obrigatória.",
-  }),
+  date: z.date({ required_error: "A data do evento é obrigatória." }),
   time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
   transmission: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "Você precisa selecionar pelo menos um tipo de evento.",
@@ -77,6 +76,10 @@ const formSchema = z.object({
   repeats: z.boolean().default(false),
   repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repeatCount: z.coerce.number().int().min(1).optional(),
+  departureDate: z.date().optional(),
+  departureTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
+  arrivalDate: z.date().optional(),
+  arrivalTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
 }).refine(data => {
     if (data.repeats) {
         return !!data.repeatFrequency && !!data.repeatCount;
@@ -85,6 +88,14 @@ const formSchema = z.object({
 }, {
     message: "Frequência e contagem de repetição são obrigatórias.",
     path: ["repeatFrequency"],
+}).refine(data => {
+    if (data.transmission.includes('viagem')) {
+        return !!data.departureDate && !!data.departureTime && !!data.arrivalDate && !!data.arrivalTime;
+    }
+    return true;
+}, {
+    message: "Data e hora de partida e chegada são obrigatórias para viagens.",
+    path: ["departureDate"],
 });
 
 
@@ -154,6 +165,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       producer: "",
       repeats: false,
       repeatCount: 1,
+      departureDate: undefined,
+      departureTime: "",
+      arrivalDate: undefined,
+      arrivalTime: "",
     },
   });
 
@@ -245,14 +260,18 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const repeats = form.watch("repeats");
   const transmission = form.watch("transmission");
 
+  const combineDateTime = (date?: Date, time?: string): Date | undefined => {
+      if (!date || !time) return undefined;
+      const [hours, minutes] = time.split(':').map(Number);
+      const newDate = new Date(date);
+      newDate.setHours(hours, minutes, 0, 0);
+      return newDate;
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      const [hours, minutes] = values.time.split(":").map(Number);
-      const eventDate = new Date(values.date);
-      eventDate.setHours(hours, minutes);
-      eventDate.setSeconds(0);
-      eventDate.setMilliseconds(0);
+      const eventDate = combineDateTime(values.date, values.time)!;
 
       const eventData: EventFormData = {
           name: values.name,
@@ -264,6 +283,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           cinematographicReporter: values.cinematographicReporter,
           reporter: values.reporter,
           producer: values.producer,
+          departure: combineDateTime(values.departureDate, values.departureTime),
+          arrival: combineDateTime(values.arrivalDate, values.arrivalTime),
       };
 
       const repeatSettings = values.repeats ? {
@@ -287,6 +308,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         repeats: false,
         repeatFrequency: undefined,
         repeatCount: 1,
+        departureDate: undefined,
+        departureTime: "",
+        arrivalDate: undefined,
+        arrivalTime: "",
       });
 
       if (onSuccess) {
@@ -538,6 +563,67 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                 </FormItem>
             )}
             />
+        
+        {transmission?.includes('viagem') && (
+            <div className="space-y-6 border-t pt-6">
+                <div className="grid md:grid-cols-2 gap-x-8 gap-y-4 items-center">
+                    <div className="flex items-center gap-2">
+                         <Plane className="h-5 w-5 text-muted-foreground"/>
+                        <h3 className="text-lg font-medium">Detalhes da Viagem</h3>
+                    </div>
+                    <div/>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="departureDate"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2"><LogOut className="h-4 w-4"/> Saída</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Data</span>}
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField control={form.control} name="departureTime" render={({ field }) => (<FormItem><FormLabel className="text-transparent">.</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="arrivalDate"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2"><LogIn className="h-4 w-4"/> Chegada</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP", { locale: ptBR }) : <span>Data</span>}
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField control={form.control} name="arrivalTime" render={({ field }) => (<FormItem><FormLabel className="text-transparent">.</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                </div>
+                 <FormMessage>{form.formState.errors.departureDate?.message}</FormMessage>
+            </div>
+        )}
 
           {transmission?.includes('pauta') && (
             <FormField

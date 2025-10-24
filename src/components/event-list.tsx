@@ -1,8 +1,9 @@
 
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type EventListProps = {
   events: Event[];
@@ -50,6 +51,12 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
                     <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4" /> {format(event.date, 'HH:mm')}</span>
                     <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4" /> {event.location}</span>
                 </div>
+                {event.transmission.includes('viagem') && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 pt-1 border-t border-dashed">
+                      {event.departure && <span className="flex items-center text-xs"><LogOut className="mr-1.5 h-3 w-3 text-red-500"/> Saída: {format(event.departure, "dd/MM HH:mm", {locale: ptBR})}</span>}
+                      {event.arrival && <span className="flex items-center text-xs"><LogIn className="mr-1.5 h-3 w-3 text-green-500"/> Chegada: {format(event.arrival, "dd/MM HH:mm", {locale: ptBR})}</span>}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2 mt-2 sm:mt-0 text-sm font-semibold">

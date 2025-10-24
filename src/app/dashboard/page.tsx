@@ -103,6 +103,8 @@ export default function DashboardPage() {
           producer: data.producer,
           status: getEventStatus(eventDate),
           turn: getEventTurn(eventDate),
+          departure: data.departure ? (data.departure as Timestamp).toDate() : undefined,
+          arrival: data.arrival ? (data.arrival as Timestamp).toDate() : undefined,
         };
       });
       setEvents(eventsData);
@@ -150,6 +152,8 @@ export default function DashboardPage() {
         const newEventData = {
             ...eventData,
             date: Timestamp.fromDate(eventData.date),
+            departure: eventData.departure ? Timestamp.fromDate(eventData.departure) : undefined,
+            arrival: eventData.arrival ? Timestamp.fromDate(eventData.arrival) : undefined,
             color: isTravel ? '#dc2626' : getRandomColor(),
         };
 
@@ -160,6 +164,8 @@ export default function DashboardPage() {
                 const serializableData = {
                     ...eventData,
                     date: eventData.date.toISOString(),
+                    departure: eventData.departure?.toISOString(),
+                    arrival: eventData.arrival?.toISOString(),
                 };
                 logAction({
                     action: 'create',
@@ -302,11 +308,15 @@ export default function DashboardPage() {
     const serializableOldData = {
         ...oldData,
         date: (oldData.date as Timestamp).toDate().toISOString(),
+        departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
+        arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
     };
 
     const updatedData = {
         ...eventData,
         date: Timestamp.fromDate(eventData.date),
+        departure: eventData.departure ? Timestamp.fromDate(eventData.departure) : undefined,
+        arrival: eventData.arrival ? Timestamp.fromDate(eventData.arrival) : undefined,
         color: isTravel ? '#dc2626' : oldData.color || getRandomColor(),
     };
     
@@ -315,6 +325,8 @@ export default function DashboardPage() {
         const serializableNewData = {
             ...eventData,
             date: eventData.date.toISOString(),
+            departure: eventData.departure?.toISOString(),
+            arrival: eventData.arrival?.toISOString(),
         };
 
         await logAction({
@@ -475,7 +487,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    

@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper, Video, Mic, Clipboard, Plane } from "lucide-react";
+import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn } from "lucide-react";
 
 type EventDetailCardProps = {
     date: Date;
@@ -89,6 +89,12 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
                                         <span className="flex items-center"><MapPin className="mr-1.5 h-4 w-4 flex-shrink-0" /> {event.location}</span>
                                         <span className="flex items-center"><Clock className="mr-1.5 h-4 w-4 flex-shrink-0" /> {format(event.date, 'HH:mm')}</span>
                                     </div>
+                                    {event.transmission.includes('viagem') && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2 pt-2 border-t border-dashed">
+                                            {event.departure && <span className="flex items-center"><LogOut className="mr-1.5 h-4 w-4 text-red-500"/> Saída: {format(event.departure, "dd/MM HH:mm", {locale: ptBR})}</span>}
+                                            {event.arrival && <span className="flex items-center"><LogIn className="mr-1.5 h-4 w-4 text-green-500"/> Chegada: {format(event.arrival, "dd/MM HH:mm", {locale: ptBR})}</span>}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
                                      <Badge className={cn("capitalize", statusColors[event.status])}>

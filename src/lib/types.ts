@@ -21,6 +21,8 @@ export interface Event {
   producer?: string;
   status: EventStatus;
   turn: EventTurn;
+  departure?: Date;
+  arrival?: Date;
 }
 
 export type EventFormData = Omit<Event, "id" | "color" | "status" | "turn">;
