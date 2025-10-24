@@ -9,11 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Share2, Bot, ListTodo, CalendarSearch } from "lucide-react";
+import { Loader2, Share2, Bot, CalendarSearch } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -74,7 +73,7 @@ export default function DailyAgendaPage() {
   }, [fetchEvents]);
   
   const handleGenerateMessage = useCallback(async () => {
-    if (events.length === 0) {
+    if (!selectedDate || events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
         setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
         return;
@@ -82,21 +81,27 @@ export default function DailyAgendaPage() {
     
     setIsGeneratingMessage(true);
     try {
-        const eventStrings = events.map(e => `${e.transmissionOperator || 'N/A'} (Op) / ${e.cinematographicReporter || 'N/A'} (Rep) - ${e.name} (${e.location})`);
+        const eventStrings = events.map(e => {
+            const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
+            const reporter = e.cinematographicReporter ? `Rep: ${e.cinematographicReporter}` : '';
+            const staff = [operator, reporter].filter(Boolean).join(' / ');
+            return `- ${staff} - ${e.name} (${e.location})`;
+        });
+        
         const result = await generateDailyAgenda({
-            scheduleDate: format(selectedDate!, "PPPP", { locale: ptBR }),
+            scheduleDate: selectedDate.toISOString(),
             events: eventStrings,
         });
         setMessage(result.message);
          toast({
             title: "Pauta Gerada!",
-            description: "A pauta do dia foi criada com sucesso.",
+            description: "A pauta do dia foi criada com sucesso. Verifique e compartilhe.",
         });
     } catch (error) {
          console.error("Error generating message: ", error);
          toast({
             title: "Erro de IA",
-            description: "Não foi possível gerar a pauta. Verifique sua chave de API nas configurações.",
+            description: "Não foi possível gerar a pauta. Verifique as configurações e tente novamente.",
             variant: "destructive",
         });
     } finally {
@@ -113,7 +118,9 @@ export default function DailyAgendaPage() {
       });
       return;
     }
-    const whatsappUrl = `https://api.whatsapp.com/send/?text=${encodeURI(message)}`;
+    // Remove os asteriscos de formatação de negrito para o encodeURI
+    const plainMessage = message.replace(/\*/g, '');
+    const whatsappUrl = `https://api.whatsapp.com/send/?text=${encodeURIComponent(plainMessage)}`;
     window.open(whatsappUrl, "_blank");
   };
   
@@ -177,33 +184,34 @@ export default function DailyAgendaPage() {
                 </div>
             )}
           </CardContent>
-           <CardFooter className="gap-4">
-             <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0}>
-                {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                Gerar Pauta com IA
-            </Button>
-           </CardFooter>
         </Card>
         
         <Card>
             <CardHeader>
-                <CardTitle>Mensagem para WhatsApp</CardTitle>
-                <CardDescription>Use o texto gerado para compartilhar a pauta do dia.</CardDescription>
+                <CardTitle>Pauta do Dia</CardTitle>
+                <CardDescription>Gere, revise e compartilhe a pauta diária no WhatsApp.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Textarea
-                    id="whatsapp-message"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={10}
-                    placeholder={isGeneratingMessage ? "Gerando pauta..." : "A pauta do dia aparecerá aqui após ser gerada."}
-                    readOnly={isGeneratingMessage}
-                />
+                <div className="space-y-4">
+                    <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} className="w-full sm:w-auto">
+                        {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                        Gerar Pauta Manual
+                    </Button>
+                    <Textarea
+                        id="whatsapp-message"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        rows={12}
+                        placeholder={isGeneratingMessage ? "Gerando pauta com base nos eventos do dia..." : "A pauta do dia aparecerá aqui após ser gerada."}
+                        readOnly={isGeneratingMessage}
+                        className="mt-4"
+                    />
+                </div>
             </CardContent>
             <CardFooter>
                  <Button onClick={handleShare} disabled={!message || isGeneratingMessage}>
                   <Share2 className="mr-2 h-4 w-4" />
-                  Compartilhar no WhatsApp
+                  Compartilhar Pauta no WhatsApp
                 </Button>
             </CardFooter>
         </Card>

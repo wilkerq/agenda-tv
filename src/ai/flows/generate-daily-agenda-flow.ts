@@ -30,7 +30,8 @@ const generateDailyAgendaFlow = ai.defineFlow(
   async (input) => {
     
     // Using simple string formatting as AI is disabled for this flow
-    const header = `*PAUTA DO DIA* 🎬\n\n*${input.scheduleDate}*\n\n`;
+    const formattedDate = format(new Date(input.scheduleDate), "PPPP", { locale: ptBR });
+    const header = `*PAUTA DO DIA* 🎬\n\n*${formattedDate}*\n\n`;
     const eventList = input.events.join('\n');
     const message = header + eventList;
     
