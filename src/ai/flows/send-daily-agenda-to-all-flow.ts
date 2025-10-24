@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, getDocs, query, where, Timestamp, orderBy, addDoc, or } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp, orderBy, addDoc, or, and } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -71,13 +71,15 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
     const eventsQuery = query(
         collection(db, "events"),
-        where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
-        where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
-        or(
-            where("transmissionOperator", "in", personnelNames),
-            where("cinematographicReporter", "in", personnelNames),
-            where("reporter", "in", personnelNames),
-            where("producer", "in", personnelNames)
+        and(
+            where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
+            where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
+            or(
+                where("transmissionOperator", "in", personnelNames),
+                where("cinematographicReporter", "in", personnelNames),
+                where("reporter", "in", personnelNames),
+                where("producer", "in", personnelNames)
+            )
         ),
         orderBy("date", "asc")
     );
