@@ -40,7 +40,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     outputSchema: SendDailyAgendaOutputSchema,
   },
   async (input) => {
-    const operatorsCollection = collection(db, 'operators');
+    const operatorsCollection = collection(db, 'transmission_operators');
     const operatorsSnapshot = await getDocs(operatorsCollection);
     const operators = operatorsSnapshot.docs.map(doc => doc.data() as Operator);
 
