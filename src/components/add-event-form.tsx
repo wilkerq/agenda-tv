@@ -207,11 +207,19 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
         if (result.transmissionOperator) {
             form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
-            suggestionsMade.push(`Op. de Transmissão: ${result.transmissionOperator}`);
+            suggestionsMade.push(`Op. Transmissão: ${result.transmissionOperator}`);
         }
         if (result.cinematographicReporter) {
             form.setValue("cinematographicReporter", result.cinematographicReporter, { shouldValidate: true });
             suggestionsMade.push(`Rep. Cinematográfico: ${result.cinematographicReporter}`);
+        }
+        if (result.reporter) {
+            form.setValue("reporter", result.reporter, { shouldValidate: true });
+            suggestionsMade.push(`Repórter: ${result.reporter}`);
+        }
+        if (result.producer) {
+            form.setValue("producer", result.producer, { shouldValidate: true });
+            suggestionsMade.push(`Produtor: ${result.producer}`);
         }
         
         if (suggestionsMade.length > 0) {
@@ -226,7 +234,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe. Verifique as escalas ou preencha manualmente.",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
                 variant: "default",
             });
         }

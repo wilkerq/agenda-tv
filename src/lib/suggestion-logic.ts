@@ -18,6 +18,11 @@ interface Personnel {
     turn: 'Manhã' | 'Tarde' | 'Noite' | 'Geral';
 }
 
+interface ProductionPersonnel extends Personnel {
+    isReporter: boolean;
+    isProducer: boolean;
+}
+
 /**
  * Fetches all personnel from a given collection.
  * @param collectionName The name of the Firestore collection.
@@ -32,6 +37,18 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
         turn: doc.data().turn as Personnel['turn'] || 'Geral',
     }));
 };
+
+const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
+     const personnelCollection = collection(db, 'production_personnel');
+    const snapshot = await getDocs(query(personnelCollection));
+    return snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name as string,
+        turn: doc.data().turn as Personnel['turn'] || 'Geral',
+        isReporter: doc.data().isReporter || false,
+        isProducer: doc.data().isProducer || false,
+    }));
+}
 
 /**
  * Fetches events for a specific day to check for existing assignments.
@@ -155,6 +172,38 @@ const suggestCinematographicReporter = (
     return undefined;
 };
 
+const suggestProductionMember = (
+    eventDate: Date,
+    personnel: ProductionPersonnel[],
+    eventsToday: any[],
+    role: 'reporter' | 'producer'
+): string | undefined => {
+    const hour = eventDate.getHours();
+    const assignedPersonnel = new Set(
+        eventsToday.flatMap(e => [e.reporter, e.producer]).filter(Boolean)
+    );
+
+    let turn: 'Manhã' | 'Tarde' | 'Noite' = 'Manhã';
+    if (hour >= 12 && hour < 18) turn = 'Tarde';
+    else if (hour >= 18) turn = 'Noite';
+
+    const candidates = personnel.filter(p => (role === 'reporter' ? p.isReporter : p.isProducer));
+    
+    const availableForTurn = getAvailablePersonnel(candidates, assignedPersonnel, turn);
+    if (availableForTurn.length > 0) {
+        // Simple rotation for now
+        return availableForTurn[eventDate.getDate() % availableForTurn.length].name;
+    }
+
+    // Fallback: Check 'Geral' turn if no one else is available
+    const generalTurn = getAvailablePersonnel(candidates, assignedPersonnel, 'Geral');
+    if(generalTurn.length > 0) {
+        return generalTurn[eventDate.getDate() % generalTurn.length].name;
+    }
+
+    return undefined;
+}
+
 
 /**
  * Suggests a full team for an event based on a set of business rules.
@@ -172,7 +221,7 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
     ] = await Promise.all([
         getPersonnel('transmission_operators'),
         getPersonnel('cinematographic_reporters'),
-        getPersonnel('production_personnel'), // This now includes reporters and producers
+        getProductionPersonnel(),
         getEventsForDay(eventDate),
     ]);
     
@@ -182,17 +231,15 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
     // Logic for "Deputados Aqui"
     if (location === "Deputados Aqui") {
         suggestedOperator = "Wilker Quirino";
-        // Other team members are on rotation - this can be implemented later
+        // Other team members are on rotation
+        suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
     } else {
          suggestedOperator = suggestTransmissionOperator(eventDate, location, operators, eventsToday);
+         suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
     }
     
-    suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
-
-    // Placeholder for reporter/producer logic
-    // This part is complex due to shared roles and fairness, needs more detailed implementation.
-    let suggestedReporter: string | undefined = undefined;
-    let suggestedProducer: string | undefined = undefined;
+    const suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
+    const suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
 
 
     return {
@@ -203,5 +250,3 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
     };
 };
-
-    
