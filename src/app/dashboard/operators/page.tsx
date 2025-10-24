@@ -21,10 +21,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 
 const personnelSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   phone: z.string().min(10, "O telefone deve ser válido.").optional(),
+  turn: z.enum(turns).default("Geral"),
 });
 
 type Personnel = z.infer<typeof personnelSchema> & { id: string };
@@ -61,7 +65,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
 
   const form = useForm<z.infer<typeof personnelSchema>>({
     resolver: zodResolver(personnelSchema),
-    defaultValues: { name: "", phone: "" },
+    defaultValues: { name: "", phone: "", turn: "Geral" },
   });
 
   useEffect(() => {
@@ -194,6 +198,26 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={form.control}
+                            name="turn"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Turno</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione o turno de trabalho" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {turns.map(turn => <SelectItem key={turn} value={turn}>{turn}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <DialogFooter>
                             <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                             <Button type="submit" disabled={isSubmitting}>
@@ -217,6 +241,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
+              <TableHead>Turno</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -225,6 +250,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell>{p.phone || "N/A"}</TableCell>
+                <TableCell><Badge variant="outline">{p.turn || "Geral"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
                       <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
@@ -258,6 +284,26 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
                                           </FormItem>
                                       )}
                                   />
+                                   <FormField
+                                        control={form.control}
+                                        name="turn"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Turno</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione o turno" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {turns.map(turn => <SelectItem key={turn} value={turn}>{turn}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                   <DialogFooter>
                                       <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                                       <Button type="submit" disabled={isSubmitting}>
@@ -293,7 +339,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
               </TableRow>
             )) : (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center h-24">
+                    <TableCell colSpan={4} className="text-center h-24">
                         Nenhum membro encontrado. Comece adicionando um.
                     </TableCell>
                 </TableRow>
@@ -316,7 +362,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
 
   const form = useForm<z.infer<typeof productionPersonnelSchema>>({
     resolver: zodResolver(productionPersonnelSchema),
-    defaultValues: { name: "", phone: "", isReporter: false, isProducer: false },
+    defaultValues: { name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" },
   });
 
   useEffect(() => {
@@ -348,7 +394,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
     addDoc(personnelCollectionRef, values)
       .then(() => {
         toast({ title: "Sucesso!", description: "Novo membro adicionado." });
-        form.reset({ name: "", phone: "", isReporter: false, isProducer: false });
+        form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
         setAddModalOpen(false);
       })
       .catch((serverError) => {
@@ -449,6 +495,26 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={form.control}
+                            name="turn"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Turno</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione o turno de trabalho" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {turns.map(turn => <SelectItem key={turn} value={turn}>{turn}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <div className="space-y-2">
                             <FormLabel>Funções</FormLabel>
                             <div className="flex items-center space-x-4">
@@ -498,6 +564,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Funções</TableHead>
+              <TableHead>Turno</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -511,6 +578,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
                         {p.isProducer && <Badge variant="outline">Produtor</Badge>}
                     </div>
                 </TableCell>
+                <TableCell><Badge variant="outline">{p.turn || "Geral"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
                       <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
@@ -544,6 +612,26 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
                                           </FormItem>
                                       )}
                                   />
+                                   <FormField
+                                        control={form.control}
+                                        name="turn"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Turno</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione o turno" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                         {turns.map(turn => <SelectItem key={turn} value={turn}>{turn}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                    <div className="space-y-2">
                                         <FormLabel>Funções</FormLabel>
                                         <div className="flex items-center space-x-4">
@@ -606,7 +694,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
               </TableRow>
             )) : (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center h-24">
+                    <TableCell colSpan={4} className="text-center h-24">
                         Nenhum membro encontrado. Comece adicionando um.
                     </TableCell>
                 </TableRow>
@@ -646,5 +734,7 @@ export default function OperatorsPage() {
     </div>
   );
 }
+
+    
 
     
