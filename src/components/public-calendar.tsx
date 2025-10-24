@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -66,7 +65,10 @@ export function PublicCalendar({ events, selectedDate, onDateSelect }: PublicCal
   const filteredEvents = useMemo(() => {
     if (selectedRoles.length === 0) return events;
     return events.filter(event => 
-        selectedRoles.some(role => !!(event as any)[role])
+        selectedRoles.some(role => {
+            const eventRole = (event as any)[role];
+            return eventRole && typeof eventRole === 'string' && eventRole.trim() !== '';
+        })
     );
   }, [events, selectedRoles]);
 
