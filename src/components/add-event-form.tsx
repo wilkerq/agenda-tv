@@ -509,8 +509,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               disabled={isSuggesting}
               className="w-full"
             >
-              {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Sugerir com IA
+              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              sugerir com base na escala! logo mando a logica de como fazer!
             </Button>
         </div>
         <FormField
