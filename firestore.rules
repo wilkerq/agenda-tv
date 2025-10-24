@@ -3,31 +3,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
-    // Regra geral: Apenas usuários autenticados podem ler ou escrever.
-    // As regras específicas para coleções abaixo sobrescrevem esta.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // As coleções de pessoal só podem ser modificadas por usuários autenticados.
-    match /transmission_operators/{operatorId} {
-      allow read, write: if request.auth != null;
-    }
-    match /cinematographic_reporters/{reporterId} {
-      allow read, write: if request.auth != null;
-    }
-    match /reporters/{reporterId} {
-      allow read, write: if request.auth != null;
-    }
-    match /producers/{producerId} {
-      allow read, write: if request.auth != null;
+    // As regras para cada coleção específica vêm aqui.
+    // Regra geral: Permite leitura para usuários autenticados e escrita restrita.
+
+    // Coleção de eventos: todos os autenticados podem ler. Escrever/deletar requer autenticação.
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null;
     }
 
-    // A coleção de eventos pode ser lida por qualquer pessoa, mas apenas
-    // usuários autenticados podem criar, atualizar ou deletar eventos.
-    match /events/{eventId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null;
+    // Coleções de pessoal: todos os autenticados podem ler. Escrever/deletar requer autenticação.
+    match /transmission_operators/{operatorId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null;
+    }
+
+    match /cinematographic_reporters/{reporterId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null;
+    }
+
+    match /production_personnel/{personnelId} {
+       allow read: if request.auth != null;
+       allow write, delete: if request.auth != null;
+    }
+    
+    // Coleção de logs de auditoria: qualquer usuário autenticado pode criar logs.
+    // Leitura, atualização e exclusão são bloqueadas por segurança.
+    match /audit_logs/{logId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if false; // Ninguém pode alterar os logs
     }
   }
 }
