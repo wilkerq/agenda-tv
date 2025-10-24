@@ -13,8 +13,7 @@ import {
     SuggestOperatorOutput, 
     SuggestOperatorOutputSchema 
 } from '@/lib/types';
-import { assignTransmissionOperator } from '@/lib/business-logic';
-import { determineTransmission } from '@/lib/event-logic';
+import { suggestTeam } from '@/lib/suggestion-logic';
 import { ai } from '@/ai/genkit';
 
 // By default, we use business logic. The AI flow is preserved but can be used for more complex scenarios.
@@ -30,22 +29,18 @@ const suggestOperatorFlow = ai.defineFlow(
         outputSchema: SuggestOperatorOutputSchema,
     },
     async (input) => {
-        // For this task, we will rely on deterministic business logic instead of a generative AI call.
-        // This ensures consistency and predictability. The Genkit flow structure is maintained 
-        // to allow for future enhancements with AI if needed.
-        
-        const eventDate = new Date(input.date);
-        
-        // 1. Assign operator based on date and location using existing business logic
-        const operator = await assignTransmissionOperator(eventDate, input.location);
+        const team = await suggestTeam({
+            date: input.date,
+            location: input.location,
+            transmissionTypes: [] // This flow is now a wrapper, the main logic is in `suggestTeam`
+        });
 
-        // 2. Determine transmission type based on location
-        const transmission = determineTransmission(input.location);
-
-        // 3. Construct and return the output
+        // The old flow returns only operator and transmission, so we adapt the new output
         return { 
-            transmissionOperator: operator, 
-            transmission 
+            transmissionOperator: team.transmissionOperator, 
+            transmission: team.transmission
         };
     }
 );
+
+    

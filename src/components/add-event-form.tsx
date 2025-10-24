@@ -35,12 +35,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
-import { transmissionTypes } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
-import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
+import { suggestTeam } from "@/lib/suggestion-logic";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 
@@ -172,8 +170,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     },
   });
 
-  const handleAutoPopulation = React.useCallback(async () => {
-    const { date: selectedDate, time: selectedTime, location: selectedLocation } = form.getValues();
+  const handleSuggestion = React.useCallback(async () => {
+    const { date: selectedDate, time: selectedTime, location: selectedLocation, transmission } = form.getValues();
     
     if (!selectedDate || !selectedTime || !selectedLocation) {
       toast({
@@ -199,44 +197,51 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(selectedDate);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const result = await suggestOperator({
+        const result = await suggestTeam({
             date: eventDate.toISOString(),
             location: selectedLocation,
+            transmissionTypes: transmission as TransmissionType[]
         });
+        
+        const suggestionsMade: string[] = [];
 
-        if (result.transmissionOperator && transmissionOperators.some(op => op.name === result.transmissionOperator)) {
+        if (result.transmissionOperator) {
             form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
+            suggestionsMade.push(`Op. de Transmissão: ${result.transmissionOperator}`);
+        }
+        if (result.cinematographicReporter) {
+            form.setValue("cinematographicReporter", result.cinematographicReporter, { shouldValidate: true });
+            suggestionsMade.push(`Rep. Cinematográfico: ${result.cinematographicReporter}`);
+        }
+        
+        if (suggestionsMade.length > 0) {
             toast({
-                title: "Operador Sugerido!",
-                description: `${result.transmissionOperator} foi selecionado como operador de transmissão pela IA.`,
+                title: "Equipe Sugerida!",
+                description: (
+                    <ul className="mt-2 list-disc list-inside">
+                        {suggestionsMade.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                ),
             });
         } else {
              toast({
-                title: "Nenhuma sugestão de operador",
-                description: "A IA não conseguiu sugerir um operador. Selecione manualmente.",
+                title: "Nenhuma sugestão disponível",
+                description: "Não foi possível sugerir uma equipe. Verifique as escalas ou preencha manualmente.",
                 variant: "default",
-            });
-        }
-
-        if (result.transmission && result.transmission.length > 0) {
-            form.setValue("transmission", result.transmission, { shouldValidate: true });
-            toast({
-                title: "Transmissão Definida!",
-                description: `Tipo de evento definido pela IA.`,
             });
         }
 
     } catch (error) {
         console.error("Error during auto-population:", error);
         toast({
-            title: "Erro na Sugestão Automática",
-            description: "Não foi possível preencher os campos. Verifique o console para detalhes.",
+            title: "Erro na Sugestão",
+            description: "Não foi possível sugerir a equipe. Verifique o console para detalhes.",
             variant: "destructive",
         });
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, transmissionOperators]);
+  }, [form, toast]);
 
   React.useEffect(() => {
     if (preloadedData) {
@@ -372,7 +377,70 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             )}
           />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 items-end">
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data do Evento</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: ptBR })
+                        ) : (
+                          <span>Escolha uma data</span>
+                        )}
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Hora do Evento</FormLabel>
+                <FormControl>
+                  <Input type="time" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <Button
+              type="button"
+              variant="outline"
+              onClick={handleSuggestion}
+              disabled={isSuggesting}
+              className="w-full"
+            >
+              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              Sugerir Equipe
+            </Button>
+        </div>
+         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
              <FormField
                 control={form.control}
                 name="transmissionOperator"
@@ -447,72 +515,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             />
         </div>
          <FormDescription>
-            Preencha os campos de data, hora e local, depois use o botão de sugestão para preencher o Op. de Transmissão.
+            Preencha os campos de data, hora e local, depois use o botão de sugestão para preencher a equipe.
         </FormDescription>
 
-        <div className="grid md:grid-cols-3 gap-8 items-end">
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data do Evento</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(field.value, "PPP", { locale: ptBR })
-                        ) : (
-                          <span>Escolha uma data</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="time"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hora do Evento</FormLabel>
-                <FormControl>
-                  <Input type="time" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <Button
-              type="button"
-              variant="outline"
-              onClick={handleAutoPopulation}
-              disabled={isSuggesting}
-              className="w-full"
-            >
-              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              sugerir com IA
-            </Button>
-        </div>
+       
         <FormField
             control={form.control}
             name="transmission"

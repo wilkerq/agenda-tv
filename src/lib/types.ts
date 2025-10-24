@@ -86,18 +86,22 @@ export const CreateEventFromImageOutputSchema = z.object({
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
 
-// AI-related Schemas for suggestOperator flow
-export const SuggestOperatorInputSchema = z.object({
+// Schemas for suggestion-logic
+export const SuggestTeamInputSchema = z.object({
   date: z.string().describe("The full date and time of the event in ISO 8601 format."),
   location: z.string().describe("The venue or place where the event will occur."),
+  transmissionTypes: z.array(z.enum(transmissionTypes)).describe("The type of event (e.g., youtube, tv)."),
 });
-export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
+export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
 
-export const SuggestOperatorOutputSchema = z.object({
-  transmissionOperator: z.string().optional().describe('The suggested transmission operator for the event.'),
+export const SuggestTeamOutputSchema = z.object({
+  transmissionOperator: z.string().optional().describe('The suggested transmission operator.'),
+  cinematographicReporter: z.string().optional().describe('The suggested cinematographic reporter.'),
+  reporter: z.string().optional().describe('The suggested reporter.'),
+  producer: z.string().optional().describe('The suggested producer.'),
   transmission: z.array(z.enum(transmissionTypes)).optional().describe('The suggested transmission types for the event.'),
 });
-export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
+export type SuggestTeamOutput = z.infer<typeof SuggestTeamOutputSchema>;
 
 
 // AI-related Schemas for generate-whatsapp-message flow
@@ -155,3 +159,5 @@ export interface AuditLog {
     before?: object;
     after?: object;
 }
+
+    
