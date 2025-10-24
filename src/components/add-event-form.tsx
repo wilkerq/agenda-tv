@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Sparkles, Plane, LogOut, LogIn } from "lucide-react";
+import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn } from "lucide-react";
 import * as React from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -436,7 +436,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               disabled={isSuggesting}
               className="w-full"
             >
-              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
               Sugerir Equipe
             </Button>
         </div>
@@ -729,5 +729,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
-
-    
