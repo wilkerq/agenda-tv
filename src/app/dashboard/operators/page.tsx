@@ -18,6 +18,8 @@ import { Loader2, PlusCircle, Trash2, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 const personnelSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
@@ -81,39 +83,63 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, collectionName), values);
-      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
-      form.reset();
-      setAddModalOpen(false);
-    } catch (error) {
-      toast({ title: "Erro", description: `Não foi possível adicionar.`, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const personnelCollectionRef = collection(db, collectionName);
+    
+    addDoc(personnelCollectionRef, values)
+      .then(() => {
+        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
+        form.reset();
+        setAddModalOpen(false);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: personnelCollectionRef.path,
+          operation: 'create',
+          requestResourceData: values,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     if (!editingPersonnel) return;
     setIsSubmitting(true);
-    try {
-      await updateDoc(doc(db, collectionName, editingPersonnel.id), values);
-      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
-      setEditingPersonnel(null);
-    } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const docRef = doc(db, collectionName, editingPersonnel.id);
+
+    updateDoc(docRef, values)
+      .then(() => {
+        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
+        setEditingPersonnel(null);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: values,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleDeletePersonnel = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, collectionName, id));
-      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
-    } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível remover.", variant: "destructive" });
-    }
+    const docRef = doc(db, collectionName, id);
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
   
   const openEditModal = (person: Personnel) => {
@@ -308,39 +334,63 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
     setIsSubmitting(true);
-    try {
-      await addDoc(collection(db, collectionName), values);
-      toast({ title: "Sucesso!", description: "Novo membro adicionado." });
-      form.reset({ name: "", phone: "", isReporter: false, isProducer: false });
-      setAddModalOpen(false);
-    } catch (error) {
-      toast({ title: "Erro", description: `Não foi possível adicionar.`, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const personnelCollectionRef = collection(db, collectionName);
+    
+    addDoc(personnelCollectionRef, values)
+      .then(() => {
+        toast({ title: "Sucesso!", description: "Novo membro adicionado." });
+        form.reset({ name: "", phone: "", isReporter: false, isProducer: false });
+        setAddModalOpen(false);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: personnelCollectionRef.path,
+          operation: 'create',
+          requestResourceData: values,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
     if (!editingPersonnel) return;
     setIsSubmitting(true);
-    try {
-      await updateDoc(doc(db, collectionName, editingPersonnel.id), values);
-      toast({ title: "Sucesso!", description: "Membro atualizado." });
-      setEditingPersonnel(null);
-    } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível atualizar.", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const docRef = doc(db, collectionName, editingPersonnel.id);
+
+    updateDoc(docRef, values)
+      .then(() => {
+        toast({ title: "Sucesso!", description: "Membro atualizado." });
+        setEditingPersonnel(null);
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: values,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   const handleDeletePersonnel = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, collectionName, id));
-      toast({ title: "Sucesso!", description: "Membro removido." });
-    } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível remover.", variant: "destructive" });
-    }
+    const docRef = doc(db, collectionName, id);
+    deleteDoc(docRef)
+      .then(() => {
+        toast({ title: "Sucesso!", description: "Membro removido." });
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'delete',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   const openEditModal = (person: ProductionPersonnel) => {
