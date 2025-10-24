@@ -513,5 +513,3 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     </div>
   );
 }
-
-    

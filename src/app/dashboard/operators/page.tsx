@@ -734,7 +734,3 @@ export default function OperatorsPage() {
     </div>
   );
 }
-
-    
-
-    
