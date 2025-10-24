@@ -280,3 +280,5 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
     };
 };
+
+    
