@@ -129,8 +129,8 @@ export default function ShareSchedulePage() {
       <div className="lg:col-span-1 space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Controle de Envio</CardTitle>
-            <CardDescription>Visualize a agenda diária e dispare o envio automático para o dia seguinte.</CardDescription>
+            <CardTitle>Painel de Visualização</CardTitle>
+            <CardDescription>Use esta tela para visualizar a agenda de um dia específico para todos os operadores.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
@@ -149,18 +149,12 @@ export default function ShareSchedulePage() {
             </div>
             <Alert>
                 <Send className="h-4 w-4" />
-                <AlertTitle>Envio Automático para Amanhã</AlertTitle>
+                <AlertTitle>Envio Automatizado</AlertTitle>
                 <AlertDescription>
-                  Este botão envia a agenda do **dia seguinte** para todos os operadores que possuem eventos agendados.
+                  O envio da agenda do dia seguinte para os operadores agora é feito automaticamente todos os dias às 20h.
                 </AlertDescription>
             </Alert>
           </CardContent>
-           <CardFooter>
-             <Button onClick={handleSendToAll} disabled={isSending}>
-                {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                {isSending ? "Enviando para todos..." : "Enviar Agenda de Amanhã"}
-            </Button>
-           </CardFooter>
         </Card>
       </div>
 
