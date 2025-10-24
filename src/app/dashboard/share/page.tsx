@@ -14,6 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { sendDailyAgendaToAll } from "@/ai/flows/send-daily-agenda-to-all-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface EventsByOperator {
   [operatorName: string]: Event[];
@@ -21,14 +22,20 @@ interface EventsByOperator {
 
 export default function ShareSchedulePage() {
   const [eventsByOperator, setEventsByOperator] = useState<EventsByOperator>({});
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [isFetchingEvents, setIsFetchingEvents] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Set the initial date on the client side to avoid hydration mismatch
+    setSelectedDate(new Date());
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     if (!selectedDate) {
       setEventsByOperator({});
+      setIsFetchingEvents(false);
       return;
     }
 
@@ -81,7 +88,9 @@ export default function ShareSchedulePage() {
 
 
   useEffect(() => {
-    fetchEvents();
+    if (selectedDate) {
+      fetchEvents();
+    }
   }, [selectedDate, fetchEvents]);
   
   const handleSendToAll = useCallback(async () => {
@@ -126,13 +135,17 @@ export default function ShareSchedulePage() {
           <CardContent className="space-y-4">
              <div className="space-y-2">
                 <label className="text-sm font-medium">Selecionar Data para Visualização</label>
-                 <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    className="p-0 border rounded-md"
-                    locale={ptBR}
-                />
+                 {!selectedDate ? (
+                   <Skeleton className="h-[280px] w-full" />
+                 ) : (
+                    <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        className="p-0 border rounded-md"
+                        locale={ptBR}
+                    />
+                 )}
             </div>
             <Alert>
                 <Send className="h-4 w-4" />
