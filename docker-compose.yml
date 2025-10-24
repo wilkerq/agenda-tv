@@ -1,6 +1,7 @@
 
 services:
   app:
+    image: agendaalego:0.1.2
     build: .
     ports:
       - "3050:3050"

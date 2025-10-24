@@ -1,37 +1,38 @@
-# 1. Estágio de Dependências: Instala as dependências do projeto
+# 1. Instalação de dependências
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-# Copia package.json e package-lock.json
-COPY package.json package-lock.json ./
+# Copia o package.json e o package-lock.json
+COPY package.json ./
+COPY package-lock.json ./
 
-# Instala apenas as dependências de produção
-RUN npm install --omit=dev
+# Instala as dependências de produção
+RUN npm install
 
-# 2. Estágio de Build: Constrói a aplicação Next.js
+# 2. Build da aplicação
 FROM node:20-alpine AS builder
 WORKDIR /app
-
-# Copia as dependências do estágio anterior
 COPY --from=deps /app/node_modules ./node_modules
-# Copia o restante do código da aplicação
 COPY . .
 
-# Faz o build da aplicação
+# Roda o script de build do Next.js
 RUN npm run build
 
-# 3. Estágio Final: Prepara a imagem de produção
+# 3. Imagem final de produção
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Define o ambiente para produção
 ENV NODE_ENV=production
 
-# Copia os artefatos de build do estágio anterior
+# Copia os artefatos da etapa de build
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3050
 
+ENV PORT 3050
+
+# Inicia o servidor Next.js
 CMD ["node", "server.js"]
