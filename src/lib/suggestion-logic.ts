@@ -226,7 +226,7 @@ const suggestProductionMember = (
     }
 
     // Fallback: Check 'Geral' turn if no one else is available
-    const generalTurn = getAvailablePersonnel(candidates, assignedPersonnel, 'Geral');
+    const generalTurn = getAvailablePersonnel(candidates, assignedPersonnel, 'Geral' as 'Manhã');
     if(generalTurn.length > 0) {
         return generalTurn[eventDate.getDate() % generalTurn.length].name;
     }
