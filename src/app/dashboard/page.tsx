@@ -224,12 +224,16 @@ export default function DashboardPage() {
 
       if(eventSnap.exists()) {
           const oldData = eventSnap.data();
+          const serializableOldData = {
+              ...oldData,
+              date: oldData.date.toDate().toISOString(),
+          };
           await logAction({
               action: 'delete',
               collectionName: 'events',
               documentId: eventId,
               userEmail: user.email,
-              oldData: { ...oldData, date: oldData.date.toDate().toISOString() },
+              oldData: serializableOldData,
           });
       }
 
@@ -257,20 +261,24 @@ export default function DashboardPage() {
       const eventRef = doc(db, "events", eventId);
       const eventSnap = await getDoc(eventRef);
       
-      const updatedData = {
-          ...eventData,
-          date: Timestamp.fromDate(eventData.date),
-      };
-      
       if(eventSnap.exists()) {
         const oldData = eventSnap.data();
+        const serializableOldData = {
+          ...oldData,
+          date: oldData.date.toDate().toISOString(),
+        };
+        const serializableNewData = {
+          ...eventData,
+          date: eventData.date.toISOString(),
+        };
+
         await logAction({
             action: 'update',
             collectionName: 'events',
             documentId: eventId,
             userEmail: user.email,
-            oldData: { ...oldData, date: oldData.date.toDate().toISOString() },
-            newData: { ...eventData, date: eventData.date.toISOString() },
+            oldData: serializableOldData,
+            newData: serializableNewData,
         });
       }
       
@@ -426,7 +434,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    

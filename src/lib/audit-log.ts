@@ -51,5 +51,3 @@ export const logAction = async ({
         console.error("Failed log data:", JSON.stringify({ action, collectionName, documentId, userEmail, batchId }, null, 2));
     }
 };
-
-    
