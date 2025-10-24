@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       allowedOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"]
     },
+    csrfProtection: {
+      // TODO: Remove this once the Genkit SDK has a better way to handle this.
+      disabledFor: ['/api/genkit/**'],
+    },
   },
 };
 
