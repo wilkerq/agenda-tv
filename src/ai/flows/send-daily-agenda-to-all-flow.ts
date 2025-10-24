@@ -102,7 +102,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         ]);
 
         involvedPersonnel.forEach(personName => {
-            if (personName) {
+            if (personName && personnelNames.includes(personName)) {
                 if (!personnelWithEvents[personName]) {
                     personnelWithEvents[personName] = { 
                         phone: allPersonnel.find(p => p.name === personName)?.phone,
@@ -118,7 +118,10 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     const personnelToSend = Object.keys(personnelWithEvents);
     for (const personName of personnelToSend) {
       const data = personnelWithEvents[personName];
-      if (!data.phone) continue; // Skip if person has no phone number
+      if (!data.phone) {
+        errors.push(`${personName} (sem telefone)`);
+        continue; // Skip if person has no phone number
+      }
 
       try {
         const eventStrings = data.events.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
