@@ -10,37 +10,10 @@ interface LogActionParams {
     collectionName: string;
     documentId: string;
     userEmail: string;
-    newData?: any;
-    oldData?: any;
+    newData?: string; // Expect serialized JSON string
+    oldData?: string; // Expect serialized JSON string
     batchId?: string;
 }
-
-// Helper to convert complex objects to a serializable format
-const serializeData = (data: any): any => {
-    if (data === null || data === undefined) return data;
-    
-    // Create a deep copy to avoid modifying original objects
-    const serialized = JSON.parse(JSON.stringify(data));
-
-    // Recursively convert any Date or Timestamp objects to ISO strings
-    const convertDates = (obj: any) => {
-        if (!obj) return;
-        for (const key in obj) {
-            if (obj[key] instanceof Timestamp) {
-                obj[key] = obj[key].toDate().toISOString();
-            } else if (obj[key] instanceof Date) {
-                 obj[key] = obj[key].toISOString();
-            }
-            else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                convertDates(obj[key]);
-            }
-        }
-    };
-
-    convertDates(serialized);
-    return serialized;
-};
-
 
 export const logAction = async ({
     action,
@@ -61,10 +34,12 @@ export const logAction = async ({
         };
 
         if (oldData) {
-            logData.before = serializeData(oldData);
+            // Parse the data on the server
+            logData.before = JSON.parse(oldData);
         }
         if (newData) {
-            logData.after = serializeData(newData);
+            // Parse the data on the server
+            logData.after = JSON.parse(newData);
         }
         if (batchId) {
             logData.batchId = batchId;

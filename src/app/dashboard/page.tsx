@@ -34,6 +34,24 @@ const getEventStatus = (date: Date): EventStatus => {
   return date < new Date() ? 'Concluído' : 'Agendado';
 }
 
+// Function to convert complex objects to a serializable format for server actions
+const serializeForServer = (data: any): string => {
+    if (data === null || data === undefined) return JSON.stringify(data);
+    
+    // Create a deep copy to avoid modifying original objects
+    const replacer = (key: string, value: any) => {
+        if (value instanceof Timestamp) {
+            return value.toDate().toISOString();
+        }
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+        return value;
+    };
+
+    return JSON.stringify(data, replacer);
+};
+
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -144,17 +162,20 @@ export default function DashboardPage() {
 
       if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         // Handle single event
-        const docRef = await addDoc(collection(db, "events"), {
-          ...eventData,
-          date: Timestamp.fromDate(eventData.date),
-          color: getRandomColor(),
-        });
+        const newEventData = {
+            ...eventData,
+            date: Timestamp.fromDate(eventData.date),
+            color: getRandomColor(),
+        };
+
+        const docRef = await addDoc(collection(db, "events"), newEventData);
+
         await logAction({
             action: 'create',
             collectionName: 'events',
             documentId: docRef.id,
             userEmail: user.email,
-            newData: eventData,
+            newData: serializeForServer(newEventData),
         });
 
       } else {
@@ -178,7 +199,7 @@ export default function DashboardPage() {
                 collectionName: 'events',
                 documentId: newEventRef.id,
                 userEmail: user.email,
-                newData: newEventData,
+                newData: serializeForServer(newEventData),
                 batchId: batchId
             });
 
@@ -221,12 +242,13 @@ export default function DashboardPage() {
       const eventSnap = await getDoc(eventRef);
 
       if(eventSnap.exists()) {
+          const oldData = eventSnap.data();
           await logAction({
               action: 'delete',
               collectionName: 'events',
               documentId: eventId,
               userEmail: user.email,
-              oldData: eventSnap.data(),
+              oldData: serializeForServer(oldData),
           });
       }
 
@@ -254,14 +276,20 @@ export default function DashboardPage() {
       const eventRef = doc(db, "events", eventId);
       const eventSnap = await getDoc(eventRef);
       
+      const updatedData = {
+          ...eventData,
+          date: Timestamp.fromDate(eventData.date),
+      };
+      
       if(eventSnap.exists()) {
+        const oldData = eventSnap.data();
         await logAction({
             action: 'update',
             collectionName: 'events',
             documentId: eventId,
             userEmail: user.email,
-            oldData: eventSnap.data(),
-            newData: { ...eventData, date: Timestamp.fromDate(eventData.date) },
+            oldData: serializeForServer(oldData),
+            newData: serializeForServer(updatedData),
         });
       }
       
