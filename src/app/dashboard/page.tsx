@@ -22,6 +22,9 @@ import { PlusCircle, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -119,38 +122,38 @@ export default function DashboardPage() {
 
  const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     if (!user || !user.email) throw new Error("Usuário não autenticado.");
-    try {
-      
-      // --- DUPLICATION CHECK (In-memory) ---
-      // This check is for single, non-repeating events on the currently selected day.
-      if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
-        const conflictingEvent = events.find(existingEvent => 
-            existingEvent.name === eventData.name &&
-            Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
-        );
+    
+    // --- DUPLICATION CHECK (In-memory) ---
+    if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
+      const conflictingEvent = events.find(existingEvent => 
+          existingEvent.name === eventData.name &&
+          Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
+      );
 
-        if (conflictingEvent) {
-          toast({
-            title: "Evento Duplicado Encontrado",
-            description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
-            variant: "destructive",
-          });
-          throw new Error("Duplicate event");
-        }
+      if (conflictingEvent) {
+        toast({
+          title: "Evento Duplicado Encontrado",
+          description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
+          variant: "destructive",
+        });
+        // Throw an error to stop execution and indicate failure to the form
+        throw new Error("Duplicate event");
       }
-      // --- END DUPLICATION CHECK ---
+    }
+    // --- END DUPLICATION CHECK ---
 
 
-      if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
-        // Handle single event
-        const newEventData = {
-            ...eventData,
-            date: Timestamp.fromDate(eventData.date),
-            color: getRandomColor(),
-        };
+    if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
+      // Handle single event
+      const newEventData = {
+          ...eventData,
+          date: Timestamp.fromDate(eventData.date),
+          color: getRandomColor(),
+      };
+      
+      const eventsCollectionRef = collection(db, "events");
 
-        const docRef = await addDoc(collection(db, "events"), newEventData);
-
+      return addDoc(eventsCollectionRef, newEventData).then(async (docRef) => {
         await logAction({
             action: 'create',
             collectionName: 'events',
@@ -158,58 +161,69 @@ export default function DashboardPage() {
             userEmail: user.email,
             newData: { ...eventData, date: eventData.date.toISOString() },
         });
-
-      } else {
-        // Handle recurring events
-        const batch = writeBatch(db);
-        const eventsCollection = collection(db, "events");
-        let currentDate = new Date(eventData.date); // Use a new variable for iteration
-        const batchId = `recurring-${Date.now()}`;
-
-        for (let i = 0; i < repeatSettings.count; i++) {
-          const newEventRef = doc(eventsCollection);
-          const newEventData = {
-            ...eventData,
-            date: currentDate,
-            color: getRandomColor(),
-          };
-          batch.set(newEventRef, { ...newEventData, date: Timestamp.fromDate(currentDate) });
-
-           await logAction({
-                action: 'create',
-                collectionName: 'events',
-                documentId: newEventRef.id,
-                userEmail: user.email,
-                newData: { ...eventData, date: currentDate.toISOString() },
-                batchId: batchId
-            });
-
-          // Increment date for the next iteration
-          if (repeatSettings.frequency === 'daily') {
-            currentDate = add(currentDate, { days: 1 });
-          } else if (repeatSettings.frequency === 'weekly') {
-            currentDate = add(currentDate, { weeks: 1 });
-          } else if (repeatSettings.frequency === 'monthly') {
-            currentDate = add(currentDate, { months: 1 });
-          }
-        }
-        await batch.commit();
-      }
-
-      toast({
-        title: "Sucesso!",
-        description: `O evento ${repeatSettings ? 'e suas repetições foram adicionados' : 'foi adicionado'} à agenda.`,
+        toast({
+            title: "Sucesso!",
+            description: 'O evento foi adicionado à agenda.',
+        });
+      }).catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollectionRef.path,
+          operation: 'create',
+          requestResourceData: newEventData,
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError; // Re-throw to be caught by the form
       });
-    } catch (error: any) {
-       if (error.message !== "Duplicate event") {
-          console.error("Error adding event: ", error);
-          toast({
-            title: "Erro!",
-            description: "Não foi possível adicionar o evento.",
-            variant: "destructive",
+
+    } else {
+      // Handle recurring events
+      const batch = writeBatch(db);
+      const eventsCollection = collection(db, "events");
+      let currentDate = new Date(eventData.date); // Use a new variable for iteration
+      const batchId = `recurring-${Date.now()}`;
+
+      for (let i = 0; i < repeatSettings.count; i++) {
+        const newEventRef = doc(eventsCollection);
+        const newEventData = {
+          ...eventData,
+          date: currentDate,
+          color: getRandomColor(),
+        };
+        batch.set(newEventRef, { ...newEventData, date: Timestamp.fromDate(currentDate) });
+
+         await logAction({
+              action: 'create',
+              collectionName: 'events',
+              documentId: newEventRef.id,
+              userEmail: user.email,
+              newData: { ...eventData, date: currentDate.toISOString() },
+              batchId: batchId
           });
-       }
-      throw error; // Re-throw the error to be caught by the form
+
+        // Increment date for the next iteration
+        if (repeatSettings.frequency === 'daily') {
+          currentDate = add(currentDate, { days: 1 });
+        } else if (repeatSettings.frequency === 'weekly') {
+          currentDate = add(currentDate, { weeks: 1 });
+        } else if (repeatSettings.frequency === 'monthly') {
+          currentDate = add(currentDate, { months: 1 });
+        }
+      }
+      
+      return batch.commit().then(() => {
+        toast({
+          title: "Sucesso!",
+          description: 'O evento e suas repetições foram adicionados.',
+        });
+      }).catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollection.path,
+          operation: 'create',
+          requestResourceData: { note: "Batch write for recurring events" },
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError; // Re-throw to be caught by the form
+      });
     }
   };
 
@@ -218,37 +232,43 @@ export default function DashboardPage() {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
         return;
     }
+    
+    const eventRef = doc(db, "events", eventId);
+    
     try {
-      const eventRef = doc(db, "events", eventId);
-      const eventSnap = await getDoc(eventRef);
+        const eventSnap = await getDoc(eventRef);
 
-      if(eventSnap.exists()) {
-          const oldData = eventSnap.data();
-          const serializableOldData = {
-              ...oldData,
-              date: oldData.date.toDate().toISOString(),
-          };
-          await logAction({
-              action: 'delete',
-              collectionName: 'events',
-              documentId: eventId,
-              userEmail: user.email,
-              oldData: serializableOldData,
-          });
-      }
+        if(eventSnap.exists()) {
+            const oldData = eventSnap.data();
+            const serializableOldData = {
+                ...oldData,
+                date: oldData.date.toDate().toISOString(),
+            };
+            await logAction({
+                action: 'delete',
+                collectionName: 'events',
+                documentId: eventId,
+                userEmail: user.email,
+                oldData: serializableOldData,
+            });
+        }
 
-      await deleteDoc(doc(db, "events", eventId));
-      toast({
-        title: "Evento Excluído!",
-        description: "O evento foi removido da agenda.",
-      });
+        deleteDoc(eventRef).then(() => {
+            toast({
+                title: "Evento Excluído!",
+                description: "O evento foi removido da agenda.",
+            });
+        }).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: eventRef.path,
+                operation: 'delete',
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
     } catch (error) {
-      console.error("Error deleting event: ", error);
-      toast({
-        title: "Erro!",
-        description: "Não foi possível excluir o evento.",
-        variant: "destructive",
-      });
+        // This might catch errors from getDoc, although less likely to be a permission error
+        console.error("Error preparing to delete event: ", error);
+        toast({ title: "Erro", description: "Não foi possível preparar a exclusão do evento.", variant: "destructive" });
     }
   }, [toast, user]);
 
@@ -257,47 +277,56 @@ export default function DashboardPage() {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para editar um evento.", variant: "destructive" });
         throw new Error("User not authenticated");
     }
-    try {
-      const eventRef = doc(db, "events", eventId);
-      const eventSnap = await getDoc(eventRef);
-      
-      if(eventSnap.exists()) {
-        const oldData = eventSnap.data();
-        const serializableOldData = {
-          ...oldData,
-          date: oldData.date.toDate().toISOString(),
-        };
-        const serializableNewData = {
-          ...eventData,
-          date: eventData.date.toISOString(),
-        };
-
-        await logAction({
-            action: 'update',
-            collectionName: 'events',
-            documentId: eventId,
-            userEmail: user.email,
-            oldData: serializableOldData,
-            newData: serializableNewData,
-        });
-      }
-      
-      await updateDoc(eventRef, {
+    
+    const eventRef = doc(db, "events", eventId);
+    const updatedData = {
         ...eventData,
-        date: Timestamp.fromDate(eventData.date), // Convert to Timestamp
-      });
-      toast({
-        title: "Sucesso!",
-        description: "O evento foi atualizado.",
-      });
+        date: Timestamp.fromDate(eventData.date),
+    };
+
+    try {
+        const eventSnap = await getDoc(eventRef);
+        
+        if(eventSnap.exists()) {
+          const oldData = eventSnap.data();
+          const serializableOldData = {
+            ...oldData,
+            date: oldData.date.toDate().toISOString(),
+          };
+          const serializableNewData = {
+            ...eventData,
+            date: eventData.date.toISOString(),
+          };
+
+          await logAction({
+              action: 'update',
+              collectionName: 'events',
+              documentId: eventId,
+              userEmail: user.email,
+              oldData: serializableOldData,
+              newData: serializableNewData,
+          });
+        }
+        
+        return updateDoc(eventRef, updatedData).then(() => {
+          toast({
+            title: "Sucesso!",
+            description: "O evento foi atualizado.",
+          });
+        }).catch((serverError) => {
+           const permissionError = new FirestorePermissionError({
+              path: eventRef.path,
+              operation: 'update',
+              requestResourceData: updatedData,
+           } satisfies SecurityRuleContext);
+           errorEmitter.emit('permission-error', permissionError);
+           throw serverError; // Re-throw to be caught by the form
+        });
+
     } catch (error) {
-      console.error("Error updating event: ", error);
-      toast({
-        title: "Erro!",
-        description: "Não foi possível atualizar o evento.",
-        variant: "destructive",
-      });
-      throw error; // Re-throw to be caught by the form
+        console.error("Error preparing to update event: ", error);
+        toast({ title: "Erro", description: "Não foi possível preparar a atualização do evento.", variant: "destructive" });
+        throw error; // Re-throw to be caught by the form
     }
   }, [toast, user]);
 
@@ -434,3 +463,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
