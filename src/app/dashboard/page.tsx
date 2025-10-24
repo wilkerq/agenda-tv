@@ -88,6 +88,7 @@ export default function DashboardPage() {
       const eventsData = snapshot.docs.map(doc => {
         const data = doc.data();
         const eventDate = (data.date as Timestamp).toDate();
+        const isTravel = data.transmission?.includes('viagem');
         return {
           id: doc.id,
           name: data.name,
@@ -95,7 +96,7 @@ export default function DashboardPage() {
           transmission: data.transmission,
           pauta: data.pauta,
           date: eventDate,
-          color: data.color || getRandomColor(),
+          color: isTravel ? '#dc2626' : data.color || getRandomColor(),
           transmissionOperator: data.transmissionOperator,
           cinematographicReporter: data.cinematographicReporter,
           reporter: data.reporter,
@@ -143,17 +144,18 @@ export default function DashboardPage() {
 
 
     const userEmail = user.email; // Capture user email
+    const isTravel = eventData.transmission?.includes('viagem');
 
     if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         const newEventData = {
             ...eventData,
             date: Timestamp.fromDate(eventData.date),
-            color: getRandomColor(),
+            color: isTravel ? '#dc2626' : getRandomColor(),
         };
 
         const eventsCollectionRef = collection(db, "events");
 
-        return addDoc(eventsCollectionRef, newEventData)
+        addDoc(eventsCollectionRef, newEventData)
             .then(docRef => {
                 const serializableData = {
                     ...eventData,
@@ -193,7 +195,7 @@ export default function DashboardPage() {
             const newEventData = {
                 ...eventData,
                 date: Timestamp.fromDate(currentDate),
-                color: getRandomColor(),
+                color: isTravel ? '#dc2626' : getRandomColor(),
             };
             batch.set(newEventRef, newEventData);
 
@@ -219,7 +221,7 @@ export default function DashboardPage() {
             }
         }
         
-        return Promise.all(logPromises)
+        Promise.all(logPromises)
             .then(() => batch.commit())
             .then(() => {
                 toast({
@@ -248,12 +250,11 @@ export default function DashboardPage() {
     const eventRef = doc(db, "events", eventId);
     const userEmail = user.email;
     
-    try {
-        const eventSnap = await getDoc(eventRef);
-        const oldData = eventSnap.exists() ? eventSnap.data() : null;
+    const eventSnap = await getDoc(eventRef);
+    const oldData = eventSnap.exists() ? eventSnap.data() : null;
 
-        await deleteDoc(eventRef);
-        
+    deleteDoc(eventRef)
+      .then(async () => {
         if (oldData) {
             const serializableOldData = {
                 ...oldData,
@@ -272,14 +273,14 @@ export default function DashboardPage() {
             title: "Evento Excluído!",
             description: "O evento foi removido da agenda.",
         });
-
-    } catch (serverError) {
+      })
+      .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
             path: eventRef.path,
             operation: 'delete',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-    }
+    });
   }, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
@@ -290,26 +291,27 @@ export default function DashboardPage() {
     
     const eventRef = doc(db, "events", eventId);
     const userEmail = user.email;
+    const isTravel = eventData.transmission?.includes('viagem');
 
-    try {
-        const eventSnap = await getDoc(eventRef);
-        if (!eventSnap.exists()) {
-            throw new Error("Event not found");
-        }
-        
-        const oldData = eventSnap.data();
-        const serializableOldData = {
-            ...oldData,
-            date: (oldData.date as Timestamp).toDate().toISOString(),
-        };
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) {
+        throw new Error("Event not found");
+    }
+    
+    const oldData = eventSnap.data();
+    const serializableOldData = {
+        ...oldData,
+        date: (oldData.date as Timestamp).toDate().toISOString(),
+    };
 
-        const updatedData = {
-            ...eventData,
-            date: Timestamp.fromDate(eventData.date),
-        };
-        
-        await updateDoc(eventRef, updatedData);
-
+    const updatedData = {
+        ...eventData,
+        date: Timestamp.fromDate(eventData.date),
+        color: isTravel ? '#dc2626' : oldData.color || getRandomColor(),
+    };
+    
+    updateDoc(eventRef, updatedData)
+      .then(async () => {
         const serializableNewData = {
             ...eventData,
             date: eventData.date.toISOString(),
@@ -328,7 +330,8 @@ export default function DashboardPage() {
             title: "Sucesso!",
             description: "O evento foi atualizado.",
         });
-    } catch (serverError) {
+      })
+      .catch((serverError) => {
        const permissionError = new FirestorePermissionError({
           path: eventRef.path,
           operation: 'update',
@@ -336,7 +339,7 @@ export default function DashboardPage() {
        } satisfies SecurityRuleContext);
        errorEmitter.emit('permission-error', permissionError);
        throw serverError; // Re-throw to be caught by the form
-    }
+    });
   }, [toast, user]);
 
 
