@@ -14,7 +14,6 @@ import {
   Home,
   Share2,
   ListTodo,
-  Import,
   Users,
   Tv,
   History,
@@ -83,7 +82,6 @@ export default function DashboardLayout({
     { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
-    { href: "/dashboard/import", label: "Importar Agenda", icon: Import },
     { href: "/dashboard/logs", label: "Logs de Auditoria", icon: History },
   ];
 
