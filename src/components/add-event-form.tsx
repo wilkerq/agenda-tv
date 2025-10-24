@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Sparkles } from "lucide-react";
 import * as React from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, Operator } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { suggestOperator } from "@/ai/flows/suggest-operator-flow";
 import { useToast } from "@/hooks/use-toast";
@@ -92,6 +91,13 @@ type Personnel = {
   name: string;
 };
 
+type ProductionPersonnel = {
+  id: string;
+  name: string;
+  isReporter: boolean;
+  isProducer: boolean;
+};
+
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
@@ -99,29 +105,31 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
-  const [reporters, setReporters] = React.useState<Personnel[]>([]);
-  const [producers, setProducers] = React.useState<Personnel[]>([]);
+  const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
+
+  const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
+  const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
+
 
   React.useEffect(() => {
-    const collections = {
-      'transmission_operators': setTransmissionOperators,
-      'cinematographic_reporters': setCinematographicReporters,
-      'reporters': setReporters,
-      'producers': setProducers
-    };
-
-    const unsubscribers = Object.entries(collections).map(([collectionName, setter]) => {
-      const q = query(collection(db, collectionName));
-      return onSnapshot(q, (querySnapshot) => {
-        const personnel: Personnel[] = [];
-        querySnapshot.forEach((doc) => {
-          personnel.push({ id: doc.id, name: (doc.data() as { name: string }).name });
-        });
-        setter(personnel.sort((a, b) => a.name.localeCompare(b.name)));
-      });
+    const unsub1 = onSnapshot(query(collection(db, 'transmission_operators')), (snapshot) => {
+        const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+        setTransmissionOperators(data.sort((a,b) => a.name.localeCompare(b.name)));
+    });
+    const unsub2 = onSnapshot(query(collection(db, 'cinematographic_reporters')), (snapshot) => {
+        const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+        setCinematographicReporters(data.sort((a,b) => a.name.localeCompare(b.name)));
+    });
+    const unsub3 = onSnapshot(query(collection(db, 'production_personnel')), (snapshot) => {
+        const data: ProductionPersonnel[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductionPersonnel));
+        setProductionPersonnel(data.sort((a,b) => a.name.localeCompare(b.name)));
     });
 
-    return () => unsubscribers.forEach(unsub => unsub());
+    return () => {
+        unsub1();
+        unsub2();
+        unsub3();
+    };
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -607,5 +615,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
-
-    
