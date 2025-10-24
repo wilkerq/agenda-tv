@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSameDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle, Sparkles } from "lucide-react";
+import { PlusCircle, Sparkles, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
@@ -396,7 +396,7 @@ export default function DashboardPage() {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
                <CardDescription>
-                Ao preencher os campos de data, hora e local, a IA sugerirá o operador de transmissão mais adequado.
+                Preencha os campos de data, hora e local, depois use o botão "Sugerir Equipe" para preencher a equipe.
               </CardDescription>
             </DialogHeader>
             <div className="py-4">
@@ -487,3 +487,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
