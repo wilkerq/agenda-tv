@@ -10,8 +10,8 @@ interface LogActionParams {
     collectionName: string;
     documentId: string;
     userEmail: string;
-    newData?: string; // Expect serialized JSON string
-    oldData?: string; // Expect serialized JSON string
+    newData?: object;
+    oldData?: object;
     batchId?: string;
 }
 
@@ -30,16 +30,14 @@ export const logAction = async ({
             collectionName,
             documentId,
             userEmail,
-            timestamp: Timestamp.fromDate(new Date()),
+            timestamp: Timestamp.now(),
         };
 
         if (oldData) {
-            // Parse the data on the server
-            logData.before = JSON.parse(oldData);
+            logData.before = oldData;
         }
         if (newData) {
-            // Parse the data on the server
-            logData.after = JSON.parse(newData);
+            logData.after = newData;
         }
         if (batchId) {
             logData.batchId = batchId;
@@ -53,3 +51,5 @@ export const logAction = async ({
         console.error("Failed log data:", JSON.stringify({ action, collectionName, documentId, userEmail, batchId }, null, 2));
     }
 };
+
+    

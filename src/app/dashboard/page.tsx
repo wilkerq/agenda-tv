@@ -34,25 +34,6 @@ const getEventStatus = (date: Date): EventStatus => {
   return date < new Date() ? 'Concluído' : 'Agendado';
 }
 
-// Function to convert complex objects to a serializable format for server actions
-const serializeForServer = (data: any): string => {
-    if (data === null || data === undefined) return JSON.stringify(data);
-    
-    // Create a deep copy to avoid modifying original objects
-    const replacer = (key: string, value: any) => {
-        if (value instanceof Timestamp) {
-            return value.toDate().toISOString();
-        }
-        if (value instanceof Date) {
-            return value.toISOString();
-        }
-        return value;
-    };
-
-    return JSON.stringify(data, replacer);
-};
-
-
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,7 +156,7 @@ export default function DashboardPage() {
             collectionName: 'events',
             documentId: docRef.id,
             userEmail: user.email,
-            newData: serializeForServer(newEventData),
+            newData: { ...eventData, date: eventData.date.toISOString() },
         });
 
       } else {
@@ -199,7 +180,7 @@ export default function DashboardPage() {
                 collectionName: 'events',
                 documentId: newEventRef.id,
                 userEmail: user.email,
-                newData: serializeForServer(newEventData),
+                newData: { ...eventData, date: currentDate.toISOString() },
                 batchId: batchId
             });
 
@@ -248,7 +229,7 @@ export default function DashboardPage() {
               collectionName: 'events',
               documentId: eventId,
               userEmail: user.email,
-              oldData: serializeForServer(oldData),
+              oldData: { ...oldData, date: oldData.date.toDate().toISOString() },
           });
       }
 
@@ -288,8 +269,8 @@ export default function DashboardPage() {
             collectionName: 'events',
             documentId: eventId,
             userEmail: user.email,
-            oldData: serializeForServer(oldData),
-            newData: serializeForServer(updatedData),
+            oldData: { ...oldData, date: oldData.date.toDate().toISOString() },
+            newData: { ...eventData, date: eventData.date.toISOString() },
         });
       }
       
@@ -445,5 +426,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
