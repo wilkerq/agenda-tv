@@ -46,7 +46,7 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError; // Re-throw to stop execution
+        throw serverError;
     }
 };
 
@@ -67,7 +67,7 @@ const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError; // Re-throw to stop execution
+        throw serverError;
     }
 }
 
@@ -95,7 +95,7 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError; // Re-throw to stop execution
+        throw serverError;
     }
 };
 
