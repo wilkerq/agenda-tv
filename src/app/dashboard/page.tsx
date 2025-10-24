@@ -24,6 +24,7 @@ import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 
 const getEventTurn = (date: Date): EventTurn => {
@@ -37,6 +38,11 @@ const getEventStatus = (date: Date): EventStatus => {
   return date < new Date() ? 'Concluído' : 'Agendado';
 }
 
+type PendingEvent = {
+    data: EventFormData;
+    repeatSettings?: RepeatSettings;
+}
+
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +54,9 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null);
+  const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
 
   useEffect(() => {
     // Set the initial date on the client side to avoid hydration mismatch
@@ -122,30 +131,13 @@ export default function DashboardPage() {
   }, [selectedDate, user, toast]);
 
 
- const handleAddEvent = async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    if (!user || !user.email) throw new Error("Usuário não autenticado.");
-    
-    // --- DUPLICATION CHECK (In-memory) ---
-    if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
-      const conflictingEvent = events.find(existingEvent => 
-          existingEvent.name === eventData.name &&
-          Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
-      );
-
-      if (conflictingEvent) {
-        toast({
-          title: "Evento Duplicado Encontrado",
-          description: `Um evento chamado "${eventData.name}" já está agendado para um horário próximo neste dia.`,
-          variant: "destructive",
-        });
-        // Throw an error to stop execution and indicate failure to the form
-        throw new Error("Duplicate event");
-      }
+ const confirmAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
+    if (!user || !user.email) {
+        toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para adicionar um evento.", variant: "destructive" });
+        throw new Error("User not authenticated");
     }
-    // --- END DUPLICATION CHECK ---
 
-
-    const userEmail = user.email; // Capture user email
+    const userEmail = user.email;
     const isTravel = eventData.transmission?.includes('viagem');
 
     if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
@@ -159,93 +151,84 @@ export default function DashboardPage() {
 
         const eventsCollectionRef = collection(db, "events");
 
-        addDoc(eventsCollectionRef, newEventData)
-            .then(docRef => {
-                const serializableData = {
-                    ...eventData,
-                    date: eventData.date.toISOString(),
-                    departure: eventData.departure?.toISOString(),
-                    arrival: eventData.arrival?.toISOString(),
-                };
-                logAction({
-                    action: 'create',
-                    collectionName: 'events',
-                    documentId: docRef.id,
-                    userEmail: userEmail,
-                    newData: serializableData,
-                });
-                toast({
-                    title: "Sucesso!",
-                    description: 'O evento foi adicionado à agenda.',
-                });
-            })
-            .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: eventsCollectionRef.path,
-                    operation: 'create',
-                    requestResourceData: newEventData,
-                } satisfies SecurityRuleContext);
-                errorEmitter.emit('permission-error', permissionError);
-                throw serverError; // Re-throw to be caught by the form
+        try {
+            const docRef = await addDoc(eventsCollectionRef, newEventData);
+            const serializableData = {
+                ...eventData,
+                date: eventData.date.toISOString(),
+                departure: eventData.departure?.toISOString(),
+                arrival: eventData.arrival?.toISOString(),
+            };
+            await logAction({
+                action: 'create',
+                collectionName: 'events',
+                documentId: docRef.id,
+                userEmail: userEmail,
+                newData: serializableData,
             });
+            toast({ title: "Sucesso!", description: 'O evento foi adicionado à agenda.' });
+        } catch (serverError: any) {
+            const permissionError = new FirestorePermissionError({
+                path: eventsCollectionRef.path,
+                operation: 'create',
+                requestResourceData: newEventData,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+        }
     } else {
         const batch = writeBatch(db);
         const eventsCollection = collection(db, "events");
         let currentDate = new Date(eventData.date);
         const batchId = `recurring-${Date.now()}`;
-
         const logPromises: Promise<void>[] = [];
 
         for (let i = 0; i < repeatSettings.count; i++) {
             const newEventRef = doc(eventsCollection);
-            const newEventData = {
-                ...eventData,
-                date: Timestamp.fromDate(currentDate),
-                color: isTravel ? '#dc2626' : getRandomColor(),
-            };
+            const newEventData = { ...eventData, date: Timestamp.fromDate(currentDate), color: isTravel ? '#dc2626' : getRandomColor() };
             batch.set(newEventRef, newEventData);
 
-            const serializableData = {
-                ...eventData,
-                date: currentDate.toISOString(),
-            };
-            logPromises.push(logAction({
-                action: 'create',
-                collectionName: 'events',
-                documentId: newEventRef.id,
-                userEmail: userEmail,
-                newData: serializableData,
-                batchId: batchId
-            }));
+            const serializableData = { ...eventData, date: currentDate.toISOString() };
+            logPromises.push(logAction({ action: 'create', collectionName: 'events', documentId: newEventRef.id, userEmail: userEmail, newData: serializableData, batchId }));
 
-            if (repeatSettings.frequency === 'daily') {
-                currentDate = add(currentDate, { days: 1 });
-            } else if (repeatSettings.frequency === 'weekly') {
-                currentDate = add(currentDate, { weeks: 1 });
-            } else if (repeatSettings.frequency === 'monthly') {
-                currentDate = add(currentDate, { months: 1 });
-            }
+            if (repeatSettings.frequency === 'daily') currentDate = add(currentDate, { days: 1 });
+            else if (repeatSettings.frequency === 'weekly') currentDate = add(currentDate, { weeks: 1 });
+            else if (repeatSettings.frequency === 'monthly') currentDate = add(currentDate, { months: 1 });
         }
-        
-        Promise.all(logPromises)
-            .then(() => batch.commit())
-            .then(() => {
-                toast({
-                    title: "Sucesso!",
-                    description: 'O evento e suas repetições foram adicionados.',
-                });
-            })
-            .catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: eventsCollection.path,
-                    operation: 'create',
-                    requestResourceData: { note: "Batch write for recurring events" },
-                } satisfies SecurityRuleContext);
-                errorEmitter.emit('permission-error', permissionError);
-                throw serverError; // Re-throw to be caught by the form
-            });
+
+        try {
+            await Promise.all(logPromises);
+            await batch.commit();
+            toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
+        } catch (serverError: any) {
+            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+        }
     }
-};
+}, [user, toast]);
+
+const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
+    // Duplication check
+    if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
+        const conflictingEvent = events.find(existingEvent =>
+            existingEvent.name === eventData.name &&
+            Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
+        );
+
+        if (conflictingEvent) {
+            setPendingEvent({ data: eventData, repeatSettings });
+            setIsConflictDialogOpen(true);
+            // Don't throw error here, just stop execution and wait for dialog
+            return; 
+        }
+    }
+
+    // If no conflict, proceed directly
+    await confirmAddEvent(eventData, repeatSettings);
+
+}, [selectedDate, events, confirmAddEvent]);
+
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
     if (!user || !user.email) {
@@ -376,6 +359,24 @@ export default function DashboardPage() {
     setPreloadedEventData(undefined); // Clear preloaded data
   };
 
+  const onConfirmConflict = async () => {
+    if (pendingEvent) {
+      await confirmAddEvent(pendingEvent.data, pendingEvent.repeatSettings);
+    }
+    setIsConflictDialogOpen(false);
+    setPendingEvent(null);
+  };
+
+  const onCancelConflict = () => {
+    setIsConflictDialogOpen(false);
+    setPendingEvent(null);
+    toast({
+        title: "Criação Cancelada",
+        description: "O evento não foi adicionado.",
+        variant: "default"
+    });
+  };
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -484,6 +485,22 @@ export default function DashboardPage() {
           onClose={handleCloseEditModal}
         />
       )}
+
+      <AlertDialog open={isConflictDialogOpen} onOpenChange={setIsConflictDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Evento Similar Encontrado</AlertDialogTitle>
+            <AlertDialogDescription>
+                Um evento com nome e horário parecidos já existe neste dia. Deseja continuar mesmo assim?
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={onCancelConflict}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirmConflict}>Continuar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

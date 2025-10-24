@@ -234,7 +234,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
                 variant: "default",
             });
         }
@@ -305,6 +305,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           count: values.repeatCount!,
       } : undefined;
 
+      // The parent component now handles the dialog for duplicates.
       await onAddEvent(eventData, repeatSettings);
       
       form.reset({
@@ -331,9 +332,16 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           onSuccess();
       }
 
-    } catch (error) {
-        // Error is handled by the parent component's toast.
-        // The form submission state is reset in the finally block.
+    } catch (error: any) {
+        // Parent component's toast will be shown via the dialog flow.
+        // Only show toast here for other types of errors.
+        if (error.message !== 'Duplicate event confirmation pending') {
+             toast({
+                title: "Erro ao Adicionar Evento",
+                description: "Não foi possível salvar o evento. Verifique os dados e tente novamente.",
+                variant: "destructive"
+            });
+        }
         console.error("Failed to submit event:", error);
     } finally {
         setIsSubmitting(false);
