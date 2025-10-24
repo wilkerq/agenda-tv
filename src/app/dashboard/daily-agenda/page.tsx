@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, CalendarSearch } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 export default function DailyAgendaPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -35,15 +37,24 @@ export default function DailyAgendaPage() {
     try {
       const startOfSelectedDay = startOfDay(selectedDate);
       const endOfSelectedDay = endOfDay(selectedDate);
-
+      
+      const eventsCollectionRef = collection(db, "events");
       const q = query(
-        collection(db, "events"),
+        eventsCollectionRef,
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
         where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
         orderBy("date", "asc")
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError; // Prevent further execution
+      });
+
       const fetchedEvents = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -57,11 +68,14 @@ export default function DailyAgendaPage() {
 
     } catch (error) {
       console.error("Error fetching events: ", error);
-      toast({
-        title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a agenda do dia. Verifique o console para mais detalhes.",
-        variant: "destructive",
-      });
+      // Toast is now handled by the FirebaseErrorListener for permission errors
+      if (!(error instanceof FirestorePermissionError)) {
+        toast({
+          title: "Erro ao buscar eventos",
+          description: "Não foi possível carregar a agenda do dia. Verifique o console para mais detalhes.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsFetchingEvents(false);
     }

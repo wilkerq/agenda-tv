@@ -9,6 +9,8 @@ import { getHours } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { PanelCalendar } from "@/components/panel-calendar";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -52,8 +54,13 @@ export default function PanelPage() {
       });
       setEvents(eventsData);
       setLoading(false);
-    }, (error) => {
-      console.error("Error fetching events: ", error);
+    }, (serverError) => {
+      console.error("Error fetching events: ", serverError);
+       const permissionError = new FirestorePermissionError({
+        path: eventsCollection.path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
       setLoading(false);
     });
 

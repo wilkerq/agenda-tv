@@ -14,6 +14,8 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -67,8 +69,13 @@ export default function HomePage() {
       });
       setEvents(eventsData);
       setLoading(false);
-    }, (error) => {
-      console.error("Error fetching events: ", error);
+    }, (serverError) => {
+      console.error("Error fetching events: ", serverError);
+       const permissionError = new FirestorePermissionError({
+        path: eventsCollection.path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
       setLoading(false);
     });
 

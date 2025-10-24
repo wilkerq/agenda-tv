@@ -5,6 +5,9 @@ import { collection, getDocs, query, where, Timestamp } from "firebase/firestore
 import { db } from './firebase';
 import { startOfDay, endOfDay, getDay } from 'date-fns';
 import type { TransmissionType } from "./types";
+import { errorEmitter } from './error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from './errors';
+
 
 interface SuggestTeamParams {
     date: string;
@@ -30,7 +33,14 @@ interface ProductionPersonnel extends Personnel {
  */
 const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
     const personnelCollection = collection(db, collectionName);
-    const snapshot = await getDocs(query(personnelCollection));
+    const snapshot = await getDocs(query(personnelCollection)).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: personnelCollection.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+    });
     return snapshot.docs.map(doc => ({
         id: doc.id,
         name: doc.data().name as string,
@@ -40,7 +50,14 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
 
 const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
      const personnelCollection = collection(db, 'production_personnel');
-    const snapshot = await getDocs(query(personnelCollection));
+    const snapshot = await getDocs(query(personnelCollection)).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: personnelCollection.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+    });
     return snapshot.docs.map(doc => ({
         id: doc.id,
         name: doc.data().name as string,
@@ -65,7 +82,14 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end))
     );
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(q).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollection.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+    });
     return querySnapshot.docs.map(doc => doc.data());
 };
 

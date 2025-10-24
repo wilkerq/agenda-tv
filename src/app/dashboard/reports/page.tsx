@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import 'jspdf-autotable';
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 type OperatorReport = {
   count: number;
@@ -115,9 +117,10 @@ export default function ReportsPage() {
             newLocationReport[event.location] = (newLocationReport[event.location] || 0) + 1;
         }
 
-        if (event.transmission === 'youtube') {
+        if (event.transmission.includes('youtube')) {
             newTransmissionReport.youtube++;
-        } else if (event.transmission === 'tv') {
+        } 
+        if (event.transmission.includes('tv')) {
             newTransmissionReport.tv++;
         }
       });
@@ -129,13 +132,12 @@ export default function ReportsPage() {
       setTransmissionReport(newTransmissionReport);
       setLoading(false);
       setSummary(null); // Reset summary when filters change
-    }, (error) => {
-        console.error("Error fetching reports: ", error);
-        toast({
-            title: "Erro ao carregar relatórios",
-            description: "Não foi possível buscar os dados dos eventos.",
-            variant: "destructive"
-        });
+    }, (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollection.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
         setLoading(false);
     });
 

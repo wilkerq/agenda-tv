@@ -14,6 +14,8 @@ import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event, Operator } from '@/lib/types';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';
 
 
 const SendDailyAgendaOutputSchema = z.object({
@@ -45,7 +47,16 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     const allPersonnel: { name: string, phone?: string }[] = [];
     
     for (const coll of personnelCollections) {
-        const personnelSnapshot = await getDocs(collection(db, coll));
+        const personnelCollectionRef = collection(db, coll);
+        const personnelSnapshot = await getDocs(personnelCollectionRef).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: personnelCollectionRef.path,
+                operation: 'list',
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
+        });
+
         personnelSnapshot.forEach(doc => {
             const data = doc.data();
             // Ensure no duplicates by name
@@ -69,8 +80,9 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       return { success: true, messagesSent: 0, errors: [] };
     }
 
+    const eventsCollectionRef = collection(db, "events");
     const eventsQuery = query(
-        collection(db, "events"),
+        eventsCollectionRef,
         and(
             where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
             where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
@@ -84,7 +96,14 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         orderBy("date", "asc")
     );
 
-    const eventsSnapshot = await getDocs(eventsQuery);
+    const eventsSnapshot = await getDocs(eventsQuery).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: eventsCollectionRef.path,
+            operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+    });
 
     // 3. Group events by personnel
     eventsSnapshot.docs.forEach(doc => {
@@ -146,7 +165,8 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     }
 
     // 5. Log the result of the automatic execution
-    await addDoc(collection(db, 'audit_logs'), {
+    const logCollectionRef = collection(db, 'audit_logs');
+    const logData = {
       action: 'automatic-send',
       collectionName: 'system',
       documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,
@@ -157,7 +177,16 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         errors,
         targetDate: format(tomorrow, 'yyyy-MM-dd'),
       },
-    });
+    };
+    addDoc(logCollectionRef, logData)
+        .catch(serverError => {
+             const permissionError = new FirestorePermissionError({
+                path: logCollectionRef.path,
+                operation: 'create',
+                requestResourceData: logData,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
 
     return {

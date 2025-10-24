@@ -15,6 +15,8 @@ import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { sendDailyAgendaToAll } from "@/ai/flows/send-daily-agenda-to-all-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 interface EventsByOperator {
   [operatorName: string]: Event[];
@@ -46,14 +48,23 @@ export default function ShareSchedulePage() {
       const startOfSelectedDay = startOfDay(selectedDate);
       const endOfSelectedDay = endOfDay(selectedDate);
 
+      const eventsCollectionRef = collection(db, "events");
       const q = query(
-        collection(db, "events"),
+        eventsCollectionRef,
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
         where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
         orderBy("date", "asc")
       );
 
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+      });
+
       const fetchedEvents = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -78,11 +89,13 @@ export default function ShareSchedulePage() {
 
     } catch (error) {
       console.error("Error fetching events: ", error);
-      toast({
-        title: "Erro ao buscar eventos",
-        description: "Não foi possível carregar a agenda. Verifique o console.",
-        variant: "destructive",
-      });
+      if (!(error instanceof FirestorePermissionError)) {
+          toast({
+            title: "Erro ao buscar eventos",
+            description: "Não foi possível carregar a agenda. Verifique o console.",
+            variant: "destructive",
+          });
+      }
     } finally {
       setIsFetchingEvents(false);
     }
