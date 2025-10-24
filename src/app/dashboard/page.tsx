@@ -108,7 +108,7 @@ export default function DashboardPage() {
       setLoading(false);
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: q.path,
+            path: eventsCollection.path,
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -472,5 +472,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
