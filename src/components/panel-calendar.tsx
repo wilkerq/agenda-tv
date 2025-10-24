@@ -60,7 +60,7 @@ export function PanelCalendar({ events }: PanelCalendarProps) {
               <ChevronRight className="h-6 w-6" />
             </Button>
           </div>
-          <Button onClick={goToToday} variant="outline" className='bg-slate-700 border-slate-600 hover:bg-slate-600'>
+          <Button onClick={goToToday} variant="outline">
             <CalendarIcon className='mr-2 h-4 w-4' /> Hoje
           </Button>
         </div>
