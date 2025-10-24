@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, FC } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query } from "firebase/firestore";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query, CollectionReference, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,7 +65,8 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   });
 
   useEffect(() => {
-    const q = query(collection(db, collectionName));
+    const personnelCollectionRef = collection(db, collectionName);
+    const q = query(personnelCollectionRef);
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedPersonnel: Personnel[] = [];
       querySnapshot.forEach((doc) => {
@@ -75,7 +76,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: q.path,
+        path: personnelCollectionRef.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -319,7 +320,8 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
   });
 
   useEffect(() => {
-    const q = query(collection(db, collectionName));
+    const personnelCollectionRef = collection(db, collectionName);
+    const q = query(personnelCollectionRef);
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const fetchedPersonnel: ProductionPersonnel[] = [];
       querySnapshot.forEach((doc) => {
@@ -329,7 +331,7 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: q.path,
+        path: personnelCollectionRef.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
