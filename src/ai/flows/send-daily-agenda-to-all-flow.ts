@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, getDocs, query, where, Timestamp, orderBy, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp, orderBy, addDoc, or } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -40,9 +40,20 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     outputSchema: SendDailyAgendaOutputSchema,
   },
   async (input) => {
-    const operatorsCollection = collection(db, 'transmission_operators');
-    const operatorsSnapshot = await getDocs(operatorsCollection);
-    const operators = operatorsSnapshot.docs.map(doc => doc.data() as Operator);
+    // 1. Fetch all personnel from all relevant collections
+    const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
+    const allPersonnel: { name: string, phone?: string }[] = [];
+    
+    for (const coll of personnelCollections) {
+        const personnelSnapshot = await getDocs(collection(db, coll));
+        personnelSnapshot.forEach(doc => {
+            const data = doc.data();
+            // Ensure no duplicates by name
+            if (data.name && !allPersonnel.some(p => p.name === data.name)) {
+                 allPersonnel.push({ name: data.name, phone: data.phone });
+            }
+        });
+    }
 
     const tomorrow = addDays(new Date(), 1);
     const startOfTomorrow = startOfDay(tomorrow);
@@ -50,53 +61,86 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
 
     let messagesSent = 0;
     const errors: string[] = [];
+    const personnelWithEvents: { [key: string]: { phone?: string, events: Event[] } } = {};
+    
+    // 2. Find all events for tomorrow for any person
+    const personnelNames = allPersonnel.map(p => p.name);
+    if(personnelNames.length === 0) {
+      return { success: true, messagesSent: 0, errors: [] };
+    }
 
-    for (const operator of operators) {
-      if (!operator.phone) continue; // Skip if operator has no phone number
+    const eventsQuery = query(
+        collection(db, "events"),
+        where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
+        where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
+        or(
+            where("transmissionOperator", "in", personnelNames),
+            where("cinematographicReporter", "in", personnelNames),
+            where("reporter", "in", personnelNames),
+            where("producer", "in", personnelNames)
+        ),
+        orderBy("date", "asc")
+    );
+
+    const eventsSnapshot = await getDocs(eventsQuery);
+
+    // 3. Group events by personnel
+    eventsSnapshot.docs.forEach(doc => {
+        const event = {
+            id: doc.id,
+            ...doc.data(),
+            date: (doc.data().date as Timestamp).toDate(),
+        } as Event;
+
+        const involvedPersonnel = new Set([
+            event.transmissionOperator,
+            event.cinematographicReporter,
+            event.reporter,
+            event.producer,
+        ]);
+
+        involvedPersonnel.forEach(personName => {
+            if (personName) {
+                if (!personnelWithEvents[personName]) {
+                    personnelWithEvents[personName] = { 
+                        phone: allPersonnel.find(p => p.name === personName)?.phone,
+                        events: [] 
+                    };
+                }
+                personnelWithEvents[personName].events.push(event);
+            }
+        });
+    });
+
+    // 4. Send messages to each person with events
+    const personnelToSend = Object.keys(personnelWithEvents);
+    for (const personName of personnelToSend) {
+      const data = personnelWithEvents[personName];
+      if (!data.phone) continue; // Skip if person has no phone number
 
       try {
-        const eventsQuery = query(
-          collection(db, "events"),
-          where("transmissionOperator", "==", operator.name),
-          where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
-          where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
-          orderBy("date", "asc")
-        );
-
-        const eventsSnapshot = await getDocs(eventsQuery);
+        const eventStrings = data.events.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
         
-        const operatorEvents: Event[] = eventsSnapshot.docs.map(doc => {
-            const data = doc.data() as Omit<Event, 'id' | 'date'> & { date: Timestamp };
-            return {
-                id: doc.id,
-                ...data,
-                date: data.date.toDate(),
-            };
+        await generateWhatsAppMessage({
+          operatorName: personName,
+          scheduleDate: format(tomorrow, "PPPP", { locale: ptBR }),
+          events: eventStrings,
+          operatorPhone: data.phone.replace(/\D/g, ''),
         });
-
-        if (operatorEvents.length > 0) {
-          const eventStrings = operatorEvents.map(e => `- ${format(e.date, "HH:mm")}h: ${e.name} (${e.location})`);
-          
-          await generateWhatsAppMessage({
-            operatorName: operator.name,
-            scheduleDate: format(tomorrow, "PPPP", { locale: ptBR }),
-            events: eventStrings,
-            operatorPhone: operator.phone.replace(/\D/g, ''),
-          });
-          messagesSent++;
-          
-          // Wait for 30 seconds before sending the next message
-          if (operators.indexOf(operator) < operators.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 30000));
-          }
+        messagesSent++;
+        
+        // Wait for 30 seconds before sending the next message
+        if (personnelToSend.indexOf(personName) < personnelToSend.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 30000));
         }
+
       } catch (error) {
-        console.error(`Failed to send agenda to ${operator.name}:`, error);
-        errors.push(operator.name);
+        console.error(`Failed to send agenda to ${personName}:`, error);
+        errors.push(personName);
       }
     }
 
-    // Log the result of the automatic execution
+    // 5. Log the result of the automatic execution
     await addDoc(collection(db, 'audit_logs'), {
       action: 'automatic-send',
       collectionName: 'system',
