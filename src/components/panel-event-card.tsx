@@ -2,20 +2,21 @@
 import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard, MapPin, Clock } from 'lucide-react';
+import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard, MapPin, Clock, Plane } from 'lucide-react';
 
 type PanelEventCardProps = {
   event: Event;
 };
 
 const renderTransmissionIcon = (transmission: Event['transmission']) => {
-  if (transmission === 'tv') {
-    return <Tv className="h-4 w-4 text-blue-400" />;
-  }
-  if (transmission === 'pauta') {
-    return <Newspaper className="h-4 w-4 text-slate-400" />;
-  }
-  return <Youtube className="h-4 w-4 text-red-500" />;
+  return (
+    <div className="flex items-center gap-1">
+      {transmission.includes('tv') && <Tv className="h-4 w-4 text-blue-400" />}
+      {transmission.includes('youtube') && <Youtube className="h-4 w-4 text-red-500" />}
+      {transmission.includes('pauta') && <Newspaper className="h-4 w-4 text-slate-400" />}
+      {transmission.includes('viagem') && <Plane className="h-4 w-4 text-purple-400" />}
+    </div>
+  );
 };
 
 

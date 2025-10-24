@@ -3,7 +3,7 @@ import { Event } from '@/lib/types';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Badge } from './ui/badge';
-import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard } from 'lucide-react';
+import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane } from 'lucide-react';
 
 type CalendarEventCardProps = {
   event: Event;
@@ -16,18 +16,14 @@ const statusColors = {
 };
 
 const renderTransmissionIcon = (transmission: Event['transmission']) => {
-  if (transmission === 'tv') {
-    return (
-      <div className="flex items-center gap-1">
-        <Tv className="h-3 w-3 text-blue-600" />
-        <Youtube className="h-3 w-3 text-red-600" />
-      </div>
-    );
-  }
-  if (transmission === 'pauta') {
-    return <Newspaper className="h-3 w-3 text-gray-600" />;
-  }
-  return <Youtube className="h-3 w-3 text-red-600" />;
+  return (
+    <div className="flex items-center gap-1">
+      {transmission.includes('tv') && <Tv className="h-3 w-3 text-blue-600" />}
+      {transmission.includes('youtube') && <Youtube className="h-3 w-3 text-red-600" />}
+      {transmission.includes('pauta') && <Newspaper className="h-3 w-3 text-gray-600" />}
+      {transmission.includes('viagem') && <Plane className="h-3 w-3 text-purple-600" />}
+    </div>
+  );
 };
 
 

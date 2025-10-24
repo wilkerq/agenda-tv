@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
     - Location (location): Extract the venue or location.
     - Date (date): Extract the full date and format it as 'YYYY-MM-DD'. If the year is not specified, assume the current year or the next logical year if the date has passed.
     - Time (time): Extract the start time and format it as 'HH:mm'. If no time is found, this can be null.
-    - Transmission (transmission): Based on the context, determine if the event is likely to be broadcast on 'youtube' or 'tv'. If unsure, default to 'youtube'.
+    - Transmission (transmission): Based on the context, determine if the event is likely to be broadcast on 'youtube' or 'tv'. If unsure, default to ['youtube']. If it's on both, return ['youtube', 'tv'].
     
     Analyze the following image and return the extracted information in a structured JSON format.
     

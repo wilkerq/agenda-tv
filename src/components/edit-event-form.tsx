@@ -33,11 +33,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType, EventFormData } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -48,6 +48,14 @@ const locations = [
   "Deputados Aqui",
 ];
 
+const transmissionOptions = [
+    { id: 'youtube', label: 'YouTube' },
+    { id: 'tv', label: 'TV Aberta' },
+    { id: 'pauta', label: 'Pauta' },
+    { id: 'viagem', label: 'Viagem' },
+] as const;
+
+
 const formSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
   location: z.string({ required_error: "O local do evento é obrigatório." }),
@@ -55,8 +63,8 @@ const formSchema = z.object({
     required_error: "A data do evento é obrigatória.",
   }),
   time: z.string({ required_error: "A hora do evento é obrigatória." }).regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido."),
-  transmission: z.enum(["youtube", "tv", "pauta"], {
-    required_error: "Você precisa selecionar um tipo de evento.",
+  transmission: z.array(z.string()).refine((value) => value.some((item) => item), {
+    message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
   transmissionOperator: z.string().optional(),
@@ -121,7 +129,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       location: event.location,
       date: event.date,
       time: format(event.date, "HH:mm"),
-      transmission: event.transmission,
+      transmission: event.transmission || [],
       pauta: event.pauta || "",
       transmissionOperator: event.transmissionOperator || "",
       cinematographicReporter: event.cinematographicReporter || "",
@@ -145,7 +153,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             name: values.name,
             location: values.location,
             date: eventDate,
-            transmission: values.transmission as TransmissionType,
+            transmission: values.transmission as TransmissionType[],
             pauta: values.pauta,
             transmissionOperator: values.transmissionOperator,
             cinematographicReporter: values.cinematographicReporter,
@@ -343,41 +351,52 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                 <FormField
                     control={form.control}
                     name="transmission"
-                    render={({ field }) => (
-                    <FormItem className="space-y-3">
-                        <FormLabel>Tipo de Evento</FormLabel>
-                        <FormControl>
-                        <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="flex items-center space-x-4 pt-2"
-                        >
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="youtube" />
-                              </FormControl>
-                              <FormLabel className="font-normal">YouTube</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="tv" />
-                              </FormControl>
-                              <FormLabel className="font-normal">TV Aberta</FormLabel>
-                            </FormItem>
-                            <FormItem className="flex items-center space-x-2 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem value="pauta" />
-                              </FormControl>
-                              <FormLabel className="font-normal">Pauta</FormLabel>
-                            </FormItem>
-                        </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
+                    render={() => (
+                        <FormItem>
+                        <div className="mb-4">
+                            <FormLabel className="text-base">Tipo de Evento</FormLabel>
+                             <FormMessage />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            {transmissionOptions.map((item) => (
+                            <FormField
+                                key={item.id}
+                                control={form.control}
+                                name="transmission"
+                                render={({ field }) => {
+                                return (
+                                    <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            return checked
+                                            ? field.onChange([...(field.value || []), item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                    (value) => value !== item.id
+                                                )
+                                                );
+                                        }}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        {item.label}
+                                    </FormLabel>
+                                    </FormItem>
+                                );
+                                }}
+                            />
+                            ))}
+                        </div>
+                        </FormItem>
                     )}
-                />
+                    />
 
-                {transmission === 'pauta' && (
+                {transmission?.includes('pauta') && (
                   <FormField
                     control={form.control}
                     name="pauta"

@@ -1,7 +1,9 @@
 
 import { z } from 'zod';
 
-export type TransmissionType = "youtube" | "tv" | "pauta";
+export const transmissionTypes = ["youtube", "tv", "pauta", "viagem"] as const;
+export type TransmissionType = (typeof transmissionTypes)[number];
+
 export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
 export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
@@ -10,7 +12,7 @@ export interface Event {
   name: string;
   date: Date;
   location: string;
-  transmission: TransmissionType;
+  transmission: TransmissionType[];
   pauta?: string;
   color: string;
   transmissionOperator?: string;
@@ -77,7 +79,7 @@ export const CreateEventFromImageOutputSchema = z.object({
   location: z.string().optional().describe('The extracted location of the event.'),
   date: z.string().optional().describe("The extracted date of the event in 'YYYY-MM-DD' format."),
   time: z.string().nullable().optional().describe("The extracted time of the event in 'HH:mm' format."),
-  transmission: z.enum(["youtube", "tv", "pauta"]).optional().describe('The type of transmission.'),
+  transmission: z.array(z.enum(transmissionTypes)).optional().describe('The types of transmission.'),
   transmissionOperator: z.string().optional().describe('The transmission operator responsible for the event.'),
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
@@ -91,7 +93,7 @@ export type SuggestOperatorInput = z.infer<typeof SuggestOperatorInputSchema>;
 
 export const SuggestOperatorOutputSchema = z.object({
   transmissionOperator: z.string().optional().describe('The suggested transmission operator for the event.'),
-  transmission: z.enum(["youtube", "tv", "pauta"]).optional().describe('The suggested transmission type for the event.'),
+  transmission: z.array(z.enum(transmissionTypes)).optional().describe('The suggested transmission types for the event.'),
 });
 export type SuggestOperatorOutput = z.infer<typeof SuggestOperatorOutputSchema>;
 

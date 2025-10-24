@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
-import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper, Video, Mic, Clipboard } from "lucide-react";
+import { Clock, MapPin, User, Tv, Youtube, Moon, Sun, Cloud, Newspaper, Video, Mic, Clipboard, Plane } from "lucide-react";
 
 type EventDetailCardProps = {
     date: Date;
@@ -27,35 +27,41 @@ const turnIcons = {
 };
 
 const renderTransmissionBadge = (transmission: Event['transmission']) => {
-    if (transmission === 'tv') {
-        return (
-            <Badge variant="outline" className='border-blue-200'>
-                <div className="flex items-center">
-                    <Tv className="h-4 w-4 text-blue-600 mr-1.5"/>
-                    <Youtube className="h-4 w-4 text-red-600 mr-1.5"/>
-                    <span className="hidden sm:inline">TV e YouTube</span>
-                    <span className="sm:hidden">TV+YT</span>
-                </div>
-            </Badge>
-        );
-    }
-    if (transmission === 'pauta') {
-        return (
-            <Badge variant="outline" className='border-gray-300'>
-                <div className="flex items-center">
-                    <Newspaper className="h-4 w-4 text-gray-600 mr-1.5"/>
-                    <span>Pauta</span>
-                </div>
-            </Badge>
-        );
-    }
     return (
-        <Badge variant="outline" className='border-red-200'>
+      <div className="flex flex-wrap gap-2">
+        {transmission.includes('tv') && (
+          <Badge variant="outline" className='border-blue-200'>
             <div className="flex items-center">
-                <Youtube className="h-4 w-4 text-red-600 mr-1.5"/>
-                <span>YouTube</span>
+              <Tv className="h-4 w-4 text-blue-600 mr-1.5" />
+              <span>TV Aberta</span>
             </div>
-        </Badge>
+          </Badge>
+        )}
+        {transmission.includes('youtube') && (
+          <Badge variant="outline" className='border-red-200'>
+            <div className="flex items-center">
+              <Youtube className="h-4 w-4 text-red-600 mr-1.5" />
+              <span>YouTube</span>
+            </div>
+          </Badge>
+        )}
+        {transmission.includes('pauta') && (
+          <Badge variant="outline" className='border-gray-300'>
+            <div className="flex items-center">
+              <Newspaper className="h-4 w-4 text-gray-600 mr-1.5" />
+              <span>Pauta</span>
+            </div>
+          </Badge>
+        )}
+        {transmission.includes('viagem') && (
+            <Badge variant="outline" className='border-purple-300'>
+                <div className="flex items-center">
+                    <Plane className="h-4 w-4 text-purple-600 mr-1.5"/>
+                    <span>Viagem</span>
+                </div>
+            </Badge>
+        )}
+      </div>
     );
 };
 

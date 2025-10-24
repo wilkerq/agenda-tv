@@ -1,7 +1,7 @@
 
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane } from "lucide-react";
 import { format } from "date-fns";
 
 type EventListProps = {
@@ -11,27 +11,12 @@ type EventListProps = {
 };
 
 const renderTransmission = (transmission: Event['transmission']) => {
-  if (transmission === 'tv') {
-    return (
-      <div className="flex items-center gap-2">
-        <Tv className="h-4 w-4 text-blue-600" />
-        <Youtube className="h-4 w-4 text-red-600" />
-        <span>TV Aberta e YouTube</span>
-      </div>
-    );
-  }
-  if (transmission === 'pauta') {
-    return (
-      <div className="flex items-center gap-2">
-        <Newspaper className="h-4 w-4 text-gray-600" />
-        <span>Pauta</span>
-      </div>
-    );
-  }
   return (
     <div className="flex items-center gap-2">
-      <Youtube className="h-4 w-4 text-red-600" />
-      <span>YouTube</span>
+      {transmission.includes('tv') && <Tv className="h-4 w-4 text-blue-600" title="TV Aberta" />}
+      {transmission.includes('youtube') && <Youtube className="h-4 w-4 text-red-600" title="YouTube" />}
+      {transmission.includes('pauta') && <Newspaper className="h-4 w-4 text-gray-600" title="Pauta" />}
+      {transmission.includes('viagem') && <Plane className="h-4 w-4 text-purple-600" title="Viagem" />}
     </div>
   );
 };
