@@ -33,38 +33,42 @@ interface ProductionPersonnel extends Personnel {
  */
 const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
     const personnelCollection = collection(db, collectionName);
-    const snapshot = await getDocs(query(personnelCollection)).catch(serverError => {
+    try {
+        const snapshot = await getDocs(query(personnelCollection));
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name as string,
+            turn: doc.data().turn as Personnel['turn'] || 'Geral',
+        }));
+    } catch (serverError) {
         const permissionError = new FirestorePermissionError({
           path: personnelCollection.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         throw serverError;
-    });
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name as string,
-        turn: doc.data().turn as Personnel['turn'] || 'Geral',
-    }));
+    }
 };
 
 const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
      const personnelCollection = collection(db, 'production_personnel');
-    const snapshot = await getDocs(query(personnelCollection)).catch(serverError => {
+    try {
+        const snapshot = await getDocs(query(personnelCollection));
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            name: doc.data().name as string,
+            turn: doc.data().turn as Personnel['turn'] || 'Geral',
+            isReporter: doc.data().isReporter || false,
+            isProducer: doc.data().isProducer || false,
+        }));
+    } catch (serverError) {
         const permissionError = new FirestorePermissionError({
           path: personnelCollection.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         throw serverError;
-    });
-    return snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name as string,
-        turn: doc.data().turn as Personnel['turn'] || 'Geral',
-        isReporter: doc.data().isReporter || false,
-        isProducer: doc.data().isProducer || false,
-    }));
+    }
 }
 
 /**
@@ -82,15 +86,17 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end))
     );
-    const querySnapshot = await getDocs(q).catch(serverError => {
+    try {
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => doc.data());
+    } catch (serverError) {
         const permissionError = new FirestorePermissionError({
           path: eventsCollection.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         throw serverError;
-    });
-    return querySnapshot.docs.map(doc => doc.data());
+    }
 };
 
 const getAvailablePersonnel = (

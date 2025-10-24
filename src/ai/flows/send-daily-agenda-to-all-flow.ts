@@ -48,22 +48,23 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     
     for (const coll of personnelCollections) {
         const personnelCollectionRef = collection(db, coll);
-        const personnelSnapshot = await getDocs(personnelCollectionRef).catch(serverError => {
-            const permissionError = new FirestorePermissionError({
+        try {
+            const personnelSnapshot = await getDocs(personnelCollectionRef);
+            personnelSnapshot.forEach(doc => {
+                const data = doc.data();
+                // Ensure no duplicates by name
+                if (data.name && !allPersonnel.some(p => p.name === data.name)) {
+                     allPersonnel.push({ name: data.name, phone: data.phone });
+                }
+            });
+        } catch (serverError) {
+             const permissionError = new FirestorePermissionError({
                 path: personnelCollectionRef.path,
                 operation: 'list',
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
-        });
-
-        personnelSnapshot.forEach(doc => {
-            const data = doc.data();
-            // Ensure no duplicates by name
-            if (data.name && !allPersonnel.some(p => p.name === data.name)) {
-                 allPersonnel.push({ name: data.name, phone: data.phone });
-            }
-        });
+        }
     }
 
     const tomorrow = addDays(new Date(), 1);
@@ -96,42 +97,44 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         orderBy("date", "asc")
     );
 
-    const eventsSnapshot = await getDocs(eventsQuery).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
+    try {
+        const eventsSnapshot = await getDocs(eventsQuery);
+        // 3. Group events by personnel
+        eventsSnapshot.docs.forEach(doc => {
+            const event = {
+                id: doc.id,
+                ...doc.data(),
+                date: (doc.data().date as Timestamp).toDate(),
+            } as Event;
+
+            const involvedPersonnel = new Set([
+                event.transmissionOperator,
+                event.cinematographicReporter,
+                event.reporter,
+                event.producer,
+            ]);
+
+            involvedPersonnel.forEach(personName => {
+                if (personName && personnelNames.includes(personName)) {
+                    if (!personnelWithEvents[personName]) {
+                        personnelWithEvents[personName] = { 
+                            phone: allPersonnel.find(p => p.name === personName)?.phone,
+                            events: [] 
+                        };
+                    }
+                    personnelWithEvents[personName].events.push(event);
+                }
+            });
+        });
+    } catch (serverError) {
+         const permissionError = new FirestorePermissionError({
             path: eventsCollectionRef.path,
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         throw serverError;
-    });
+    }
 
-    // 3. Group events by personnel
-    eventsSnapshot.docs.forEach(doc => {
-        const event = {
-            id: doc.id,
-            ...doc.data(),
-            date: (doc.data().date as Timestamp).toDate(),
-        } as Event;
-
-        const involvedPersonnel = new Set([
-            event.transmissionOperator,
-            event.cinematographicReporter,
-            event.reporter,
-            event.producer,
-        ]);
-
-        involvedPersonnel.forEach(personName => {
-            if (personName && personnelNames.includes(personName)) {
-                if (!personnelWithEvents[personName]) {
-                    personnelWithEvents[personName] = { 
-                        phone: allPersonnel.find(p => p.name === personName)?.phone,
-                        events: [] 
-                    };
-                }
-                personnelWithEvents[personName].events.push(event);
-            }
-        });
-    });
 
     // 4. Send messages to each person with events
     const personnelToSend = Object.keys(personnelWithEvents);
