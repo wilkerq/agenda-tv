@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, FC } from "react";
@@ -72,9 +73,12 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
       });
       setPersonnel(fetchedPersonnel.sort((a, b) => a.name.localeCompare(b.name)));
       setLoading(false);
-    }, (error) => {
-      console.error(`Error fetching ${collectionName}: `, error);
-      toast({ title: "Erro", description: `Não foi possível buscar ${title}.`, variant: "destructive" });
+    }, (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: q.path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
       setLoading(false);
     });
 
@@ -323,9 +327,12 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
       });
       setPersonnel(fetchedPersonnel.sort((a, b) => a.name.localeCompare(b.name)));
       setLoading(false);
-    }, (error) => {
-      console.error(`Error fetching ${collectionName}: `, error);
-      toast({ title: "Erro", description: `Não foi possível buscar ${title}.`, variant: "destructive" });
+    }, (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: q.path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
       setLoading(false);
     });
 
@@ -637,3 +644,5 @@ export default function OperatorsPage() {
     </div>
   );
 }
+
+    

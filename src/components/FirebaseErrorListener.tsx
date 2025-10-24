@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -12,12 +13,12 @@ export function FirebaseErrorListener() {
     const handlePermissionError = (error: FirestorePermissionError) => {
       console.error(error); // This will show the detailed error in the dev console overlay.
 
-      // Optionally, show a generic toast to the user.
+      // Show a more helpful toast to the user.
       toast({
-        title: 'Erro de Permissão',
-        description: 'Sua operação foi bloqueada pelas regras de segurança. Verifique o console para mais detalhes.',
+        title: 'Falha de Permissão',
+        description: 'Sua solicitação foi bloqueada pelas regras de segurança. Verifique o console do desenvolvedor para obter detalhes técnicos.',
         variant: 'destructive',
-        duration: 8000,
+        duration: 10000,
       });
     };
 
@@ -30,3 +31,5 @@ export function FirebaseErrorListener() {
 
   return null; // This component does not render anything.
 }
+
+    

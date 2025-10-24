@@ -13,6 +13,8 @@ import { ptBR } from "date-fns/locale";
 import { History, Loader2, FilePen, Trash2, FilePlus, User } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 type AuditLogAction = 'create' | 'update' | 'delete';
 
@@ -53,8 +55,12 @@ export default function LogsPage() {
             });
             setLogs(logsData);
             setLoading(false);
-        }, (error) => {
-            console.error("Error fetching audit logs: ", error);
+        }, (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: q.path,
+                operation: 'list',
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
             setLoading(false);
         });
 
@@ -148,3 +154,5 @@ export default function LogsPage() {
         </Card>
     );
 }
+
+    
