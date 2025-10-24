@@ -27,10 +27,12 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Set the initial date on the client side to avoid hydration mismatch
+    // Set the initial date and confirm client-side rendering
     setSelectedDate(new Date());
+    setIsClient(true);
   }, []);
 
 
@@ -81,7 +83,7 @@ export default function HomePage() {
   }, [selectedDate, events]);
 
 
-  if (loading || !selectedDate) {
+  if (loading || !isClient) {
     return (
        <div className="flex h-screen w-full items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -99,7 +101,7 @@ export default function HomePage() {
             <div className="hidden lg:block">
               <PublicCalendar 
                 events={events} 
-                selectedDate={selectedDate}
+                selectedDate={selectedDate!}
                 onDateSelect={setSelectedDate}
               />
             </div>
@@ -132,7 +134,7 @@ export default function HomePage() {
             {selectedEvents.length > 0 && (
               <div className="mt-8">
                   <EventDetailCard
-                      date={selectedDate}
+                      date={selectedDate!}
                       events={selectedEvents}
                   />
               </div>
@@ -143,3 +145,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

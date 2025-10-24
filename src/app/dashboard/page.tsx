@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSameDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle, Sparkles, Users } from "lucide-react";
+import { PlusCircle, Sparkles, Users, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
@@ -57,10 +57,12 @@ export default function DashboardPage() {
 
   const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null);
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Set the initial date on the client side to avoid hydration mismatch
+    // Set the initial date and confirm client-side rendering
     setSelectedDate(new Date());
+    setIsClient(true);
   }, []);
 
 
@@ -377,6 +379,13 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     });
   };
 
+  if (!isClient) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

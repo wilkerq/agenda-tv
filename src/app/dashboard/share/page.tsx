@@ -25,11 +25,13 @@ export default function ShareSchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     // Set the initial date on the client side to avoid hydration mismatch
     setSelectedDate(new Date());
+    setIsClient(true);
   }, []);
 
   const fetchEvents = useCallback(async () => {
@@ -124,6 +126,14 @@ export default function ShareSchedulePage() {
   const operatorNames = useMemo(() => Object.keys(eventsByOperator).sort(), [eventsByOperator]);
   const hasEvents = operatorNames.length > 0;
   
+  if (!isClient) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-1 space-y-6">
@@ -206,3 +216,5 @@ export default function ShareSchedulePage() {
     </div>
   );
 }
+
+    
