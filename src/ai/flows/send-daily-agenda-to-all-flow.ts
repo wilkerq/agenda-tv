@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, getDocs, query, where, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp, orderBy, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -95,6 +95,21 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         errors.push(operator.name);
       }
     }
+
+    // Log the result of the automatic execution
+    await addDoc(collection(db, 'audit_logs'), {
+      action: 'automatic-send',
+      collectionName: 'system',
+      documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,
+      userEmail: 'System Automation (n8n)',
+      timestamp: Timestamp.now(),
+      details: {
+        messagesSent,
+        errors,
+        targetDate: format(tomorrow, 'yyyy-MM-dd'),
+      },
+    });
+
 
     return {
       success: errors.length === 0,

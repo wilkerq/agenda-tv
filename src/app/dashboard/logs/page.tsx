@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { History, Loader2, FilePen, Trash2, FilePlus, User } from "lucide-react";
+import { History, FilePen, Trash2, FilePlus, User, Send } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
-type AuditLogAction = 'create' | 'update' | 'delete';
+type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send';
 
 interface AuditLog {
     id: string;
@@ -27,12 +27,18 @@ interface AuditLog {
     timestamp: Date;
     before?: object;
     after?: object;
+    details?: {
+        messagesSent: number;
+        errors: string[];
+        targetDate: string;
+    };
 }
 
 const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>; className: string }> = {
-    create: { text: "Criação", icon: FilePlus, className: "bg-green-100 text-green-800 border-green-200" },
-    update: { text: "Atualização", icon: FilePen, className: "bg-blue-100 text-blue-800 border-blue-200" },
-    delete: { text: "Exclusão", icon: Trash2, className: "bg-red-100 text-red-800 border-red-200" },
+    create: { text: "Criação", icon: FilePlus, className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700" },
+    update: { text: "Atualização", icon: FilePen, className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700" },
+    delete: { text: "Exclusão", icon: Trash2, className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700" },
+    'automatic-send': { text: "Envio Automático", icon: Send, className: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-700" },
 };
 
 export default function LogsPage() {
@@ -77,13 +83,20 @@ export default function LogsPage() {
            />
         </div>
     );
+    
+    const renderLogTitle = (log: AuditLog) => {
+        if (log.action === 'automatic-send') {
+            return "Envio Automático de Agendas";
+        }
+        return `Evento: ${ (log.after as any)?.name || (log.before as any)?.name || log.documentId }`
+    }
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Logs de Auditoria</CardTitle>
                 <CardDescription>
-                    Uma trilha de todas as criações, atualizações e exclusões de eventos no sistema.
+                    Uma trilha de todas as criações, atualizações, exclusões e automações executadas no sistema.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -95,12 +108,13 @@ export default function LogsPage() {
                     <div className="text-center py-10">
                         <History className="mx-auto h-12 w-12 text-muted-foreground" />
                         <p className="mt-4 font-medium">Nenhum log encontrado</p>
-                        <p className="text-sm text-muted-foreground">As alterações nos eventos aparecerão aqui.</p>
+                        <p className="text-sm text-muted-foreground">As alterações no sistema aparecerão aqui.</p>
                     </div>
                 ) : (
                     <Accordion type="single" collapsible className="w-full">
                         {logs.map(log => {
                             const details = actionDetails[log.action];
+                            if (!details) return null; // Skip unknown log types
                             const Icon = details.icon;
                             return (
                                 <AccordionItem value={log.id} key={log.id}>
@@ -112,7 +126,7 @@ export default function LogsPage() {
                                             </Badge>
                                             <div className="flex-1">
                                                 <p className="font-semibold text-foreground">
-                                                    Evento: { (log.after as any)?.name || (log.before as any)?.name || log.documentId }
+                                                    {renderLogTitle(log)}
                                                 </p>
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                    <User className="h-3 w-3" /> <span>{log.userEmail}</span>
@@ -124,24 +138,44 @@ export default function LogsPage() {
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent>
-                                        <Card className="bg-muted/50 p-4">
-                                            <h4 className="font-semibold mb-2">Detalhes da Alteração</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {log.before && (
-                                                    <div>
-                                                        <h5 className="text-sm font-medium text-red-600">Antes</h5>
-                                                        {renderJsonViewer(log.before)}
+                                        <Card className="bg-muted/50 dark:bg-slate-800/50 p-4">
+                                            {log.action === 'automatic-send' && log.details ? (
+                                                <div>
+                                                    <h4 className="font-semibold mb-2">Detalhes da Execução</h4>
+                                                    <p className="text-sm"><strong>Data da Agenda Enviada:</strong> {format(new Date(log.details.targetDate), 'dd/MM/yyyy')}</p>
+                                                    <p className="text-sm"><strong>Mensagens Enviadas com Sucesso:</strong> {log.details.messagesSent}</p>
+                                                    {log.details.errors.length > 0 ? (
+                                                        <div className="mt-2">
+                                                            <h5 className="text-sm font-medium text-red-600 dark:text-red-400">Falhas</h5>
+                                                            <ul className="list-disc list-inside text-sm text-red-600 dark:text-red-400">
+                                                                {log.details.errors.map((err, i) => <li key={i}>{err}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    ) : (
+                                                       <p className="text-sm text-green-600 dark:text-green-400 mt-1">Todos os envios foram bem-sucedidos.</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <h4 className="font-semibold mb-2">Detalhes da Alteração</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {log.before && (
+                                                            <div>
+                                                                <h5 className="text-sm font-medium text-red-600 dark:text-red-400">Antes</h5>
+                                                                {renderJsonViewer(log.before)}
+                                                            </div>
+                                                        )}
+                                                        {log.after && (
+                                                            <div>
+                                                                <h5 className="text-sm font-medium text-green-600 dark:text-green-400">Depois</h5>
+                                                                {renderJsonViewer(log.after)}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                )}
-                                                {log.after && (
-                                                     <div>
-                                                        <h5 className="text-sm font-medium text-green-600">Depois</h5>
-                                                        {renderJsonViewer(log.after)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                             {!log.before && !log.after && (
-                                                <p className="text-sm text-muted-foreground">Não há dados detalhados para esta ação.</p>
+                                                    {!log.before && !log.after && (
+                                                        <p className="text-sm text-muted-foreground">Não há dados detalhados para esta ação.</p>
+                                                    )}
+                                                </>
                                             )}
                                         </Card>
                                     </AccordionContent>
@@ -154,5 +188,3 @@ export default function LogsPage() {
         </Card>
     );
 }
-
-    

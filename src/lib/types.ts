@@ -139,7 +139,7 @@ export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
 
 
 // Audit Log Types
-export type AuditLogAction = 'create' | 'update' | 'delete';
+export type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send';
 
 export interface AuditLog {
     id: string;
