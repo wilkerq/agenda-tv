@@ -180,8 +180,8 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             cinematographicReporter: values.cinematographicReporter,
             reporter: values.reporter,
             producer: values.producer,
-            departure: combineDateTime(values.departureDate, values.departureTime),
-            arrival: combineDateTime(values.arrivalDate, values.arrivalTime),
+            departure: combineDateTime(values.departureDate, values.departureTime) || null,
+            arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
         };
 
         await onEditEvent(event.id, eventData);
@@ -521,3 +521,4 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
   );
 }
 
+    

@@ -143,13 +143,15 @@ export default function DashboardPage() {
     const isTravel = eventData.transmission?.includes('viagem');
 
     if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
-        const newEventData = {
+        const newEventData: any = {
             ...eventData,
             date: Timestamp.fromDate(eventData.date),
-            departure: eventData.departure ? Timestamp.fromDate(eventData.departure) : undefined,
-            arrival: eventData.arrival ? Timestamp.fromDate(eventData.arrival) : undefined,
             color: isTravel ? '#dc2626' : getRandomColor(),
         };
+
+        if (eventData.departure) newEventData.departure = Timestamp.fromDate(eventData.departure);
+        if (eventData.arrival) newEventData.arrival = Timestamp.fromDate(eventData.arrival);
+
 
         const eventsCollectionRef = collection(db, "events");
 
@@ -203,7 +205,7 @@ export default function DashboardPage() {
             await batch.commit();
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
         } catch (serverError: any) {
-            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
+            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
         }
@@ -297,13 +299,23 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
         arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
     };
 
-    const updatedData = {
+    const updatedData: any = {
         ...eventData,
         date: Timestamp.fromDate(eventData.date),
-        departure: eventData.departure ? Timestamp.fromDate(eventData.departure) : undefined,
-        arrival: eventData.arrival ? Timestamp.fromDate(eventData.arrival) : undefined,
         color: isTravel ? '#dc2626' : oldData.color || getRandomColor(),
     };
+    
+    if (eventData.departure) {
+        updatedData.departure = Timestamp.fromDate(eventData.departure);
+    } else {
+        updatedData.departure = null;
+    }
+
+    if (eventData.arrival) {
+        updatedData.arrival = Timestamp.fromDate(eventData.arrival);
+    } else {
+        updatedData.arrival = null;
+    }
     
     updateDoc(eventRef, updatedData)
       .then(async () => {
@@ -332,7 +344,7 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
        const permissionError = new FirestorePermissionError({
           path: eventRef.path,
           operation: 'update',
-          requestResourceData: { ...eventData, date: eventData.date.toISOString() },
+          requestResourceData: updatedData,
        } satisfies SecurityRuleContext);
        errorEmitter.emit('permission-error', permissionError);
        throw serverError; // Re-throw to be caught by the form
@@ -513,3 +525,5 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     </div>
   );
 }
+
+    
