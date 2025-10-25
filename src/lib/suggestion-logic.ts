@@ -122,59 +122,58 @@ const suggestTransmissionOperator = (
     const hour = eventDate.getHours();
     const assignedOperators = new Set(eventsToday.map(e => e.transmissionOperator).filter(Boolean));
     
-    // Rule: Specific location
+    // Rule: Specific location "Sala Julio da Retifica"
     if (location === 'Sala Julio da Retifica "CCJR"') {
         const mario = operators.find(op => op.name === "Mário Augusto");
-        if (mario) return mario.name;
+        // Se Mário estiver disponível, ele é a escolha. Senão, segue o fluxo normal.
+        if (mario && !assignedOperators.has(mario.name)) return mario.name;
     }
     
     let turn: 'Manhã' | 'Tarde' | 'Noite' = 'Manhã';
     if (hour >= 12 && hour < 18) turn = 'Tarde';
     else if (hour >= 18) turn = 'Noite';
 
-    // Rule: Weekday shifts
+    // Rule: Weekday shifts (Monday to Friday)
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
         if (turn === 'Manhã') {
-            const morningOperator = operators.find(op => op.name === "Rodrigo Sousa");
-            if (morningOperator && !assignedOperators.has(morningOperator.name)) {
-                return morningOperator.name;
+            const morningPriority = ["Rodrigo Sousa", "Ovidio Dias", "Mário Augusto"];
+            for (const name of morningPriority) {
+                if (!assignedOperators.has(name)) return name;
             }
-            // Fallback for morning
-            const ovidio = operators.find(op => op.name === "Ovidio Dias");
-            if (ovidio && !assignedOperators.has(ovidio.name)) return ovidio.name;
-        } else if (turn === 'Tarde') {
+            // Bruno as last resort if he is free at night
+            const nightEventsWithBruno = eventsToday.some(e => e.transmissionOperator === 'Bruno Almeida' && new Date(e.date.seconds * 1000).getHours() >= 18);
+            if (!assignedOperators.has("Bruno Almeida") && !nightEventsWithBruno) return "Bruno Almeida";
+        } 
+        else if (turn === 'Tarde') {
             const afternoonPool = ["Ovidio Dias", "Mário Augusto", "Bruno Almeida"];
             for (const name of afternoonPool) {
-                const operator = operators.find(op => op.name === name);
-                if (operator && !assignedOperators.has(operator.name)) return operator.name;
+                if (!assignedOperators.has(name)) return name;
             }
-        } else { // Noite
-            const nightOperator = operators.find(op => op.name === "Bruno Almeida");
-            if (nightOperator && !assignedOperators.has(nightOperator.name)) {
-                return nightOperator.name;
+        } 
+        else { // Noite
+            const nightPriority = ["Bruno Almeida", "Mário Augusto"];
+            for (const name of nightPriority) {
+                if (!assignedOperators.has(name)) return name;
             }
-             const mario = operators.find(op => op.name === "Mário Augusto");
-            if (mario && !assignedOperators.has(mario.name)) return mario.name;
         }
     }
 
     // Rule: Weekend rotation
     if (dayOfWeek === 0 || dayOfWeek === 6) {
         const weekendPool = ["Bruno Almeida", "Mário Augusto", "Ovidio Dias"];
-        for (const name of weekendPool) {
-            const operator = operators.find(op => op.name === name);
-            if(operator && !assignedOperators.has(operator.name)) return operator.name;
+         for (const name of weekendPool) {
+            if (!assignedOperators.has(name)) return name;
         }
-        // If all are busy, return one from the pool
-        if(weekendPool.length > 0) return weekendPool[eventDate.getDate() % weekendPool.length];
+        // If all are busy, return one based on a simple rotation
+        return weekendPool[eventsToday.length % weekendPool.length];
     }
     
     // Fallback: Find any available operator matching the turn
     const available = getAvailablePersonnel(operators, assignedOperators, turn);
     if (available.length > 0) return available[0].name;
 
-    // If no one is available, return undefined
-    return undefined;
+    // If no one is available, return the first operator as a last resort
+    return operators.length > 0 ? operators[0].name : undefined;
 }
 
 const suggestCinematographicReporter = (
@@ -192,14 +191,25 @@ const suggestCinematographicReporter = (
     if (turn === 'Noite') {
         const afternoonReporters = reporters.filter(r => r.turn === 'Tarde' || r.turn === 'Geral');
         const available = afternoonReporters.filter(r => !assignedReporters.has(r.name));
-        if (available.length > 0) return available[eventDate.getDate() % available.length].name;
-        if (afternoonReporters.length > 0) return afternoonReporters[eventDate.getDate() % afternoonReporters.length].name;
+        if (available.length > 0) return available[eventsToday.length % available.length].name;
+        // If no one is available, assign by rotation anyway
+        if (afternoonReporters.length > 0) return afternoonReporters[eventsToday.length % afternoonReporters.length].name;
     }
 
     const availableForTurn = getAvailablePersonnel(reporters, assignedReporters, turn);
-    if(availableForTurn.length > 0) return availableForTurn[0].name;
+     if (availableForTurn.length > 0) {
+        // Simple rotation to distribute work
+        return availableForTurn[eventsToday.length % availableForTurn.length].name;
+    }
 
-    return undefined;
+    // Fallback: If no one in the specific turn is available, check for 'Geral' turn
+    const generalTurnAvailable = reporters.filter(r => r.turn === 'Geral' && !assignedReporters.has(r.name));
+    if(generalTurnAvailable.length > 0) {
+        return generalTurnAvailable[eventsToday.length % generalTurnAvailable.length].name;
+    }
+
+    // Last resort
+    return reporters.length > 0 ? reporters[0].name : undefined;
 };
 
 const suggestProductionMember = (
@@ -209,6 +219,7 @@ const suggestProductionMember = (
     role: 'reporter' | 'producer'
 ): string | undefined => {
     const hour = eventDate.getHours();
+    // Exclude the person from their own event's conflict check
     const assignedPersonnel = new Set(
         eventsToday.flatMap(e => [e.reporter, e.producer]).filter(Boolean)
     );
@@ -222,13 +233,19 @@ const suggestProductionMember = (
     const availableForTurn = getAvailablePersonnel(candidates, assignedPersonnel, turn);
     if (availableForTurn.length > 0) {
         // Simple rotation for now
-        return availableForTurn[eventDate.getDate() % availableForTurn.length].name;
+        return availableForTurn[eventsToday.length % availableForTurn.length].name;
     }
 
     // Fallback: Check 'Geral' turn if no one else is available
-    const generalTurn = getAvailablePersonnel(candidates, assignedPersonnel, 'Geral' as 'Manhã');
-    if(generalTurn.length > 0) {
-        return generalTurn[eventDate.getDate() % generalTurn.length].name;
+    const generalTurn = getAvailablePersonnel(candidates, new Set<string>(), 'Geral' as 'Manhã');
+    const availableGeneral = generalTurn.filter(p => !assignedPersonnel.has(p.name));
+    if(availableGeneral.length > 0) {
+        return availableGeneral[eventsToday.length % availableGeneral.length].name;
+    }
+
+    // If still no one, just rotate through all candidates for that role
+    if (candidates.length > 0) {
+        return candidates[eventsToday.length % candidates.length].name;
     }
 
     return undefined;
@@ -258,21 +275,23 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         
         let suggestedOperator: string | undefined;
         let suggestedCinematographer: string | undefined;
+        let suggestedReporter: string | undefined;
+        let suggestedProducer: string | undefined;
         
         // Logic for "Deputados Aqui"
         if (location === "Deputados Aqui") {
             suggestedOperator = "Wilker Quirino";
             // Other team members are on rotation
             suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
+            suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
+            suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
         } else {
              suggestedOperator = suggestTransmissionOperator(eventDate, location, operators, eventsToday);
              suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
+             suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
+             suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
         }
         
-        const suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
-        const suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
-
-
         return {
             transmissionOperator: suggestedOperator,
             cinematographicReporter: suggestedCinematographer,
@@ -294,3 +313,4 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         throw new Error("Failed to suggest team due to an unexpected error.");
     }
 };
+
