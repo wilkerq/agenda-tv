@@ -3,29 +3,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra para a coleção 'events'
-    match /events/{document=**} {
-      allow read, write: if request.auth != null;
+    // Allow authenticated users to read/write their data
+    match /users/{userId}/{documents=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Regra para a coleção 'transmission_operators'
-    match /transmission_operators/{document=**} {
-      allow read, write: if request.auth != null;
+    // Rules for events collection
+    match /events/{eventId} {
+      allow get, create, update, delete: if request.auth != null;
+    }
+    match /events {
+      allow list: if request.auth != null;
     }
 
-    // Regra para a coleção 'cinematographic_reporters'
-    match /cinematographic_reporters/{document=**} {
-      allow read, write: if request.auth != null;
+    // Rules for transmission_operators collection
+    match /transmission_operators/{operatorId} {
+      allow get, create, update, delete: if request.auth != null;
+    }
+    match /transmission_operators {
+      allow list: if request.auth != null;
+    }
+    
+    // Rules for cinematographic_reporters collection
+    match /cinematographic_reporters/{reporterId} {
+      allow get, create, update, delete: if request.auth != null;
+    }
+    match /cinematographic_reporters {
+      allow list: if request.auth != null;
     }
 
-    // Regra para a coleção 'production_personnel'
-    match /production_personnel/{document=**} {
-      allow read, write: if request.auth != null;
+    // Rules for production_personnel collection
+    match /production_personnel/{personnelId} {
+      allow get, create, update, delete: if request.auth != null;
+    }
+    match /production_personnel {
+      allow list: if request.auth != null;
     }
 
-    // Regra para a coleção 'audit_logs'
-    match /audit_logs/{document=**} {
-      allow read, write: if request.auth != null;
+    // Rules for audit_logs collection
+    match /audit_logs/{logId} {
+      allow get, create: if request.auth != null;
+    }
+     match /audit_logs {
+      allow list: if request.auth != null;
     }
   }
 }
