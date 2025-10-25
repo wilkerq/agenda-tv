@@ -189,7 +189,7 @@ export default function DashboardLayout({
           {isClient && (
             <>
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={handleLogout}>
+              <Button variant="ghost" size="icon" className="rounded-full text-foreground hover:text-foreground/80" onClick={handleLogout}>
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">Encerrar sessão</span>
               </Button>
