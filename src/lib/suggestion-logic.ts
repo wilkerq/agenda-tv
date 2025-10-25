@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, getDocs, query, where, Timestamp, getFirestore } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from './firebase';
 import { startOfDay, endOfDay, getDay } from 'date-fns';
 import type { TransmissionType } from "./types";
@@ -46,7 +46,7 @@ const getPersonnel = async (collectionName: string): Promise<Personnel[]> => {
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
+        throw permissionError; // Re-throw the specific error
     }
 };
 
@@ -67,7 +67,7 @@ const getProductionPersonnel = async (): Promise<ProductionPersonnel[]> => {
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
+        throw permissionError; // Re-throw the specific error
     }
 }
 
@@ -95,7 +95,7 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
+        throw permissionError; // Re-throw the specific error
     }
 };
 
@@ -242,41 +242,55 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
     const { date, location, transmissionTypes } = params;
     const eventDate = new Date(date);
 
-    // 1. Fetch all necessary data in parallel
-    const [
-        operators, 
-        cinematographicReporters,
-        productionPersonnel, 
-        eventsToday
-    ] = await Promise.all([
-        getPersonnel('transmission_operators'),
-        getPersonnel('cinematographic_reporters'),
-        getProductionPersonnel(),
-        getEventsForDay(eventDate),
-    ]);
-    
-    let suggestedOperator: string | undefined;
-    let suggestedCinematographer: string | undefined;
-    
-    // Logic for "Deputados Aqui"
-    if (location === "Deputados Aqui") {
-        suggestedOperator = "Wilker Quirino";
-        // Other team members are on rotation
-        suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
-    } else {
-         suggestedOperator = suggestTransmissionOperator(eventDate, location, operators, eventsToday);
-         suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
+    try {
+        // 1. Fetch all necessary data in parallel
+        const [
+            operators, 
+            cinematographicReporters,
+            productionPersonnel, 
+            eventsToday
+        ] = await Promise.all([
+            getPersonnel('transmission_operators'),
+            getPersonnel('cinematographic_reporters'),
+            getProductionPersonnel(),
+            getEventsForDay(eventDate),
+        ]);
+        
+        let suggestedOperator: string | undefined;
+        let suggestedCinematographer: string | undefined;
+        
+        // Logic for "Deputados Aqui"
+        if (location === "Deputados Aqui") {
+            suggestedOperator = "Wilker Quirino";
+            // Other team members are on rotation
+            suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
+        } else {
+             suggestedOperator = suggestTransmissionOperator(eventDate, location, operators, eventsToday);
+             suggestedCinematographer = suggestCinematographicReporter(eventDate, cinematographicReporters, eventsToday);
+        }
+        
+        const suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
+        const suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
+
+
+        return {
+            transmissionOperator: suggestedOperator,
+            cinematographicReporter: suggestedCinematographer,
+            reporter: suggestedReporter,
+            producer: suggestedProducer,
+            transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
+        };
+    } catch (error) {
+        // If any of the promises in Promise.all reject, the error will be caught here.
+        // The individual functions are already emitting the detailed error.
+        // We just need to re-throw to stop execution.
+        if (error instanceof FirestorePermissionError) {
+             // The specific error has already been emitted, just stop the flow.
+            throw error;
+        }
+
+        // Fallback for unexpected errors
+        console.error("An unexpected error occurred in suggestTeam:", error);
+        throw new Error("Failed to suggest team due to an unexpected error.");
     }
-    
-    const suggestedReporter = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'reporter');
-    const suggestedProducer = suggestProductionMember(eventDate, productionPersonnel, eventsToday, 'producer');
-
-
-    return {
-        transmissionOperator: suggestedOperator,
-        cinematographicReporter: suggestedCinematographer,
-        reporter: suggestedReporter,
-        producer: suggestedProducer,
-        transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
-    };
 };
