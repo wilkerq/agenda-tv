@@ -1,24 +1,29 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra explícita para cada coleção
-    
+
+    // Regra para a coleção 'events'
     match /events/{document=**} {
       allow read, write: if request.auth != null;
     }
 
+    // Regra para a coleção 'transmission_operators'
     match /transmission_operators/{document=**} {
       allow read, write: if request.auth != null;
     }
 
+    // Regra para a coleção 'cinematographic_reporters'
     match /cinematographic_reporters/{document=**} {
       allow read, write: if request.auth != null;
     }
 
+    // Regra para a coleção 'production_personnel'
     match /production_personnel/{document=**} {
       allow read, write: if request.auth != null;
     }
 
+    // Regra para a coleção 'audit_logs'
     match /audit_logs/{document=**} {
       allow read, write: if request.auth != null;
     }
