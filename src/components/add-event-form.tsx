@@ -3,11 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
-import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { onAuthStateChanged, type User } from 'firebase/auth';
 
@@ -117,6 +117,31 @@ type ProductionPersonnel = Personnel & {
   isProducer: boolean;
 };
 
+// Client-side helper function to fetch events
+const getEventsForDay = async (date: Date): Promise<any[]> => {
+    const start = startOfDay(date);
+    const end = endOfDay(date);
+
+    const eventsCollectionRef = collection(db, 'events');
+    const q = query(
+      eventsCollectionRef,
+      where('date', '>=', Timestamp.fromDate(start)),
+      where('date', '<=', Timestamp.fromDate(end))
+    );
+    try {
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => doc.data());
+    } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+          path: eventsCollectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw permissionError;
+    }
+};
+
+
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
@@ -140,26 +165,34 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   }, []);
 
   React.useEffect(() => {
-    if (!user) return; // Don't fetch data if user is not authenticated
+    if (!user) return;
 
-    const fetchPersonnel = async <T extends Personnel>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
+    const fetchPersonnel = <T extends Personnel>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
       const personnelCollectionRef = collection(db, collectionName);
-      try {
-        const snapshot = await getDocs(query(personnelCollectionRef));
+      const q = query(personnelCollectionRef);
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
         setData(data.sort((a,b) => a.name.localeCompare(b.name)));
-      } catch (serverError) {
-        const permissionError = new FirestorePermissionError({
-          path: personnelCollectionRef.path,
-          operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      }
+      }, (serverError) => {
+          const permissionError = new FirestorePermissionError({
+              path: personnelCollectionRef.path,
+              operation: 'list',
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+      });
+      return unsubscribe;
     };
     
-    fetchPersonnel<Personnel>('transmission_operators', setTransmissionOperators);
-    fetchPersonnel<Personnel>('cinematographic_reporters', setCinematographicReporters);
-    fetchPersonnel<ProductionPersonnel>('production_personnel', setProductionPersonnel);
+    const unsub1 = fetchPersonnel<Personnel>('transmission_operators', setTransmissionOperators);
+    const unsub2 = fetchPersonnel<Personnel>('cinematographic_reporters', setCinematographicReporters);
+    const unsub3 = fetchPersonnel<ProductionPersonnel>('production_personnel', setProductionPersonnel);
+
+    return () => {
+      unsub1();
+      unsub2();
+      unsub3();
+    }
 
   }, [user]);
 
@@ -208,10 +241,20 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
+        // 1. Fetch events on the client
+        const eventsToday = await getEventsForDay(eventDate); 
+
+        // 2. Call server action with all required data
         const result = await suggestTeam({
             date: eventDate.toISOString(),
             location: location,
-            transmissionTypes: transmission as TransmissionType[]
+            transmissionTypes: transmission as TransmissionType[],
+            
+            // 3. Pass state data to the server action
+            operators: transmissionOperators,
+            cinematographicReporters: cinematographicReporters,
+            productionPersonnel: productionPersonnel,
+            eventsToday: eventsToday
         });
         
         const suggestionsMade: string[] = [];
@@ -260,7 +303,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user]);
+  }, [form, toast, user, transmissionOperators, cinematographicReporters, productionPersonnel]);
 
 
   React.useEffect(() => {
@@ -317,7 +360,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           count: values.repeatCount!,
       } : undefined;
 
-      // The parent component now handles the dialog for duplicates.
       await onAddEvent(eventData, repeatSettings);
       
       form.reset({
@@ -345,8 +387,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       }
 
     } catch (error: any) {
-        // Parent component's toast will be shown via the dialog flow.
-        // Only show toast here for other types of errors.
         if (error.message !== 'Duplicate event confirmation pending') {
              toast({
                 title: "Erro ao Adicionar Evento",
