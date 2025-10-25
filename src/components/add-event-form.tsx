@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +5,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn } from "lucide-react";
+import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -38,9 +37,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
-import { suggestTeam } from "@/lib/suggestion-logic";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
+import { suggestTeamFlow } from "@/ai/flows/suggest-team-flow";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -170,14 +169,15 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     },
   });
 
-  const selectedDate = form.watch("date");
-  const selectedTime = form.watch("time");
-  const selectedLocation = form.watch("location");
-
   const handleSuggestion = React.useCallback(async () => {
     const { date, time, location, transmission } = form.getValues();
     
     if (!date || !time || !location || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+      toast({
+        title: "Dados Incompletos",
+        description: "Por favor, preencha a data, hora e local do evento antes de pedir uma sugestão.",
+        variant: "destructive"
+      })
       return;
     }
     
@@ -187,7 +187,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const result = await suggestTeam({
+        const result = await suggestTeamFlow({
             date: eventDate.toISOString(),
             location: location,
             transmissionTypes: transmission as TransmissionType[]
@@ -214,7 +214,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         
         if (suggestionsMade.length > 0) {
             toast({
-                title: "Equipe Sugerida Automaticamente!",
+                title: "Equipe Sugerida com Sucesso!",
                 description: (
                     <ul className="mt-2 list-disc list-inside">
                         {suggestionsMade.map((s, i) => <li key={i}>{s}</li>)}
@@ -223,7 +223,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             });
         } else {
              toast({
-                title: "Nenhuma sugestão automática disponível",
+                title: "Nenhuma sugestão disponível",
                 description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
                 variant: "default",
             });
@@ -232,7 +232,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } catch (error) {
         console.error("Error during auto-population:", error);
         toast({
-            title: "Erro na Sugestão Automática",
+            title: "Erro na Sugestão",
             description: "Não foi possível sugerir a equipe. Verifique o console para detalhes.",
             variant: "destructive",
         });
@@ -241,10 +241,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     }
   }, [form, toast]);
 
-  React.useEffect(() => {
-    handleSuggestion();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedTime, selectedLocation]);
 
   React.useEffect(() => {
     if (preloadedData) {
@@ -291,8 +287,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           cinematographicReporter: values.cinematographicReporter,
           reporter: values.reporter,
           producer: values.producer,
-          departure: combineDateTime(values.departureDate, values.departureTime) || null,
-          arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
+          departure: combineDateTime(values.departureDate, values.departureTime),
+          arrival: combineDateTime(values.arrivalDate, values.arrivalTime),
       };
 
       const repeatSettings = values.repeats ? {
@@ -440,6 +436,13 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
+          <FormItem>
+             <FormLabel className="text-transparent">.</FormLabel>
+            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting} className="w-full">
+                {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                Sugerir Equipe
+            </Button>
+          </FormItem>
         </div>
          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
              <FormField
@@ -515,11 +518,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                 )}
             />
         </div>
-         <FormDescription className="flex items-center gap-2">
-            {isSuggesting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Preencha os campos de data, hora e local para receber uma sugestão automática de equipe.
-        </FormDescription>
-
        
         <FormField
             control={form.control}
@@ -731,5 +729,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     </Form>
   );
 }
-
-    
