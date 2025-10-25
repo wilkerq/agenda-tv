@@ -396,10 +396,11 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                         <Checkbox
                                         checked={field.value?.includes(item.id)}
                                         onCheckedChange={(checked) => {
+                                            const currentValue = Array.isArray(field.value) ? field.value : [];
                                             return checked
-                                            ? field.onChange([...(field.value || []), item.id])
+                                            ? field.onChange([...currentValue, item.id])
                                             : field.onChange(
-                                                (field.value || []).filter(
+                                                currentValue.filter(
                                                     (value) => value !== item.id
                                                 )
                                                 );
@@ -520,4 +521,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
   );
 }
 
-    
