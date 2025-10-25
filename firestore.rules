@@ -2,37 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // As regras para cada coleção específica vêm aqui.
-    // Regra geral: Permite leitura para usuários autenticados e escrita restrita.
-
-    // Coleção de eventos: todos os autenticados podem ler. Escrever/deletar requer autenticação.
-    match /events/{eventId} {
-      allow read: if request.auth != null;
-      allow write, delete: if request.auth != null;
+    
+    // Regra geral: Apenas usuários autenticados podem modificar dados.
+    // A leitura é permitida para usuários autenticados para a maioria das coleções.
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Coleções de pessoal: todos os autenticados podem ler. Escrever/deletar requer autenticação.
+    // Coleção de eventos: leitura para autenticados, escrita para autenticados.
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Coleções de pessoal: leitura para autenticados, escrita para autenticados.
     match /transmission_operators/{operatorId} {
-      allow read: if request.auth != null;
-      allow write, delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     match /cinematographic_reporters/{reporterId} {
-      allow read: if request.auth != null;
-      allow write, delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     match /production_personnel/{personnelId} {
-       allow read: if request.auth != null;
-       allow write, delete: if request.auth != null;
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
-    
-    // Coleção de logs de auditoria: qualquer usuário autenticado pode criar logs.
-    // Leitura, atualização e exclusão são bloqueadas por segurança.
+
+    // Coleção de logs de auditoria: apenas criação é permitida para autenticados.
+    // Ninguém deve ser capaz de alterar ou excluir logs.
     match /audit_logs/{logId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if false; // Ninguém pode alterar os logs
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; 
     }
   }
 }
