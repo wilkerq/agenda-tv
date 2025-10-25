@@ -3,49 +3,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check for authentication
-    function isAuthenticated() {
-      return request.auth != null;
+    match /events/{document=**} {
+      allow read, write: if request.auth != null;
     }
 
-    // Rules for events collection
-    match /events/{eventId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /events {
-       allow list: if isAuthenticated();
+    match /transmission_operators/{document=**} {
+      allow read, write: if request.auth != null;
     }
 
-    // Rules for transmission_operators collection
-    match /transmission_operators/{operatorId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /transmission_operators {
-       allow list: if isAuthenticated();
+    match /cinematographic_reporters/{document=**} {
+      allow read, write: if request.auth != null;
     }
 
-    // Rules for cinematographic_reporters collection
-    match /cinematographic_reporters/{reporterId} {
-      allow read, write: if isAuthenticated();
+    match /production_personnel/{document=**} {
+      allow read, write: if request.auth != null;
     }
-    match /cinematographic_reporters {
-       allow list: if isAuthenticated();
-    }
-
-    // Rules for production_personnel collection
-    match /production_personnel/{personnelId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /production_personnel {
-       allow list: if isAuthenticated();
-    }
-
-    // Rules for audit_logs collection
-    match /audit_logs/{logId} {
-      allow read, write: if isAuthenticated();
-    }
-     match /audit_logs {
-       allow list: if isAuthenticated();
+    
+    match /audit_logs/{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
