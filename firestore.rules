@@ -2,41 +2,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Regra geral: Apenas usuários autenticados podem modificar dados.
-    // A leitura é permitida para usuários autenticados para a maioria das coleções.
-    function isAuthenticated() {
-      return request.auth != null;
-    }
 
-    // Coleção de eventos: leitura para autenticados, escrita para autenticados.
+    // Regra para eventos: Permite a leitura da coleção (list) e de documentos individuais (get)
+    // para qualquer usuário autenticado. A escrita continua protegida.
     match /events/{eventId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-    
-    // Coleções de pessoal: leitura para autenticados, escrita para autenticados.
-    match /transmission_operators/{operatorId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
 
-    match /cinematographic_reporters/{reporterId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    match /production_personnel/{personnelId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-    }
-
-    // Coleção de logs de auditoria: apenas criação é permitida para autenticados.
-    // Ninguém deve ser capaz de alterar ou excluir logs.
+    // Regra geral para logs: qualquer usuário autenticado pode criar.
     match /audit_logs/{logId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if false; 
+      allow create: if request.auth != null;
+      allow read, update, delete: if false; // Ninguém pode alterar ou ler logs individuais facilmente
+    }
+
+    // Regras para coleções de pessoal: Permite leitura e escrita para usuários autenticados.
+    match /{personnelCollection}/{personnelId} where personnelCollection in ['transmission_operators', 'cinematographic_reporters', 'production_personnel'] {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }
