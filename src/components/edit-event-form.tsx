@@ -399,7 +399,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                             return checked
                                             ? field.onChange([...(field.value || []), item.id])
                                             : field.onChange(
-                                                field.value?.filter(
+                                                (field.value || []).filter(
                                                     (value) => value !== item.id
                                                 )
                                                 );
@@ -519,3 +519,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    
