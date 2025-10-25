@@ -39,7 +39,7 @@ import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/type
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
-import { suggestTeamFlow } from "@/ai/flows/suggest-team-flow";
+import { suggestTeam } from "@/lib/suggestion-logic";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -187,7 +187,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const result = await suggestTeamFlow({
+        const result = await suggestTeam({
             date: eventDate.toISOString(),
             location: location,
             transmissionTypes: transmission as TransmissionType[]
@@ -224,7 +224,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
                 variant: "default",
             });
         }
@@ -287,8 +287,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           cinematographicReporter: values.cinematographicReporter,
           reporter: values.reporter,
           producer: values.producer,
-          departure: combineDateTime(values.departureDate, values.departureTime) || null,
-          arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
+          departure: combineDateTime(values.departureDate, values.departureTime),
+          arrival: combineDateTime(values.arrivalDate, values.arrivalTime),
       };
 
       const repeatSettings = values.repeats ? {

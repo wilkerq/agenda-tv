@@ -10,19 +10,8 @@ import { SuggestTeamInput, SuggestTeamInputSchema, SuggestTeamOutput, SuggestTea
 
 // Exported wrapper function
 export async function suggestTeamFlow(input: SuggestTeamInput): Promise<SuggestTeamOutput> {
+    // This flow now directly calls the server-side business logic.
+    // This ensures it runs with proper server credentials if needed,
+    // and keeps the core logic separate from the AI flow definition.
     return suggestTeam(input);
 }
-
-// Define the flow
-const flow = ai.defineFlow(
-    {
-        name: 'suggestTeamFlow',
-        inputSchema: SuggestTeamInputSchema,
-        outputSchema: SuggestTeamOutputSchema,
-    },
-    async (input) => {
-        // The core logic is in `suggestTeam`, so we just call it.
-        // This flow acts as a server-side, authenticated wrapper.
-        return await suggestTeam(input);
-    }
-);
