@@ -241,16 +241,21 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        // 1. Fetch events on the client
-        const eventsToday = await getEventsForDay(eventDate); 
+        const eventsTodayRaw = await getEventsForDay(eventDate);
+        
+        // **FIX: Serialize Firestore Timestamps to ISO strings before sending to server**
+        const eventsToday = eventsTodayRaw.map(event => ({
+            ...event,
+            date: event.date ? (event.date as Timestamp).toDate().toISOString() : null,
+            departure: event.departure ? (event.departure as Timestamp).toDate().toISOString() : null,
+            arrival: event.arrival ? (event.arrival as Timestamp).toDate().toISOString() : null,
+        }));
 
-        // 2. Call server action with all required data
+
         const result = await suggestTeam({
             date: eventDate.toISOString(),
             location: location,
             transmissionTypes: transmission as TransmissionType[],
-            
-            // 3. Pass state data to the server action
             operators: transmissionOperators,
             cinematographicReporters: cinematographicReporters,
             productionPersonnel: productionPersonnel,
@@ -288,7 +293,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
                 variant: "default",
             });
         }
@@ -517,6 +522,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="none">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -535,6 +541,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="none">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -553,6 +560,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="none">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -571,6 +579,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="none">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>

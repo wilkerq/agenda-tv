@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getDay } from 'date-fns';
@@ -19,12 +18,12 @@ interface SuggestTeamParams {
     date: string;
     location: string;
     transmissionTypes: TransmissionType[];
-    // CORREÇÃO DE ROBUSTEZ: Adiciona valores padrão para evitar 'crash'
     operators: Personnel[] | undefined;
     cinematographicReporters: Personnel[] | undefined;
     productionPersonnel: ProductionPersonnel[] | undefined;
     eventsToday: any[];
 }
+
 
 // ==========================================================================================
 // FUNÇÕES HELPER CORRIGIDAS
@@ -118,7 +117,7 @@ const suggestTransmissionOperator = (
             // Lógica do Bruno (só se não tiver evento à noite)
             const bruno = availableForTurn.find(p => p.name === "Bruno Almeida");
             if (bruno) {
-                const nightEventsWithBruno = eventsToday.some(e => e.transmissionOperator === 'Bruno Almeida' && getEventTurn(new Date(e.date.seconds * 1000)) === 'Noite');
+                const nightEventsWithBruno = eventsToday.some(e => e.transmissionOperator === 'Bruno Almeida' && getEventTurn(new Date(e.date)) === 'Noite');
                 if (!nightEventsWithBruno) return bruno.name;
             }
         } 
@@ -255,8 +254,15 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
       operators = [], // Garante que não seja 'undefined'
       cinematographicReporters = [], // Garante que não seja 'undefined'
       productionPersonnel = [], // Garante que não seja 'undefined'
-      eventsToday = []
     } = params;
+
+    // **FIX: Deserialize ISO strings back to Date objects**
+    const eventsToday = params.eventsToday.map(e => ({
+        ...e,
+        date: e.date ? new Date(e.date) : null,
+        departure: e.departure ? new Date(e.departure) : null,
+        arrival: e.arrival ? new Date(e.arrival) : null,
+    })).filter(e => e.date); // Filter out any events that failed to parse
     
     const eventDate = new Date(date);
 
