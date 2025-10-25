@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -44,6 +45,7 @@ export default function DashboardLayout({
   const { toast } = useToast();
   const auth = getAuth(app);
   const [user, setUser] = useState<User | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -84,6 +86,10 @@ export default function DashboardLayout({
     { href: "/dashboard/logs", label: "Logs de Auditoria", icon: History },
   ];
 
+  const handleLinkClick = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-slate-900 text-white md:block">
@@ -121,7 +127,7 @@ export default function DashboardLayout({
       </div>
       <div className="flex flex-col bg-slate-50 dark:bg-slate-950">
         <header className="flex h-14 items-center gap-4 border-b bg-white dark:bg-slate-900 px-4 lg:h-[60px] lg:px-6">
-          <Sheet>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="outline"
@@ -137,6 +143,7 @@ export default function DashboardLayout({
                  <Link
                   href="/"
                   className="flex items-center gap-2 text-lg font-semibold text-white"
+                  onClick={handleLinkClick}
                 >
                   <Package2 className="h-6 w-6" />
                   <span>Agenda Alego</span>
@@ -150,6 +157,7 @@ export default function DashboardLayout({
                     <Link
                       key={href}
                       href={href}
+                      onClick={handleLinkClick}
                       className={cn(
                         "flex items-center gap-4 rounded-xl px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700",
                         pathname === href && "bg-slate-700 text-white"
