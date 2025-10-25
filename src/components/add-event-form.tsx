@@ -287,8 +287,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           cinematographicReporter: values.cinematographicReporter,
           reporter: values.reporter,
           producer: values.producer,
-          departure: combineDateTime(values.departureDate, values.departureTime),
-          arrival: combineDateTime(values.arrivalDate, values.arrivalTime),
+          departure: combineDateTime(values.departureDate, values.departureTime) || null,
+          arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
       };
 
       const repeatSettings = values.repeats ? {
@@ -546,10 +546,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                                 <Checkbox
                                 checked={field.value?.includes(item.id)}
                                 onCheckedChange={(checked) => {
+                                    const currentValue = Array.isArray(field.value) ? field.value : [];
                                     return checked
-                                    ? field.onChange([...(field.value || []), item.id])
+                                    ? field.onChange([...currentValue, item.id])
                                     : field.onChange(
-                                        field.value?.filter(
+                                        currentValue.filter(
                                             (value) => value !== item.id
                                         )
                                         );
