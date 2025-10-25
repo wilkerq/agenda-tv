@@ -10,7 +10,7 @@ import "./flows/create-event-from-image-flow";
 import "./flows/generate-whatsapp-message-flow";
 import "./flows/generate-daily-agenda-flow";
 import "./flows/send-daily-agenda-to-all-flow";
-import "./flows/suggest-team-flow";
+
 
 // Tools
 import "./tools/get-schedule-tool";

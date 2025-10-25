@@ -7,8 +7,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +41,9 @@ import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 import { suggestTeam } from "@/lib/suggestion-logic";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -105,11 +109,10 @@ type AddEventFormProps = {
 type Personnel = {
   id: string;
   name: string;
+  turn: 'Manhã' | 'Tarde' | 'Noite' | 'Geral';
 };
 
-type ProductionPersonnel = {
-  id: string;
-  name: string;
+type ProductionPersonnel = Personnel & {
   isReporter: boolean;
   isProducer: boolean;
 };
@@ -118,6 +121,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const { toast } = useToast();
+  const [user, setUser] = React.useState<User | null>(null);
 
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
@@ -128,25 +132,37 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
 
   React.useEffect(() => {
-    const unsub1 = onSnapshot(query(collection(db, 'transmission_operators')), (snapshot) => {
-        const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-        setTransmissionOperators(data.sort((a,b) => a.name.localeCompare(b.name)));
-    });
-    const unsub2 = onSnapshot(query(collection(db, 'cinematographic_reporters')), (snapshot) => {
-        const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
-        setCinematographicReporters(data.sort((a,b) => a.name.localeCompare(b.name)));
-    });
-    const unsub3 = onSnapshot(query(collection(db, 'production_personnel')), (snapshot) => {
-        const data: ProductionPersonnel[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductionPersonnel));
-        setProductionPersonnel(data.sort((a,b) => a.name.localeCompare(b.name)));
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
 
-    return () => {
-        unsub1();
-        unsub2();
-        unsub3();
-    };
+    return () => unsubscribeAuth();
   }, []);
+
+  React.useEffect(() => {
+    if (!user) return; // Don't fetch data if user is not authenticated
+
+    const fetchPersonnel = async <T extends Personnel>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
+      const personnelCollectionRef = collection(db, collectionName);
+      try {
+        const snapshot = await getDocs(query(personnelCollectionRef));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+        setData(data.sort((a,b) => a.name.localeCompare(b.name)));
+      } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+          path: personnelCollectionRef.path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+      }
+    };
+    
+    fetchPersonnel<Personnel>('transmission_operators', setTransmissionOperators);
+    fetchPersonnel<Personnel>('cinematographic_reporters', setCinematographicReporters);
+    fetchPersonnel<ProductionPersonnel>('production_personnel', setProductionPersonnel);
+
+  }, [user]);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -172,6 +188,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const handleSuggestion = React.useCallback(async () => {
     const { date, time, location, transmission } = form.getValues();
     
+    if (!user) {
+       toast({ title: "Autenticação necessária", description: "Você precisa estar logado para usar a sugestão.", variant: "destructive"});
+       return;
+    }
+
     if (!date || !time || !location || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
       toast({
         title: "Dados Incompletos",
@@ -224,7 +245,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         } else {
              toast({
                 title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
                 variant: "default",
             });
         }
@@ -239,7 +260,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast]);
+  }, [form, toast, user]);
 
 
   React.useEffect(() => {
@@ -438,7 +459,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           />
           <FormItem>
              <FormLabel className="text-transparent">.</FormLabel>
-            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting} className="w-full">
+            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting || !user || transmissionOperators.length === 0} className="w-full">
                 {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Sugerir Equipe
             </Button>

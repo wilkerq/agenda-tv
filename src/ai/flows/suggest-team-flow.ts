@@ -9,7 +9,7 @@ import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
 import { SuggestTeamInput, SuggestTeamInputSchema, SuggestTeamOutput, SuggestTeamOutputSchema } from '@/lib/types';
 
 
-export const suggestTeam = ai.defineFlow(
+export const suggestTeamFlow = ai.defineFlow(
     {
         name: 'suggestTeamFlow',
         inputSchema: SuggestTeamInputSchema,
