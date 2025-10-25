@@ -170,36 +170,26 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     },
   });
 
-  const handleSuggestion = React.useCallback(async () => {
-    const { date: selectedDate, time: selectedTime, location: selectedLocation, transmission } = form.getValues();
-    
-    if (!selectedDate || !selectedTime || !selectedLocation) {
-      toast({
-        title: "Dados insuficientes",
-        description: "Por favor, preencha a data, hora e local antes de pedir uma sugestão.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const selectedDate = form.watch("date");
+  const selectedTime = form.watch("time");
+  const selectedLocation = form.watch("location");
 
-    if (!/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(selectedTime)) {
-       toast({
-        title: "Formato de hora inválido",
-        description: "Por favor, insira a hora no formato HH:mm.",
-        variant: "destructive",
-      });
+  const handleSuggestion = React.useCallback(async () => {
+    const { date, time, location, transmission } = form.getValues();
+    
+    if (!date || !time || !location || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
       return;
     }
     
     setIsSuggesting(true);
     try {
-        const [hours, minutes] = selectedTime.split(":").map(Number);
-        const eventDate = new Date(selectedDate);
+        const [hours, minutes] = time.split(":").map(Number);
+        const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
         const result = await suggestTeam({
             date: eventDate.toISOString(),
-            location: selectedLocation,
+            location: location,
             transmissionTypes: transmission as TransmissionType[]
         });
         
@@ -224,7 +214,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         
         if (suggestionsMade.length > 0) {
             toast({
-                title: "Equipe Sugerida!",
+                title: "Equipe Sugerida Automaticamente!",
                 description: (
                     <ul className="mt-2 list-disc list-inside">
                         {suggestionsMade.map((s, i) => <li key={i}>{s}</li>)}
@@ -233,8 +223,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             });
         } else {
              toast({
-                title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
+                title: "Nenhuma sugestão automática disponível",
+                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
                 variant: "default",
             });
         }
@@ -242,7 +232,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } catch (error) {
         console.error("Error during auto-population:", error);
         toast({
-            title: "Erro na Sugestão",
+            title: "Erro na Sugestão Automática",
             description: "Não foi possível sugerir a equipe. Verifique o console para detalhes.",
             variant: "destructive",
         });
@@ -250,6 +240,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         setIsSuggesting(false);
     }
   }, [form, toast]);
+
+  React.useEffect(() => {
+    handleSuggestion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, selectedTime, selectedLocation]);
 
   React.useEffect(() => {
     if (preloadedData) {
@@ -445,16 +440,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
               </FormItem>
             )}
           />
-           <Button
-              type="button"
-              variant="outline"
-              onClick={handleSuggestion}
-              disabled={isSuggesting}
-              className="w-full"
-            >
-              {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
-              Sugerir Equipe
-            </Button>
         </div>
          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
              <FormField
@@ -530,8 +515,9 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
                 )}
             />
         </div>
-         <FormDescription>
-            Preencha os campos de data, hora e local, depois use o botão de sugestão para preencher a equipe.
+         <FormDescription className="flex items-center gap-2">
+            {isSuggesting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Preencha os campos de data, hora e local para receber uma sugestão automática de equipe.
         </FormDescription>
 
        
