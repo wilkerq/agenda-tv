@@ -1,40 +1,14 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isAuthenticated() {
-      return request.auth != null;
+    // Regra geral para coleções que precisam de leitura pública para autenticados
+    match /{collection}/{document=**} where collection in ['events', 'transmission_operators', 'cinematographic_reporters', 'production_personnel', 'audit_logs'] {
+      allow read: if request.auth != null;
     }
 
-    // Events collection
-    match /events/{eventId} {
-      allow read, list: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
-    }
-    
-    // Personnel collections
-    match /transmission_operators/{operatorId} {
-      allow read, list: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
-    }
-    
-    match /cinematographic_reporters/{reporterId} {
-      allow read, list: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
-    }
-    
-    match /production_personnel/{personnelId} {
-      allow read, list: if isAuthenticated();
-      allow create, update, delete: if isAuthenticated();
-    }
-
-    // Audit logs can be read and created by authenticated users
-    match /audit_logs/{logId} {
-      allow read, list: if isAuthenticated();
-      allow create: if isAuthenticated();
-      // Deletes and updates are not allowed
-      allow update, delete: if false;
+    // Regra geral para escrita autenticada nas mesmas coleções
+    match /{collection}/{document} where collection in ['events', 'transmission_operators', 'cinematographic_reporters', 'production_personnel', 'audit_logs'] {
+      allow write: if request.auth != null;
     }
   }
 }
