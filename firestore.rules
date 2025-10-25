@@ -1,14 +1,50 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Regra geral para coleções que precisam de leitura pública para autenticados
-    match /{collection}/{document=**} where collection in ['events', 'transmission_operators', 'cinematographic_reporters', 'production_personnel', 'audit_logs'] {
-      allow read: if request.auth != null;
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Regra geral para escrita autenticada nas mesmas coleções
-    match /{collection}/{document} where collection in ['events', 'transmission_operators', 'cinematographic_reporters', 'production_personnel', 'audit_logs'] {
-      allow write: if request.auth != null;
+    // Events collection
+    match /events/{eventId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /events/{eventId=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Transmission Operators collection
+    match /transmission_operators/{operatorId} {
+      allow read, write: if isAuthenticated();
+    }
+     match /transmission_operators/{operatorId=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Cinematographic Reporters collection
+    match /cinematographic_reporters/{reporterId} {
+      allow read, write: if isAuthenticated();
+    }
+     match /cinematographic_reporters/{reporterId=**} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Production Personnel collection
+    match /production_personnel/{personnelId} {
+      allow read, write: if isAuthenticated();
+    }
+     match /production_personnel/{personnelId=**} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Audit Logs collection
+    match /audit_logs/{logId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /audit_logs/{logId=**} {
+      allow read, write: if isAuthenticated();
     }
   }
 }
