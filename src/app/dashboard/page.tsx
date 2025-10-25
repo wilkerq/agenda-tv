@@ -205,7 +205,7 @@ export default function DashboardPage() {
             await batch.commit();
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
         } catch (serverError: any) {
-            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } satisfies SecurityRuleContext);
+            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
         }
@@ -252,6 +252,8 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
             const serializableOldData = {
                 ...oldData,
                 date: (oldData.date as Timestamp).toDate().toISOString(),
+                departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
+                arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
             };
             await logAction({
                 action: 'delete',
