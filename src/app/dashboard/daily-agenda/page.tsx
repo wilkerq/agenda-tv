@@ -35,6 +35,7 @@ export default function DailyAgendaPage() {
   const fetchEvents = useCallback(async () => {
     if (!selectedDate) {
       setEvents([]);
+      setIsFetchingEvents(false);
       return;
     }
 
@@ -74,6 +75,7 @@ export default function DailyAgendaPage() {
 
     } catch (error) {
       console.error("Error fetching events: ", error);
+      setEvents([]);
       // Toast is now handled by the FirebaseErrorListener for permission errors
       if (!(error instanceof FirestorePermissionError)) {
         toast({
