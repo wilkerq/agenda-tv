@@ -3,14 +3,14 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Configuração do seu projeto Firebase.
+// Configuração lendo as Variáveis de Ambiente
 const firebaseConfig = {
-  apiKey: "AIzaSyAiHptzLoHCtDR2_n9pPVbD89ewX8kd_f8",
-  authDomain: "agenda-alego-v3-72653978-2d924.firebaseapp.com",
-  projectId: "agenda-alego-v3-72653978-2d924",
-  storageBucket: "agenda-alego-v3-72653978-2d924.firebasestorage.app",
-  messagingSenderId: "547317231231",
-  appId: "1:547317231231:web:76251ee44f43c657a3194a"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 
@@ -21,4 +21,3 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 export { app, db, auth };
-
