@@ -19,12 +19,18 @@ import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
 export default function DailyAgendaPage() {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  // Initialize state to undefined on the server, and set it on the client.
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [events, setEvents] = useState<Event[]>([]);
   const [message, setMessage] = useState("");
-  const [isFetchingEvents, setIsFetchingEvents] = useState(false);
+  const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
+
+  // Set the initial date only on the client-side to prevent hydration errors.
+  useEffect(() => {
+    setSelectedDate(new Date());
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     if (!selectedDate) {
@@ -83,8 +89,10 @@ export default function DailyAgendaPage() {
 
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    if (selectedDate) {
+        fetchEvents();
+    }
+  }, [fetchEvents, selectedDate]);
   
   const handleGenerateCompleteMessage = useCallback(async () => {
     if (!selectedDate || events.length === 0) {
@@ -196,6 +204,7 @@ export default function DailyAgendaPage() {
                 onSelect={setSelectedDate}
                 className="p-0 border rounded-md"
                 locale={ptBR}
+                disabled={!selectedDate} // Disable calendar until date is set on client
             />
           </CardContent>
         </Card>
