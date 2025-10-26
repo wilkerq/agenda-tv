@@ -2,31 +2,28 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { collection, getDocs, query, where, Timestamp, onSnapshot, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Event, Operator } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import type { Event } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, startOfDay, endOfDay, format } from "date-fns";
+import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
-import { sendDailyAgendaToAll } from "@/ai/flows/send-daily-agenda-to-all-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
-interface EventsByOperator {
-  [operatorName: string]: Event[];
+interface EventsByPersonnel {
+  [personnelName: string]: Event[];
 }
 
 export default function ShareSchedulePage() {
-  const [eventsByOperator, setEventsByOperator] = useState<EventsByOperator>({});
+  const [eventsByPersonnel, setEventsByPersonnel] = useState<EventsByPersonnel>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isFetchingEvents, setIsFetchingEvents] = useState(true);
-  const [isSending, setIsSending] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
 
@@ -38,7 +35,7 @@ export default function ShareSchedulePage() {
 
   const fetchEvents = useCallback(async () => {
     if (!selectedDate) {
-      setEventsByOperator({});
+      setEventsByPersonnel({});
       setIsFetchingEvents(false);
       return;
     }
@@ -73,19 +70,27 @@ export default function ShareSchedulePage() {
           date: (data.date as Timestamp).toDate(),
         } as Event;
       });
-
-      const groupedEvents: EventsByOperator = {};
+      
+      const groupedEvents: EventsByPersonnel = {};
       fetchedEvents.forEach(event => {
-        const operator = event.transmissionOperator;
-        if (operator) {
-          if (!groupedEvents[operator]) {
-            groupedEvents[operator] = [];
-          }
-          groupedEvents[operator].push(event);
-        }
+        const involvedPersonnel = new Set([
+            event.transmissionOperator,
+            event.cinematographicReporter,
+            event.reporter,
+            event.producer
+        ].filter(p => p && p.trim() !== ''));
+
+        involvedPersonnel.forEach(personName => {
+             if (personName) {
+                if (!groupedEvents[personName]) {
+                    groupedEvents[personName] = [];
+                }
+                groupedEvents[personName].push(event);
+            }
+        });
       });
 
-      setEventsByOperator(groupedEvents);
+      setEventsByPersonnel(groupedEvents);
 
     } catch (error) {
       console.error("Error fetching events: ", error);
@@ -108,36 +113,8 @@ export default function ShareSchedulePage() {
     }
   }, [selectedDate, fetchEvents]);
   
-  const handleSendToAll = useCallback(async () => {
-    setIsSending(true);
-    try {
-      const result = await sendDailyAgendaToAll({});
-      if (result.success) {
-        toast({
-          title: "Agendas Enviadas!",
-          description: `${result.messagesSent} operadores foram notificados com sucesso para o dia de amanhã.`,
-        });
-      } else {
-        toast({
-          title: "Envio Parcial",
-          description: `${result.messagesSent} agendas enviadas, mas falhou para: ${result.errors.join(', ')}.`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error sending daily agenda: ", error);
-      toast({
-        title: "Erro no Envio Automático",
-        description: "Não foi possível enviar as agendas. Verifique o console.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSending(false);
-    }
-  }, [toast]);
-
-  const operatorNames = useMemo(() => Object.keys(eventsByOperator).sort(), [eventsByOperator]);
-  const hasEvents = operatorNames.length > 0;
+  const personnelNames = useMemo(() => Object.keys(eventsByPersonnel).sort(), [eventsByPersonnel]);
+  const hasEvents = personnelNames.length > 0;
   
   if (!isClient) {
     return (
@@ -153,7 +130,7 @@ export default function ShareSchedulePage() {
         <Card>
           <CardHeader>
             <CardTitle>Painel de Visualização</CardTitle>
-            <CardDescription>Use esta tela para visualizar a agenda de um dia específico para todos os operadores.</CardDescription>
+            <CardDescription>Use esta tela para visualizar a agenda de um dia específico para toda a equipe.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
@@ -174,7 +151,7 @@ export default function ShareSchedulePage() {
                 <Send className="h-4 w-4" />
                 <AlertTitle>Envio Automatizado</AlertTitle>
                 <AlertDescription>
-                  O envio da agenda do dia seguinte para os operadores agora é feito automaticamente todos os dias às 20h.
+                  O envio da agenda do dia seguinte para os operadores é feito automaticamente todos os dias às 20h.
                 </AlertDescription>
             </Alert>
           </CardContent>
@@ -189,7 +166,7 @@ export default function ShareSchedulePage() {
               {isFetchingEvents 
                 ? "Buscando eventos..." 
                 : hasEvents
-                ? `Encontrados eventos para ${operatorNames.length} operador(es).`
+                ? `Encontrados eventos para ${personnelNames.length} profissional(is).`
                 : "Nenhum evento encontrado para esta data."
               }
             </CardDescription>
@@ -200,14 +177,14 @@ export default function ShareSchedulePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : hasEvents ? (
-                operatorNames.map(operatorName => (
-                    <div key={operatorName}>
+                personnelNames.map(personName => (
+                    <div key={personName}>
                         <h3 className="flex items-center text-lg font-semibold mb-2">
                             <User className="mr-2 h-5 w-5 text-primary" />
-                            {operatorName}
+                            {personName}
                         </h3>
                         <ul className="space-y-2 border-l-2 border-primary/20 pl-4 ml-2">
-                            {eventsByOperator[operatorName].map(event => (
+                            {eventsByPersonnel[personName].map(event => (
                                 <li key={event.id} className="text-sm">
                                     <span className="font-mono text-muted-foreground mr-2">{format(event.date, "HH:mm")}h</span>
                                     <span>{event.name} ({event.location})</span>
@@ -229,5 +206,3 @@ export default function ShareSchedulePage() {
     </div>
   );
 }
-
-    
