@@ -113,7 +113,7 @@ export default function ShareSchedulePage() {
     }
   }, [selectedDate, fetchEvents]);
   
-  const personnelNames = useMemo(() => Object.keys(eventsByPersonnel).sort(), [eventsByPersonnel]);
+  const personnelNames = useMemo(() => Object.keys(eventsByPersonnel).sort((a, b) => a.localeCompare(b)), [eventsByPersonnel]);
   const hasEvents = personnelNames.length > 0;
   
   if (!isClient) {
