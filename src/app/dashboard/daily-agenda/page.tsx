@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Share2, Bot, CalendarSearch } from "lucide-react";
+import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorEmitter } from "@/lib/error-emitter";
@@ -86,7 +86,7 @@ export default function DailyAgendaPage() {
     fetchEvents();
   }, [fetchEvents]);
   
-  const handleGenerateMessage = useCallback(async () => {
+  const handleGenerateCompleteMessage = useCallback(async () => {
     if (!selectedDate || events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
         setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
@@ -112,7 +112,7 @@ export default function DailyAgendaPage() {
         setMessage(result.message);
          toast({
             title: "Pauta Gerada!",
-            description: "A pauta do dia foi criada com sucesso. Verifique e compartilhe.",
+            description: "A pauta completa do dia foi criada. Verifique e compartilhe.",
         });
     } catch (error) {
          console.error("Error generating message: ", error);
@@ -125,6 +125,44 @@ export default function DailyAgendaPage() {
         setIsGeneratingMessage(false);
     }
   }, [events, selectedDate, toast]);
+
+  const handleGenerateOperatorsMessage = useCallback(async () => {
+    if (!selectedDate || events.length === 0) {
+        const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
+        setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
+        return;
+    }
+    
+    setIsGeneratingMessage(true);
+    try {
+        const eventStrings = events
+            .filter(e => e.transmissionOperator) // Apenas eventos com operador
+            .map(e => {
+                const operator = `Op: ${e.transmissionOperator}`;
+                return `- ${operator} - ${e.name} (${e.location})`;
+            });
+        
+        const result = await generateDailyAgenda({
+            scheduleDate: selectedDate.toISOString(),
+            events: eventStrings,
+        });
+        setMessage(result.message);
+         toast({
+            title: "Pauta Gerada!",
+            description: "A pauta dos operadores foi criada com sucesso.",
+        });
+    } catch (error) {
+         console.error("Error generating message: ", error);
+         toast({
+            title: "Erro de IA",
+            description: "Não foi possível gerar a pauta. Verifique as configurações.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsGeneratingMessage(false);
+    }
+  }, [events, selectedDate, toast]);
+
 
   const handleShare = () => {
     if (!message) {
@@ -210,10 +248,16 @@ export default function DailyAgendaPage() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    <Button onClick={handleGenerateMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} className="w-full sm:w-auto">
-                        {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-                        Gerar Pauta Manual
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button onClick={handleGenerateCompleteMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} className="w-full sm:w-auto">
+                            {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                            Gerar Pauta (Completa)
+                        </Button>
+                        <Button onClick={handleGenerateOperatorsMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} variant="outline" className="w-full sm:w-auto">
+                            {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                            Gerar Pauta (Operadores)
+                        </Button>
+                    </div>
                     <Textarea
                         id="whatsapp-message"
                         value={message}
