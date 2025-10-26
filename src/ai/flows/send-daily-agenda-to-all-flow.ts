@@ -16,6 +16,7 @@ import { ptBR } from 'date-fns/locale';
 import type { Event, Operator } from '@/lib/types';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';
+import { logAction } from '@/lib/audit-log';
 
 
 const SendDailyAgendaOutputSchema = z.object({
@@ -168,28 +169,19 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     }
 
     // 5. Log the result of the automatic execution
-    const logCollectionRef = collection(db, 'audit_logs');
-    const logData = {
-      action: 'automatic-send',
-      collectionName: 'system',
-      documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,
-      userEmail: 'System Automation (n8n)',
-      timestamp: Timestamp.now(),
-      details: {
+    const logDetails = {
         messagesSent,
         errors,
         targetDate: format(tomorrow, 'yyyy-MM-dd'),
-      },
     };
-    addDoc(logCollectionRef, logData)
-        .catch(serverError => {
-             const permissionError = new FirestorePermissionError({
-                path: logCollectionRef.path,
-                operation: 'create',
-                requestResourceData: logData,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        });
+
+    await logAction({
+        action: 'automatic-send',
+        collectionName: 'system',
+        documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,
+        userEmail: 'System Automation (n8n)',
+        details: logDetails
+    });
 
 
     return {

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
@@ -15,6 +14,7 @@ interface LogActionParams {
     newData?: object;
     oldData?: object;
     batchId?: string;
+    details?: object;
 }
 
 export const logAction = async ({
@@ -25,6 +25,7 @@ export const logAction = async ({
     newData,
     oldData,
     batchId,
+    details,
 }: LogActionParams): Promise<void> => {
 
     const logData: any = {
@@ -44,11 +45,17 @@ export const logAction = async ({
     if (batchId) {
         logData.batchId = batchId;
     }
+    if (details) {
+        logData.details = details;
+    }
     
     const logCollectionRef = collection(db, 'audit_logs');
     
     addDoc(logCollectionRef, logData)
         .catch((serverError) => {
+            console.error("Error writing to audit log:", serverError);
+            // We emit the error but don't re-throw it, as logging failure should not
+            // block the primary user action.
             const permissionError = new FirestorePermissionError({
                 path: logCollectionRef.path,
                 operation: 'create',

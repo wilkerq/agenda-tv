@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, FC } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query, CollectionReference, DocumentData } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query, CollectionReference, DocumentData, getDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,6 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logAction } from "@/lib/audit-log";
+import { onAuthStateChanged, type User } from 'firebase/auth';
+
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 
@@ -44,18 +46,25 @@ const productionPersonnelSchema = personnelSchema.extend({
 type ProductionPersonnel = z.infer<typeof productionPersonnelSchema> & { id: string };
 
 
-const collectionTitles: Record<string, string> = {
-  transmission_operators: "Operadores de Transmissão",
-  cinematographic_reporters: "Repórteres Cinematográficos",
-  production_personnel: "Pessoal de Produção",
+const serializePersonnelData = (data: z.infer<typeof personnelSchema> | z.infer<typeof productionPersonnelSchema>) => {
+  const serialized: any = {};
+  for (const key in data) {
+    const value = (data as any)[key];
+    if (value !== null && value !== undefined) {
+      serialized[key] = value;
+    }
+  }
+  return serialized;
 };
+
 
 interface PersonnelTabProps {
   collectionName: string;
   title: string;
+  currentUser: User | null;
 }
 
-const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
+const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUser }) => {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,11 +100,19 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   }, [toast, collectionName, title]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
+    if (!currentUser) return;
     setIsSubmitting(true);
     const personnelCollectionRef = collection(db, collectionName);
     
     addDoc(personnelCollectionRef, values)
-      .then(() => {
+      .then(async (docRef) => {
+        await logAction({
+          action: 'create',
+          collectionName,
+          documentId: docRef.id,
+          userEmail: currentUser.email!,
+          newData: serializePersonnelData(values)
+        });
         toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
         form.reset();
         setAddModalOpen(false);
@@ -114,12 +131,22 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof personnelSchema>) => {
-    if (!editingPersonnel) return;
+    if (!editingPersonnel || !currentUser) return;
     setIsSubmitting(true);
     const docRef = doc(db, collectionName, editingPersonnel.id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
 
     updateDoc(docRef, values)
-      .then(() => {
+      .then(async () => {
+         await logAction({
+          action: 'update',
+          collectionName,
+          documentId: editingPersonnel.id,
+          userEmail: currentUser.email!,
+          oldData: oldData ? serializePersonnelData(oldData as any) : undefined,
+          newData: serializePersonnelData(values)
+        });
         toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
         setEditingPersonnel(null);
       })
@@ -137,9 +164,22 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   };
 
   const handleDeletePersonnel = async (id: string) => {
+    if (!currentUser) return;
     const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
+
     deleteDoc(docRef)
-      .then(() => {
+      .then(async () => {
+        if(oldData) {
+          await logAction({
+            action: 'delete',
+            collectionName,
+            documentId: id,
+            userEmail: currentUser.email!,
+            oldData: serializePersonnelData(oldData as any)
+          });
+        }
         toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
       })
       .catch((serverError) => {
@@ -352,7 +392,13 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   );
 };
 
-const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title: string }> = ({ collectionName, title }) => {
+interface ProductionPersonnelTabProps {
+  collectionName: "production_personnel";
+  title: string;
+  currentUser: User | null;
+}
+
+const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionName, title, currentUser }) => {
   const [personnel, setPersonnel] = useState<ProductionPersonnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -388,11 +434,19 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
   }, [toast, collectionName, title]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
+     if (!currentUser) return;
     setIsSubmitting(true);
     const personnelCollectionRef = collection(db, collectionName);
     
     addDoc(personnelCollectionRef, values)
-      .then(() => {
+      .then(async (docRef) => {
+        await logAction({
+          action: 'create',
+          collectionName,
+          documentId: docRef.id,
+          userEmail: currentUser.email!,
+          newData: serializePersonnelData(values)
+        });
         toast({ title: "Sucesso!", description: "Novo membro adicionado." });
         form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
         setAddModalOpen(false);
@@ -411,12 +465,22 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
-    if (!editingPersonnel) return;
+    if (!editingPersonnel || !currentUser) return;
     setIsSubmitting(true);
     const docRef = doc(db, collectionName, editingPersonnel.id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
 
     updateDoc(docRef, values)
-      .then(() => {
+      .then(async() => {
+        await logAction({
+          action: 'update',
+          collectionName,
+          documentId: editingPersonnel.id,
+          userEmail: currentUser.email!,
+          oldData: oldData ? serializePersonnelData(oldData as any) : undefined,
+          newData: serializePersonnelData(values)
+        });
         toast({ title: "Sucesso!", description: "Membro atualizado." });
         setEditingPersonnel(null);
       })
@@ -434,9 +498,22 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
   };
 
   const handleDeletePersonnel = async (id: string) => {
+     if (!currentUser) return;
     const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
+
     deleteDoc(docRef)
-      .then(() => {
+      .then(async () => {
+         if (oldData) {
+          await logAction({
+            action: 'delete',
+            collectionName,
+            documentId: id,
+            userEmail: currentUser.email!,
+            oldData: serializePersonnelData(oldData as any)
+          });
+        }
         toast({ title: "Sucesso!", description: "Membro removido." });
       })
       .catch((serverError) => {
@@ -709,6 +786,15 @@ const ProductionPersonnelTab: FC<{ collectionName: "production_personnel", title
 
 
 export default function OperatorsPage() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="space-y-6">
       <CardHeader className="p-0">
@@ -722,13 +808,13 @@ export default function OperatorsPage() {
           <TabsTrigger value="production_personnel">Pessoal de Produção</TabsTrigger>
         </TabsList>
         <TabsContent value="transmission_operators">
-          <PersonnelTab collectionName="transmission_operators" title="Operadores de Transmissão" />
+          <PersonnelTab collectionName="transmission_operators" title="Operadores de Transmissão" currentUser={currentUser} />
         </TabsContent>
         <TabsContent value="cinematographic_reporters">
-          <PersonnelTab collectionName="cinematographic_reporters" title="Repórteres Cinematográficos" />
+          <PersonnelTab collectionName="cinematographic_reporters" title="Repórteres Cinematográficos" currentUser={currentUser} />
         </TabsContent>
         <TabsContent value="production_personnel">
-          <ProductionPersonnelTab collectionName="production_personnel" title="Pessoal de Produção (Repórteres/Produtores)" />
+          <ProductionPersonnelTab collectionName="production_personnel" title="Pessoal de Produção (Repórteres/Produtores)" currentUser={currentUser} />
         </TabsContent>
       </Tabs>
     </div>

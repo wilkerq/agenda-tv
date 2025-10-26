@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -42,6 +41,20 @@ type PendingEvent = {
     data: EventFormData;
     repeatSettings?: RepeatSettings;
 }
+
+const serializeEventData = (data: EventFormData | Partial<EventFormData>) => {
+  const serialized: any = {};
+  for (const key in data) {
+    const value = (data as any)[key];
+    if (value instanceof Date) {
+      serialized[key] = value.toISOString();
+    } else if (value !== null && value !== undefined) {
+      serialized[key] = value;
+    }
+  }
+  return serialized;
+};
+
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -157,18 +170,12 @@ export default function DashboardPage() {
 
         try {
             const docRef = await addDoc(eventsCollectionRef, newEventData);
-            const serializableData = {
-                ...eventData,
-                date: eventData.date.toISOString(),
-                departure: eventData.departure?.toISOString(),
-                arrival: eventData.arrival?.toISOString(),
-            };
             await logAction({
                 action: 'create',
                 collectionName: 'events',
                 documentId: docRef.id,
                 userEmail: userEmail,
-                newData: serializableData,
+                newData: serializeEventData(eventData),
             });
             toast({ title: "Sucesso!", description: 'O evento foi adicionado à agenda.' });
         } catch (serverError: any) {
@@ -185,15 +192,20 @@ export default function DashboardPage() {
         const eventsCollection = collection(db, "events");
         let currentDate = new Date(eventData.date);
         const batchId = `recurring-${Date.now()}`;
-        const logPromises: Promise<void>[] = [];
-
+        
         for (let i = 0; i < repeatSettings.count; i++) {
             const newEventRef = doc(eventsCollection);
             const newEventData = { ...eventData, date: Timestamp.fromDate(currentDate), color: isTravel ? '#dc2626' : getRandomColor() };
             batch.set(newEventRef, newEventData);
 
-            const serializableData = { ...eventData, date: currentDate.toISOString() };
-            logPromises.push(logAction({ action: 'create', collectionName: 'events', documentId: newEventRef.id, userEmail: userEmail, newData: serializableData, batchId }));
+            await logAction({ 
+                action: 'create', 
+                collectionName: 'events', 
+                documentId: newEventRef.id, 
+                userEmail: userEmail, 
+                newData: serializeEventData({...eventData, date: currentDate }), 
+                batchId 
+            });
 
             if (repeatSettings.frequency === 'daily') currentDate = add(currentDate, { days: 1 });
             else if (repeatSettings.frequency === 'weekly') currentDate = add(currentDate, { weeks: 1 });
@@ -201,7 +213,6 @@ export default function DashboardPage() {
         }
 
         try {
-            await Promise.all(logPromises);
             await batch.commit();
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
         } catch (serverError: any) {
@@ -243,15 +254,16 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     const eventRef = doc(db, "events", eventId);
     const userEmail = user.email;
     
-    const eventSnap = await getDoc(eventRef);
-    const oldData = eventSnap.exists() ? eventSnap.data() : null;
+    try {
+        const eventSnap = await getDoc(eventRef);
+        const oldData = eventSnap.exists() ? eventSnap.data() : null;
 
-    deleteDoc(eventRef)
-      .then(async () => {
+        await deleteDoc(eventRef);
+      
         if (oldData) {
             const serializableOldData = {
                 ...oldData,
-                date: (oldData.date as Timestamp).toDate().toISOString(),
+                date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
                 departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
                 arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
             };
@@ -268,14 +280,13 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
             title: "Evento Excluído!",
             description: "O evento foi removido da agenda.",
         });
-      })
-      .catch((serverError) => {
+    } catch (serverError) {
         const permissionError = new FirestorePermissionError({
             path: eventRef.path,
             operation: 'delete',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
-    });
+    }
   }, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
@@ -296,10 +307,11 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     const oldData = eventSnap.data();
     const serializableOldData = {
         ...oldData,
-        date: (oldData.date as Timestamp).toDate().toISOString(),
+        date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
         departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
         arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
     };
+
 
     const updatedData: any = {
         ...eventData,
@@ -319,14 +331,8 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
         updatedData.arrival = null;
     }
     
-    updateDoc(eventRef, updatedData)
-      .then(async () => {
-        const serializableNewData = {
-            ...eventData,
-            date: eventData.date.toISOString(),
-            departure: eventData.departure?.toISOString(),
-            arrival: eventData.arrival?.toISOString(),
-        };
+    try {
+        await updateDoc(eventRef, updatedData);
 
         await logAction({
             action: 'update',
@@ -334,15 +340,14 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
             documentId: eventId,
             userEmail: userEmail,
             oldData: serializableOldData,
-            newData: serializableNewData,
+            newData: serializeEventData(eventData),
         });
         
         toast({
             title: "Sucesso!",
             description: "O evento foi atualizado.",
         });
-      })
-      .catch((serverError) => {
+    } catch (serverError) {
        const permissionError = new FirestorePermissionError({
           path: eventRef.path,
           operation: 'update',
@@ -350,7 +355,7 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
        } satisfies SecurityRuleContext);
        errorEmitter.emit('permission-error', permissionError);
        throw serverError; // Re-throw to be caught by the form
-    });
+    }
   }, [toast, user]);
 
 
@@ -527,5 +532,3 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     </div>
   );
 }
-
-    
