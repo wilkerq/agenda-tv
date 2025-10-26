@@ -97,8 +97,11 @@ export default function DailyAgendaPage() {
     try {
         const eventStrings = events.map(e => {
             const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
-            const reporter = e.cinematographicReporter ? `Rep: ${e.cinematographicReporter}` : '';
-            const staff = [operator, reporter].filter(Boolean).join(' / ');
+            const cineReporter = e.cinematographicReporter ? `Rep. Cine: ${e.cinematographicReporter}` : '';
+            const reporter = e.reporter ? `Repórter: ${e.reporter}` : '';
+            const producer = e.producer ? `Prod: ${e.producer}` : '';
+            
+            const staff = [operator, cineReporter, reporter, producer].filter(Boolean).join(' / ');
             return `- ${staff} - ${e.name} (${e.location})`;
         });
         
