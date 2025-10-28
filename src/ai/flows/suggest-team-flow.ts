@@ -21,6 +21,7 @@ const fetchPersonnel = async (collectionName: string) => {
     const personnelCollectionRef = collection(db, collectionName);
     const q = query(personnelCollectionRef);
     const snapshot = await getDocs(q);
+    // Correctly spread the document data along with the ID
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
