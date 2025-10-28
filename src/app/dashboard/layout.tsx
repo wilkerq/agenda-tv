@@ -17,6 +17,7 @@ import {
   Users,
   Tv,
   History,
+  Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -84,11 +85,10 @@ export default function DashboardLayout({
     { href: "/", label: "Página Pública", icon: Home },
     { href: "/panel", label: "Painel de TV", icon: Tv },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/dashboard/operators", label: "Gerenciar Pessoal", icon: Users },
     { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
-    { href: "/dashboard/logs", label: "Logs de Auditoria", icon: History },
+    { href: "/dashboard/settings", label: "Configurações", icon: Settings },
   ];
 
   const handleLinkClick = () => {

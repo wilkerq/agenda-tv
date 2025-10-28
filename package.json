@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -46,6 +47,7 @@
     "embla-carousel-react": "^8.6.0",
     "events": "^3.3.0",
     "firebase": "^11.10.0",
+    "firebase-admin": "^12.2.0",
     "genkit": "^1.20.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
