@@ -40,7 +40,7 @@ import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/type
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
-import { suggestTeam } from "@/lib/suggestion-logic";
+import { suggestTeam } from "@/ai/flows/suggest-team-flow";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
@@ -116,31 +116,6 @@ type ProductionPersonnel = Personnel & {
   isReporter: boolean;
   isProducer: boolean;
 };
-
-// Client-side helper function to fetch events
-const getEventsForDay = async (date: Date): Promise<any[]> => {
-    const start = startOfDay(date);
-    const end = endOfDay(date);
-
-    const eventsCollectionRef = collection(db, 'events');
-    const q = query(
-      eventsCollectionRef,
-      where('date', '>=', Timestamp.fromDate(start)),
-      where('date', '<=', Timestamp.fromDate(end))
-    );
-    try {
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => doc.data());
-    } catch (serverError) {
-        const permissionError = new FirestorePermissionError({
-          path: eventsCollectionRef.path,
-          operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        throw permissionError;
-    }
-};
-
 
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -241,25 +216,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const eventsTodayRaw = await getEventsForDay(eventDate);
-        
-        // **FIX: Serialize Firestore Timestamps to ISO strings before sending to server**
-        const eventsToday = eventsTodayRaw.map(event => ({
-            ...event,
-            date: event.date ? (event.date as Timestamp).toDate().toISOString() : null,
-            departure: event.departure ? (event.departure as Timestamp).toDate().toISOString() : null,
-            arrival: event.arrival ? (event.arrival as Timestamp).toDate().toISOString() : null,
-        }));
-
-
         const result = await suggestTeam({
             date: eventDate.toISOString(),
             location: location,
             transmissionTypes: transmission as TransmissionType[],
-            operators: transmissionOperators,
-            cinematographicReporters: cinematographicReporters,
-            productionPersonnel: productionPersonnel,
-            eventsToday: eventsToday
         });
         
         const suggestionsMade: string[] = [];
@@ -308,7 +268,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, transmissionOperators, cinematographicReporters, productionPersonnel]);
+  }, [form, toast, user]);
 
 
   React.useEffect(() => {
