@@ -293,10 +293,12 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             cinematographicReporter: suggestedCinematographer,
             reporter: suggestedReporter,
             producer: suggestedProducer,
-            transmission: location === "Plenário Iris Rezende Machado" ? ["tv", "youtube"] : ["youtube"],
+            transmission: location === "Plenário Iris Rezende Machado" ? ["tv" as TransmissionType, "youtube" as TransmissionType] : ["youtube" as TransmissionType],
         };
     } catch (error) {
         console.error("An unexpected error occurred in suggestTeam logic:", error);
         throw new Error("Failed to suggest team due to an unexpected logic error.");
     }
 };
+
+    

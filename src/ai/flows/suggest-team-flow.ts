@@ -21,6 +21,8 @@ export const suggestTeamFlow = ai.defineFlow(
         // This ensures it runs with proper server credentials if needed,
         // and keeps the core logic separate from the AI flow definition.
         const result = await suggestTeamLogic(input);
-        return result as SuggestTeamOutput;
+        return result;
     }
 );
+
+    
