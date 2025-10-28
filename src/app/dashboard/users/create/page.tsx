@@ -10,41 +10,46 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy, Check } from "lucide-react";
 import { createUser } from "@/lib/auth-actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
 export default function CreateUserPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       email: "",
-      password: "",
     },
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
     setIsSubmitting(true);
+    setGeneratedLink(null);
+    setCopied(false);
+
     try {
-      await createUser(values.email, values.password);
+      const result = await createUser(values.email);
+      setGeneratedLink(result.passwordResetLink);
       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `O usuário ${values.email} foi adicionado.`,
+        description: `O usuário ${values.email} foi adicionado. Copie o link abaixo e envie para ele.`,
       });
       form.reset();
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
       let errorMessage = "Ocorreu um erro desconhecido.";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.code === 'auth/email-already-exists') {
         errorMessage = "Este endereço de email já está em uso por outra conta.";
       }
       toast({
@@ -57,12 +62,20 @@ export default function CreateUserPage() {
     }
   };
 
+  const handleCopy = () => {
+    if (generatedLink) {
+      navigator.clipboard.writeText(generatedLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+    }
+  };
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>Criar Novo Usuário</CardTitle>
         <CardDescription>
-          Crie uma nova conta de usuário para dar acesso ao painel administrativo.
+          Insira o e-mail do novo usuário. Um link será gerado para que ele possa definir sua própria senha.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,27 +94,39 @@ export default function CreateUserPage() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Senha</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <div className="flex justify-end">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Criando..." : "Criar Usuário"}
+                {isSubmitting ? "Criando..." : "Criar Usuário e Gerar Link"}
               </Button>
             </div>
           </form>
         </Form>
+
+        {generatedLink && (
+            <Alert className="mt-6">
+                <AlertTitle className="font-semibold">Link de Definição de Senha</AlertTitle>
+                <AlertDescription className="break-all text-sm text-muted-foreground mt-2">
+                    Envie este link para o novo usuário. Ele é válido por um tempo limitado.
+                </AlertDescription>
+                 <div className="relative mt-4">
+                    <Input 
+                        readOnly 
+                        value={generatedLink} 
+                        className="pr-12 bg-muted"
+                    />
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={handleCopy}
+                    >
+                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </Alert>
+        )}
+
       </CardContent>
     </Card>
   );

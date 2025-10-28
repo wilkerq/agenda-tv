@@ -15,16 +15,24 @@ const app = getApps().length === 0 ? initializeApp({
 
 const adminAuth = getAuth(app);
 
-export async function createUser(email: string, password: string): Promise<string> {
+export async function createUser(email: string): Promise<{ uid: string, passwordResetLink: string }> {
     try {
         const userRecord = await adminAuth.createUser({
             email: email,
-            password: password,
+            // Não definimos a senha aqui
         });
-        return userRecord.uid;
+        
+        // Geramos o link para o usuário definir a senha
+        const passwordResetLink = await adminAuth.generatePasswordResetLink(email);
+
+        return {
+            uid: userRecord.uid,
+            passwordResetLink: passwordResetLink,
+        };
+
     } catch (error: any) {
         console.error("Error creating new user:", error);
-        // Re-throw the error to be handled by the calling function
+        // Re-throw the error to be handled by the calling function on the client
         throw error;
     }
 }
