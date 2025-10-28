@@ -26,7 +26,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copia os artefatos da etapa de build
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
