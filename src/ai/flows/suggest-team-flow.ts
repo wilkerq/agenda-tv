@@ -72,9 +72,9 @@ export const suggestTeamFlow = ai.defineFlow(
 
         const result = await suggestTeamLogic({
             ...input,
-            operators,
-            cinematographicReporters,
-            productionPersonnel,
+            operators: operators as any,
+            cinematographicReporters: cinematographicReporters as any,
+            productionPersonnel: productionPersonnel as any,
             eventsToday
         });
 
@@ -85,4 +85,3 @@ export const suggestTeamFlow = ai.defineFlow(
         };
     }
 );
-
