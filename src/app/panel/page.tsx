@@ -7,7 +7,6 @@ import { db } from "@/lib/firebase";
 import { Event, EventStatus, EventTurn } from "@/lib/types";
 import { getHours } from "date-fns";
 import { Loader2 } from "lucide-react";
-import { Header } from "@/components/layout/header";
 import { PanelCalendar } from "@/components/panel-calendar";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
@@ -32,7 +31,6 @@ export default function PanelPage() {
     const q = query(eventsCollection, orderBy("date", "asc"));
     
     const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-      const now = new Date();
       const eventsData = snapshot.docs.map(doc => {
         const data = doc.data();
         const eventDate = (data.date as Timestamp).toDate();
