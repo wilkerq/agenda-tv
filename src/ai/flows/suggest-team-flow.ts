@@ -4,19 +4,13 @@
  * @fileOverview A flow for suggesting an event team.
  * - suggestTeam - A function that suggests a team based on event details.
  */
-
-import { ai } from '@/ai/genkit';
 import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
-import { SuggestTeamInput, SuggestTeamInputSchema, SuggestTeamOutput, SuggestTeamOutputSchema, type TransmissionType } from '@/lib/types';
+import { SuggestTeamInput, SuggestTeamOutput, type TransmissionType } from '@/lib/types';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';
-
-export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamOutput> {
-    return suggestTeamFlow(input);
-}
 
 // Helper to fetch personnel data
 const fetchPersonnel = async (collectionName: string) => {
@@ -70,38 +64,31 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
 };
 
 
-export const suggestTeamFlow = ai.defineFlow(
-    {
-        name: 'suggestTeamFlow',
-        inputSchema: SuggestTeamInputSchema,
-        outputSchema: SuggestTeamOutputSchema,
-    },
-    async (input) => {
-        // This flow now fetches all required data before calling the business logic.
-        const [
-            operators,
-            cinematographicReporters,
-            productionPersonnel,
-            eventsToday
-        ] = await Promise.all([
-            fetchPersonnel('transmission_operators'),
-            fetchPersonnel('cinematographic_reporters'),
-            fetchPersonnel('production_personnel'),
-            getEventsForDay(parseISO(input.date))
-        ]);
+export const suggestTeam = async (input: SuggestTeamInput): Promise<SuggestTeamOutput> => {
+    // This function fetches all required data before calling the business logic.
+    const [
+        operators,
+        cinematographicReporters,
+        productionPersonnel,
+        eventsToday
+    ] = await Promise.all([
+        fetchPersonnel('transmission_operators'),
+        fetchPersonnel('cinematographic_reporters'),
+        fetchPersonnel('production_personnel'),
+        getEventsForDay(parseISO(input.date))
+    ]);
 
-        const result = await suggestTeamLogic({
-            ...input,
-            operators: operators as any,
-            cinematographicReporters: cinematographicReporters as any,
-            productionPersonnel: productionPersonnel as any,
-            eventsToday
-        });
+    const result = await suggestTeamLogic({
+        ...input,
+        operators: operators as any,
+        cinematographicReporters: cinematographicReporters as any,
+        productionPersonnel: productionPersonnel as any,
+        eventsToday
+    });
 
-        // Ensure the returned transmission type matches the schema
-        return {
-            ...result,
-            transmission: result.transmission as TransmissionType[]
-        };
-    }
-);
+    // Ensure the returned transmission type matches the schema
+    return {
+        ...result,
+        transmission: result.transmission as TransmissionType[]
+    };
+}

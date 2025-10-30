@@ -459,7 +459,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
           />
           <FormItem>
              <FormLabel className="text-transparent">.</FormLabel>
-            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting || !user || transmissionOperators.length === 0} className="w-full">
+            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting || !user} className="w-full">
                 {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Sugerir Equipe
             </Button>

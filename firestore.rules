@@ -2,29 +2,16 @@
  * @fileOverview Firestore Security Rules for the Agenda Alego application.
  *
  * Core Philosophy:
- * This ruleset enforces a role-based access control model, where authenticated administrators have broad read/write access, while the public has read-only access to event data.
- *
- * Data Structure:
- * - /events/{eventId}: Stores event information, publicly readable, but writeable only by admins.
- * - /roles_admin/{userId}: Indicates admin privileges for a user. Existence of a document grants admin rights.
- *
- * Key Security Decisions:
- * - Public read access to event data is allowed to support the website and TV panel displays.
- * - Administrative privileges are granted based on the existence of a document in the `roles_admin` collection.
- * - Data validation is relaxed to allow for rapid prototyping, focusing on authorization rather than schema enforcement.
- * - Write access to `audit_logs` is blocked at the client level, as this collection should only be modified by the backend using the Admin SDK.
- *
- * Denormalization for Authorization:
- * - Admin privileges are checked directly via the existence of a `roles_admin` document. This avoids complex queries and ensures efficient authorization.
- *
- * Structural Segregation:
- * - Admin roles are segregated into a dedicated collection (`roles_admin`) to avoid mixing role data with user data. This simplifies the security rules and improves maintainability.
+ * - Admin privileges are granted based on the existence of a document in the `roles_admin` collection.
+ * - Public read access is granted to `events`.
+ * - All other collections are restricted to admins only.
+ * - `audit_logs` are write-only from the backend (Admin SDK).
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- HELPER FUNCTIONS ---
+    // --- FUNÇÃO AUXILIAR ---
     /**
      * @description Checks if the user is signed in and has admin privileges.
      * Admin privileges are determined by the existence of a document in the `/roles_admin/{userId}` collection.
@@ -34,46 +21,45 @@ service cloud.firestore {
       return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * @description Checks if the user is signed in.
-     * @returns {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // --- COLLECTION: events ---
-    /**
-     * @description Allows public read access to events, but restricts write access to administrators only.
-     * @path /events/{eventId}
-     * @allow (read): Any user can read event data to populate the website and TV panel.
-     * @allow (create, update, delete): Only authenticated administrators can modify event data through the /dashboard.
-     * @deny (create, update, delete): Non-admin users cannot create, update, or delete events.
-     * @principle Enforces role-based access control, allowing public reads and admin-only writes.
-     */
+    // --- COLEÇÃO: events ---
+    // Requisito: Leitura pública (para o site e painel de TV).
+    // Requisito: Escrita restrita a administradores.
     match /events/{eventId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    // --- COLLECTION: roles_admin ---
-    /**
-     * @description Allows only admins to manage admin roles
-     * @path /roles_admin/{userId}
-     * @allow (create): Any authenticated user can create their own roles_admin record, effectively promoting themself to admin.
-     * @allow (update): Any authenticated user can update their own roles_admin record.
-     * @allow (get): Any authenticated user can get their own roles_admin record.
-     * @allow (list): Any authenticated user can list all roles_admin records.
-     * @allow (delete): Any authenticated user can delete their own roles_admin record.
-     * @deny (create): A non-authenticated user cannot create a roles_admin record.
-     * @deny (update): A non-authenticated user cannot update a roles_admin record.
-     * @principle Enforces that admin role changes can only be performed by admins.
-     */
+    // --- COLEÇÃO: roles_admin ---
+    // Requisito: Apenas administradores podem gerenciar outros administradores.
+    // NOTA: O primeiro admin DEVE ser criado manualmente no Console do Firebase.
     match /roles_admin/{userId} {
-        allow get, list: if isAdmin();
-        allow create: if isAdmin() && request.auth.uid == userId;
-        allow update: if isAdmin() && request.auth.uid == userId;
-        allow delete: if isAdmin() && request.auth.uid == userId;
+      allow read, write: if isAdmin();
+    }
+
+    // --- COLEÇÃO: transmission_operators ---
+    // Requisito: Apenas administradores podem ler ou escrever.
+    match /transmission_operators/{operatorId} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- COLEÇÃO: cinematographic_reporters ---
+    // Requisito: Apenas administradores podem ler ou escrever.
+    match /cinematographic_reporters/{reporterId} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- COLEÇÃO: production_personnel ---
+    // Requisito: Apenas administradores podem ler ou escrever.
+    match /production_personnel/{personnelId} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- COLEÇÃO: audit_logs ---
+    // Requisito: Apenas administradores podem ler.
+    // Requisito: NENHUM cliente pode escrever (apenas o Admin SDK no backend).
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false; // Bloqueia create, update, delete de todos os clientes
     }
   }
 }
