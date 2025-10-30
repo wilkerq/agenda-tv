@@ -419,16 +419,14 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
                 Adicionar Novo Evento
               </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[825px]">
-            <DialogHeader>
+          <DialogContent className="p-0 sm:max-w-3xl">
+            <DialogHeader className="p-6 pb-0">
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
                <CardDescription>
                 Preencha os campos de data, hora e local, depois use o botão "Sugerir Equipe" para preencher a equipe.
               </CardDescription>
             </DialogHeader>
-            <div className="py-4">
-              <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} onSuccess={handleAddSuccess} />
-            </div>
+            <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} onSuccess={handleAddSuccess} />
           </DialogContent>
         </Dialog>
 

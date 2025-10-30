@@ -367,7 +367,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
         <div className="grid md:grid-cols-2 gap-8">
           <FormField
             control={form.control}
@@ -746,11 +746,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
             </div>
            )}
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
             <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-accent text-accent-foreground hover:bg-accent/90"
             >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Adicionando..." : "Adicionar Evento"}

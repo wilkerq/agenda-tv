@@ -196,12 +196,12 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[825px]">
-            <DialogHeader>
+        <DialogContent className="p-0 sm:max-w-3xl">
+            <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Editar Evento</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pt-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
                 <div className="grid md:grid-cols-2 gap-8">
                 <FormField
                     control={form.control}
@@ -501,14 +501,13 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                   />
                 )}
 
-                 <DialogFooter>
+                 <DialogFooter className="pt-4">
                     <DialogClose asChild>
                         <Button type="button" variant="outline">Cancelar</Button>
                     </DialogClose>
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="bg-accent text-accent-foreground hover:bg-accent/90"
                     >
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isSubmitting ? "Salvando..." : "Salvar Alterações"}
