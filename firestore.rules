@@ -1,30 +1,26 @@
-/**
- * @fileoverview Firestore Security Rules for Agenda Alego.
- *
- * Core Philosophy:
- * This ruleset implements a role-based access control system with public read access for events.
- * Administrative users, identified by their presence in the `roles_admin` collection, can create, update, and delete events.
- *
- * Data Structure:
- * - `/events/{eventId}`: Stores event data. All authenticated users can read events. Only admins can modify.
- * - `/roles_admin/{userId}`: Indicates administrative privileges. The existence of a document for a user grants admin access.
- *
- * Key Security Decisions:
- * - Events are publicly readable to all authenticated users, allowing for open listing.
- * - Admin privileges are granted based on the presence of a document in the `/roles_admin` collection. This uses the "Existence over Content" principle.
- * - Non-administrators are explicitly denied write access to events.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to all authenticated users for events. Only admins can create, update, and delete events.
+     * @description Allows any authenticated user to read any document.
+     * @path /{document=**}
+     * @allow (get, list) Any authenticated user can read any document.
+     * @deny (get, list) N/A
+     * @principle Public read access for all authenticated users.
+     */
+    match /{document=**} {
+      allow get, list: if isSignedIn();
+    }
+
+    /**
+     * @description Manages read and write access to the /events/{eventId} collection.
      * @path /events/{eventId}
-     * @allow (get, list): Authenticated user reading an event or listing all events.
-     * @allow (create, update, delete): Admin user creating, updating, or deleting an event.
-     * @deny (create, update, delete): Non-admin user attempting to create, update, or delete an event.
-     * @principle Allows public read access for events while restricting write access to admins.
+     * @allow (create, update, delete) An authenticated user who is also an admin can perform write operations.
+     * @allow (get, list) Any authenticated user can read event details.
+     * @deny (create, update, delete) A non-admin user cannot perform write operations.
+     * @deny (create, update, delete) An unauthenticated user cannot perform write operations.
+     * @principle Enforces role-based access control for event management.
      */
     match /events/{eventId} {
       allow get, list: if isSignedIn();
@@ -32,32 +28,89 @@ service cloud.firestore {
     }
 
     /**
-     * @description Grants admin privileges based on the existence of a document in this collection.
+     * @description Manages read and write access to the /transmission_operators/{operatorId} collection.
+     * @path /transmission_operators/{operatorId}
+     * @allow (create, update, delete) An authenticated user can perform write operations.
+     * @allow (get, list) Any authenticated user can read data.
+     * @deny (create, update, delete) An unauthenticated user cannot perform write operations.
+     * @principle Authenticated users only can write operations.
+     */
+    match /transmission_operators/{operatorId} {
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages read and write access to the /cinematographic_reporters/{reporterId} collection.
+     * @path /cinematographic_reporters/{reporterId}
+     * @allow (create, update, delete) An authenticated user can perform write operations.
+     * @allow (get, list) Any authenticated user can read data.
+     * @deny (create, update, delete) An unauthenticated user cannot perform write operations.
+     * @principle Authenticated users only can write operations.
+     */
+    match /cinematographic_reporters/{reporterId} {
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Manages read and write access to the /production_personnel/{personnelId} collection.
+     * @path /production_personnel/{personnelId}
+     * @allow (create, update, delete) An authenticated user can perform write operations.
+     * @allow (get, list) Any authenticated user can read data.
+     * @deny (create, update, delete) An unauthenticated user cannot perform write operations.
+     * @principle Authenticated users only can write operations.
+     */
+    match /production_personnel/{personnelId} {
+        allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    /**
+     * @description Restricts all client-side write access to the /audit_logs/{logId} collection.
+     * @path /audit_logs/{logId}
+     * @allow (write) No client-side writes are allowed. All writes must originate from trusted server-side logic.
+     * @deny (create, update, delete) All client-side write requests are denied.
+     * @principle Ensures audit logs can only be written by the system.
+     */
+    match /audit_logs/{logId} {
+        allow create, update, delete: if false;
+        allow get, list: if false;
+    }
+
+    /**
+     * @description Grants administrative privileges based on the existence of a document in this collection.
      * @path /roles_admin/{userId}
-     * @allow create: User creating their own admin document (self-assignment).
-     * @allow get: Admin reading their own admin document.
-     * @allow delete: Admin deleting their own admin document (revoking their own admin rights).
-     * @deny update, list: Updating and listing of admin roles is not permitted.
-     * @principle Implements "Existence over Content" for global admin roles.
+     * @allow (create) Allows creating an admin user if the authenticated user ID matches the document ID.
+     * @deny (create) Denies creating an admin user if the authenticated user ID does not match the document ID.
+     * @principle Existence over content: the presence of a document grants admin access.
      */
     match /roles_admin/{userId} {
-      allow create: if isSignedIn() && isOwner(userId);
-      allow get: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
-      allow update, list: if false;
+        allow get, list: if isAdmin();
+        allow create: if isOwner(userId);
+        allow update, delete: if false;
     }
+  }
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
+  /**
+   * @description Checks if the user is signed in.
+   * @return {boolean} True if the user is signed in, false otherwise.
+   */
+  function isSignedIn() {
+    return request.auth != null;
+  }
 
+  /**
+   * @description Checks if the user is an admin by verifying the existence of a document in the roles_admin collection.
+   * @return {boolean} True if the user is an admin, false otherwise.
+   */
+  function isAdmin() {
+    return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+  }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     * @param {string} userId The user ID to compare against.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-  }
 }
