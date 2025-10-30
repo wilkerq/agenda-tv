@@ -41,11 +41,11 @@ export default function ShareSchedulePage() {
     }
 
     setIsFetchingEvents(true);
+    const eventsCollectionRef = collection(db, "events");
     try {
       const startOfSelectedDay = startOfDay(selectedDate);
       const endOfSelectedDay = endOfDay(selectedDate);
 
-      const eventsCollectionRef = collection(db, "events");
       const q = query(
         eventsCollectionRef,
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
@@ -53,14 +53,7 @@ export default function ShareSchedulePage() {
         orderBy("date", "asc")
       );
 
-      const querySnapshot = await getDocs(q).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: eventsCollectionRef.path,
-          operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
-      });
+      const querySnapshot = await getDocs(q);
 
       const fetchedEvents = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -92,15 +85,12 @@ export default function ShareSchedulePage() {
 
       setEventsByPersonnel(groupedEvents);
 
-    } catch (error) {
-      console.error("Error fetching events: ", error);
-      if (!(error instanceof FirestorePermissionError)) {
-          toast({
-            title: "Erro ao buscar eventos",
-            description: "Não foi possível carregar a agenda. Verifique o console.",
-            variant: "destructive",
-          });
-      }
+    } catch (serverError) {
+      const permissionError = new FirestorePermissionError({
+        path: eventsCollectionRef.path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsFetchingEvents(false);
     }

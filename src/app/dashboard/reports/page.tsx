@@ -68,9 +68,9 @@ export default function ReportsPage() {
     const startDate = startOfMonth(new Date(year, month));
     const endDate = endOfMonth(new Date(year, month));
 
-    const eventsCollection = collection(db, "events");
+    const eventsCollectionRef = collection(db, "events");
     const q = query(
-        eventsCollection, 
+        eventsCollectionRef, 
         where("date", ">=", Timestamp.fromDate(startDate)),
         where("date", "<=", Timestamp.fromDate(endDate)),
         orderBy("date", "desc")
@@ -134,7 +134,7 @@ export default function ReportsPage() {
       setSummary(null); // Reset summary when filters change
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: eventsCollection.path,
+          path: eventsCollectionRef.path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -142,7 +142,7 @@ export default function ReportsPage() {
     });
 
     return () => unsubscribe();
-  }, [selectedYear, selectedMonth, toast]);
+  }, [selectedYear, selectedMonth]);
   
   const sortedOperators = useMemo(() => Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count), [reportData]);
   const sortedLocations = useMemo(() => Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]), [locationReport]);

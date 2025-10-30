@@ -39,8 +39,8 @@ export default function HomePage() {
 
 
   useEffect(() => {
-    const eventsCollection = collection(db, "events");
-    const q = query(eventsCollection, orderBy("date", "asc"));
+    const eventsCollectionRef = collection(db, "events");
+    const q = query(eventsCollectionRef, orderBy("date", "asc"));
     
     const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
       const now = new Date();
@@ -70,9 +70,8 @@ export default function HomePage() {
       setEvents(eventsData);
       setLoading(false);
     }, (serverError) => {
-      console.error("Error fetching events: ", serverError);
        const permissionError = new FirestorePermissionError({
-        path: eventsCollection.path,
+        path: eventsCollectionRef.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, FC } from "react";
@@ -97,7 +98,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUse
     });
 
     return () => unsubscribe();
-  }, [toast, collectionName, title]);
+  }, [collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     if (!currentUser) return;
@@ -431,7 +432,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     });
 
     return () => unsubscribe();
-  }, [toast, collectionName, title]);
+  }, [collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
      if (!currentUser) return;

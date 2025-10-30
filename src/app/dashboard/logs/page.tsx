@@ -47,8 +47,8 @@ export default function LogsPage() {
     const { theme } = useTheme();
 
     useEffect(() => {
-        const logsCollection = collection(db, "audit_logs");
-        const q = query(logsCollection, orderBy("timestamp", "desc"));
+        const logsCollectionRef = collection(db, "audit_logs");
+        const q = query(logsCollectionRef, orderBy("timestamp", "desc"));
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const logsData = snapshot.docs.map(doc => {
@@ -63,7 +63,7 @@ export default function LogsPage() {
             setLoading(false);
         }, (serverError) => {
             const permissionError = new FirestorePermissionError({
-                path: logsCollection.path,
+                path: logsCollectionRef.path,
                 operation: 'list',
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);

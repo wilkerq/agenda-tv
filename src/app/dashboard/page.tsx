@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -96,13 +97,13 @@ export default function DashboardPage() {
       return; 
     }
     setLoading(true);
-    const eventsCollection = collection(db, "events");
+    const eventsCollectionRef = collection(db, "events");
     
     const startOfSelectedDay = startOfDay(selectedDate);
     const endOfSelectedDay = endOfDay(selectedDate);
 
     const q = query(
-        eventsCollection, 
+        eventsCollectionRef, 
         where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
         where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
         orderBy("date", "asc")
@@ -135,7 +136,7 @@ export default function DashboardPage() {
       setLoading(false);
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: eventsCollection.path,
+            path: eventsCollectionRef.path,
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -143,7 +144,7 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribeSnapshot();
-  }, [selectedDate, user, toast]);
+  }, [selectedDate, user]);
 
 
  const confirmAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
@@ -154,6 +155,7 @@ export default function DashboardPage() {
 
     const userEmail = user.email;
     const isTravel = eventData.transmission?.includes('viagem');
+    const eventsCollectionRef = collection(db, "events");
 
     if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
         const newEventData: any = {
@@ -164,9 +166,6 @@ export default function DashboardPage() {
 
         if (eventData.departure) newEventData.departure = Timestamp.fromDate(eventData.departure);
         if (eventData.arrival) newEventData.arrival = Timestamp.fromDate(eventData.arrival);
-
-
-        const eventsCollectionRef = collection(db, "events");
 
         try {
             const docRef = await addDoc(eventsCollectionRef, newEventData);
@@ -189,12 +188,11 @@ export default function DashboardPage() {
         }
     } else {
         const batch = writeBatch(db);
-        const eventsCollection = collection(db, "events");
         let currentDate = new Date(eventData.date);
         const batchId = `recurring-${Date.now()}`;
         
         for (let i = 0; i < repeatSettings.count; i++) {
-            const newEventRef = doc(eventsCollection);
+            const newEventRef = doc(eventsCollectionRef);
             const newEventData = { ...eventData, date: Timestamp.fromDate(currentDate), color: isTravel ? '#dc2626' : getRandomColor() };
             batch.set(newEventRef, newEventData);
 
@@ -216,7 +214,7 @@ export default function DashboardPage() {
             await batch.commit();
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
         } catch (serverError: any) {
-            const permissionError = new FirestorePermissionError({ path: eventsCollection.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
+            const permissionError = new FirestorePermissionError({ path: eventsCollectionRef.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
             throw serverError;
         }

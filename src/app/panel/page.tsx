@@ -27,8 +27,8 @@ export default function PanelPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const eventsCollection = collection(db, "events");
-    const q = query(eventsCollection, orderBy("date", "asc"));
+    const eventsCollectionRef = collection(db, "events");
+    const q = query(eventsCollectionRef, orderBy("date", "asc"));
     
     const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
       const eventsData = snapshot.docs.map(doc => {
@@ -53,9 +53,8 @@ export default function PanelPage() {
       setEvents(eventsData);
       setLoading(false);
     }, (serverError) => {
-      console.error("Error fetching events: ", serverError);
        const permissionError = new FirestorePermissionError({
-        path: eventsCollection.path,
+        path: eventsCollectionRef.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
