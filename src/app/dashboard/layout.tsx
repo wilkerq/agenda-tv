@@ -82,8 +82,6 @@ export default function DashboardLayout({
   };
 
   const navLinks = [
-    { href: "/", label: "Página Pública", icon: Home },
-    { href: "/panel", label: "Painel de TV", icon: Tv },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
