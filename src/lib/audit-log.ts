@@ -21,9 +21,6 @@ if (!admin.apps.length) {
   }
 }
 
-const adminDb = getFirestore();
-
-
 interface LogActionParams {
     action: AuditLogAction;
     collectionName: string;
@@ -45,6 +42,8 @@ export const logAction = async ({
     batchId,
     details,
 }: LogActionParams): Promise<void> => {
+    // Get Firestore instance *after* ensuring app is initialized
+    const adminDb = getFirestore();
 
     const logData: any = {
         action,
