@@ -1,9 +1,19 @@
-
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type EventListProps = {
   events: Event[];
@@ -75,15 +85,32 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
                   <Edit className="h-4 w-4" />
                   <span className="sr-only">Editar Evento</span>
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onDeleteEvent(event.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Excluir Evento</span>
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-8 w-8"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Excluir Evento</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso irá remover permanentemente o evento da agenda.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeleteEvent(event.id)}>
+                        Continuar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
              </div>
           )}
         </div>
