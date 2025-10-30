@@ -253,39 +253,38 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
     const eventRef = doc(db, "events", eventId);
     const userEmail = user.email;
     
-    try {
-        const eventSnap = await getDoc(eventRef);
-        const oldData = eventSnap.exists() ? eventSnap.data() : null;
+    const eventSnap = await getDoc(eventRef);
+    const oldData = eventSnap.exists() ? eventSnap.data() : null;
 
-        await deleteDoc(eventRef);
-      
-        if (oldData) {
-            const serializableOldData = {
-                ...oldData,
-                date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
-                departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
-                arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-            };
-            await logAction({
-                action: 'delete',
-                collectionName: 'events',
-                documentId: eventId,
-                userEmail: userEmail,
-                oldData: serializableOldData,
-            });
-        }
-        
-        toast({
-            title: "Evento Excluído!",
-            description: "O evento foi removido da agenda.",
-        });
-    } catch (serverError) {
+    deleteDoc(eventRef).catch((serverError) => {
         const permissionError = new FirestorePermissionError({
             path: eventRef.path,
             operation: 'delete',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
+        return; // Stop execution if there is a permission error
+    });
+    
+    if (oldData) {
+        const serializableOldData = {
+            ...oldData,
+            date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
+            departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
+            arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
+        };
+        await logAction({
+            action: 'delete',
+            collectionName: 'events',
+            documentId: eventId,
+            userEmail: userEmail,
+            oldData: serializableOldData,
+        });
     }
+    
+    toast({
+        title: "Evento Excluído!",
+        description: "O evento foi removido da agenda.",
+    });
   }, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
