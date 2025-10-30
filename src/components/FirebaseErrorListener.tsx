@@ -1,35 +1,39 @@
+'use client';
 
-"use client";
+import { useState, useEffect } from 'react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
-import { useEffect } from 'react';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError } from '@/lib/errors';
-import { useToast } from '@/hooks/use-toast';
-
+/**
+ * An invisible component that listens for globally emitted 'permission-error' events.
+ * It throws any received error to be caught by Next.js's global-error.tsx.
+ */
 export function FirebaseErrorListener() {
-  const { toast } = useToast();
+  // Use the specific error type for the state for type safety.
+  const [error, setError] = useState<FirestorePermissionError | null>(null);
 
   useEffect(() => {
-    const handlePermissionError = (error: FirestorePermissionError) => {
-      console.error(error); // This will show the detailed error in the dev console overlay.
-
-      // Show a more helpful toast to the user.
-      toast({
-        title: 'Falha de Permissão',
-        description: 'Sua solicitação foi bloqueada pelas regras de segurança. Verifique o console do desenvolvedor para obter detalhes técnicos.',
-        variant: 'destructive',
-        duration: 10000,
-      });
+    // The callback now expects a strongly-typed error, matching the event payload.
+    const handleError = (error: FirestorePermissionError) => {
+      // Set error in state to trigger a re-render.
+      setError(error);
     };
 
-    errorEmitter.on('permission-error', handlePermissionError);
+    // The typed emitter will enforce that the callback for 'permission-error'
+    // matches the expected payload type (FirestorePermissionError).
+    errorEmitter.on('permission-error', handleError);
 
+    // Unsubscribe on unmount to prevent memory leaks.
     return () => {
-      errorEmitter.off('permission-error', handlePermissionError);
+      errorEmitter.off('permission-error', handleError);
     };
-  }, [toast]);
+  }, []);
 
-  return null; // This component does not render anything.
+  // On re-render, if an error exists in state, throw it.
+  if (error) {
+    throw error;
+  }
+
+  // This component renders nothing.
+  return null;
 }
-
-    

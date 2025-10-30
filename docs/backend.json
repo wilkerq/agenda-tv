@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "type": "object",
+      "description": "Represents an event with a date, name, location, and transmission options.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Event entity."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the event.",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the event."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location of the event."
+        },
+        "transmissionType": {
+          "type": "string",
+          "description": "The type of transmission for the event (e.g., YouTube, TV Aberta).",
+          "format": "string"
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "The background color of the event card. This is for UI purposes."
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "name",
+        "location",
+        "transmissionType"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": {
+            "$ref": "#/backend/entities/Event"
+          },
+          "description": "Stores event data, including date, name, location, transmission type, and background color.",
+          "params": [
+            {
+              "name": "eventId",
+              "description": "The unique identifier for the event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "$ref": "#/backend/entities/user"
+          },
+          "description": "Indicates that the user with the given userId has administrative privileges. The presence of a document grants admin access.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who is an admin."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Given the requirements for the Agenda Alego app, a simple and secure Firestore structure is recommended. The app focuses on displaying events and allowing administrators to create them. Since there's no user-specific data besides potential admin roles, a single collection for events is suitable. To manage administrative privileges, a dedicated collection is used, leveraging the 'Existence over Content' principle for global roles. This design prioritizes simplicity, security, and scalability.\n\n**Authorization Independence:**\n\n*   The design avoids hierarchical authorization dependencies, because the event documents do not depend on authorization parameters found in other collections.\n\n**QAPs (Rules are not Filters):**\n\n*   The design allows for secure `list` operations because all documents in the `events` collection share the same security requirements (any authenticated user can read).\n\n*   The `roles_admin` collection ensures that only authorized users can create/update/delete events."
+  }
+}
