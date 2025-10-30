@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -352,14 +353,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       }
 
     } catch (error: any) {
-        if (error.message !== 'Duplicate event confirmation pending') {
-             toast({
-                title: "Erro ao Adicionar Evento",
-                description: "Não foi possível salvar o evento. Verifique os dados e tente novamente.",
-                variant: "destructive"
-            });
-        }
-        console.error("Failed to submit event:", error);
+        // Error is now handled by the parent component's useCallback which emits a contextual error.
+        // No need for a toast here.
     } finally {
         setIsSubmitting(false);
     }

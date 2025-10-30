@@ -40,6 +40,9 @@ import type { Event, TransmissionType, EventFormData } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
+import { errorEmitter } from "@/lib/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -118,14 +121,23 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     const unsub1 = onSnapshot(query(collection(db, 'transmission_operators')), (snapshot) => {
         const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
         setTransmissionOperators(data.sort((a,b) => a.name.localeCompare(b.name)));
+    }, (serverError) => {
+      const permissionError = new FirestorePermissionError({ path: 'transmission_operators', operation: 'list' });
+      errorEmitter.emit('permission-error', permissionError);
     });
     const unsub2 = onSnapshot(query(collection(db, 'cinematographic_reporters')), (snapshot) => {
         const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
         setCinematographicReporters(data.sort((a,b) => a.name.localeCompare(b.name)));
+    }, (serverError) => {
+      const permissionError = new FirestorePermissionError({ path: 'cinematographic_reporters', operation: 'list' });
+      errorEmitter.emit('permission-error', permissionError);
     });
     const unsub3 = onSnapshot(query(collection(db, 'production_personnel')), (snapshot) => {
         const data: ProductionPersonnel[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductionPersonnel));
         setProductionPersonnel(data.sort((a,b) => a.name.localeCompare(b.name)));
+    }, (serverError) => {
+      const permissionError = new FirestorePermissionError({ path: 'production_personnel', operation: 'list' });
+      errorEmitter.emit('permission-error', permissionError);
     });
 
     return () => {
@@ -187,8 +199,8 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         await onEditEvent(event.id, eventData);
         onClose(); // Close the modal only on success
     } catch(error) {
-        // Error toast is handled by the parent component, so we don't need to show another one here.
-        console.error("Failed to edit event:", error);
+        // Error is now handled by the parent component's useCallback which emits a contextual error.
+        // No need for a toast here.
     } finally {
         setIsSubmitting(false);
     }
@@ -519,5 +531,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    

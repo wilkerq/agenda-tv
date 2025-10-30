@@ -167,8 +167,8 @@ export default function DashboardPage() {
         if (eventData.departure) newEventData.departure = Timestamp.fromDate(eventData.departure);
         if (eventData.arrival) newEventData.arrival = Timestamp.fromDate(eventData.arrival);
 
-        try {
-            const docRef = await addDoc(eventsCollectionRef, newEventData);
+        addDoc(eventsCollectionRef, newEventData)
+          .then(async (docRef) => {
             await logAction({
                 action: 'create',
                 collectionName: 'events',
@@ -177,15 +177,16 @@ export default function DashboardPage() {
                 newData: serializeEventData(eventData),
             });
             toast({ title: "Sucesso!", description: 'O evento foi adicionado à agenda.' });
-        } catch (serverError: any) {
+          })
+          .catch((serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: eventsCollectionRef.path,
                 operation: 'create',
                 requestResourceData: newEventData,
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
-        }
+          });
+
     } else {
         const batch = writeBatch(db);
         let currentDate = new Date(eventData.date);
@@ -210,14 +211,14 @@ export default function DashboardPage() {
             else if (repeatSettings.frequency === 'monthly') currentDate = add(currentDate, { months: 1 });
         }
 
-        try {
-            await batch.commit();
+        batch.commit()
+          .then(() => {
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
-        } catch (serverError: any) {
+          })
+          .catch((serverError) => {
             const permissionError = new FirestorePermissionError({ path: eventsCollectionRef.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
-        }
+          });
     }
 }, [user, toast]);
 
@@ -329,31 +330,32 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
         updatedData.arrival = null;
     }
     
-    try {
-        await updateDoc(eventRef, updatedData);
-
-        await logAction({
-            action: 'update',
-            collectionName: 'events',
-            documentId: eventId,
-            userEmail: userEmail,
-            oldData: serializableOldData,
-            newData: serializeEventData(eventData),
+    updateDoc(eventRef, updatedData)
+        .then(async () => {
+            await logAction({
+                action: 'update',
+                collectionName: 'events',
+                documentId: eventId,
+                userEmail: userEmail,
+                oldData: serializableOldData,
+                newData: serializeEventData(eventData),
+            });
+            
+            toast({
+                title: "Sucesso!",
+                description: "O evento foi atualizado.",
+            });
+        })
+        .catch ((serverError) => {
+           const permissionError = new FirestorePermissionError({
+              path: eventRef.path,
+              operation: 'update',
+              requestResourceData: updatedData,
+           } satisfies SecurityRuleContext);
+           errorEmitter.emit('permission-error', permissionError);
+           // Throwing an error to be caught by the form handling logic
+           throw serverError;
         });
-        
-        toast({
-            title: "Sucesso!",
-            description: "O evento foi atualizado.",
-        });
-    } catch (serverError) {
-       const permissionError = new FirestorePermissionError({
-          path: eventRef.path,
-          operation: 'update',
-          requestResourceData: updatedData,
-       } satisfies SecurityRuleContext);
-       errorEmitter.emit('permission-error', permissionError);
-       throw serverError; // Re-throw to be caught by the form
-    }
   }, [toast, user]);
 
 
@@ -380,7 +382,11 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
 
   const onConfirmConflict = async () => {
     if (pendingEvent) {
-      await confirmAddEvent(pendingEvent.data, pendingEvent.repeatSettings);
+      try {
+        await confirmAddEvent(pendingEvent.data, pendingEvent.repeatSettings);
+      } catch (error) {
+        // Errors from confirmAddEvent are now emitted, so we don't need a toast here.
+      }
     }
     setIsConflictDialogOpen(false);
     setPendingEvent(null);

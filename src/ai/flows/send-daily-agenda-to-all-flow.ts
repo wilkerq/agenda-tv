@@ -163,7 +163,6 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
         }
 
       } catch (error) {
-        console.error(`Failed to send agenda to ${personName}:`, error);
         errors.push(personName);
       }
     }

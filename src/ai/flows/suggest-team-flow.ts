@@ -21,9 +21,8 @@ export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamO
 // Helper to fetch personnel data
 const fetchPersonnel = async (collectionName: string) => {
     const personnelCollectionRef = collection(db, collectionName);
-    const q = query(personnelCollectionRef);
     try {
-        const snapshot = await getDocs(q);
+        const snapshot = await getDocs(personnelCollectionRef);
         // Correctly spread the document data along with the ID
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (serverError) {
