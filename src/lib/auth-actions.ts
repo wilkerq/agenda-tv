@@ -4,6 +4,7 @@
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { serviceAccount } from "./service-account"; // Assumes service-account.ts is configured
+import { logAction } from "./audit-log";
 
 const app = getApps().length === 0 ? initializeApp({
     credential: {
@@ -15,15 +16,26 @@ const app = getApps().length === 0 ? initializeApp({
 
 const adminAuth = getAuth(app);
 
-export async function createUser(email: string): Promise<{ uid: string, passwordResetLink: string }> {
+export async function createUser(email: string, adminEmail: string): Promise<{ uid: string, passwordResetLink: string }> {
     try {
         const userRecord = await adminAuth.createUser({
             email: email,
-            // Não definimos a senha aqui
         });
         
         // Geramos o link para o usuário definir a senha
         const passwordResetLink = await adminAuth.generatePasswordResetLink(email);
+
+        // Log the action
+        await logAction({
+            action: 'create',
+            collectionName: 'users',
+            documentId: userRecord.uid,
+            userEmail: adminEmail,
+            newData: {
+                email: userRecord.email,
+                uid: userRecord.uid,
+            },
+        });
 
         return {
             uid: userRecord.uid,

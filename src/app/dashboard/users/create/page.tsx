@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Check } from "lucide-react";
 import { createUser } from "@/lib/auth-actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useUser } from "@/firebase/provider"; // Import useUser
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
@@ -25,6 +26,7 @@ export default function CreateUserPage() {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+  const { user: adminUser } = useUser(); // Get the currently logged-in admin user
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -34,12 +36,22 @@ export default function CreateUserPage() {
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
+    if (!adminUser?.email) {
+      toast({
+        title: "Erro de Autenticação",
+        description: "Não foi possível identificar o administrador logado. Faça login novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     setGeneratedLink(null);
     setCopied(false);
 
     try {
-      const result = await createUser(values.email);
+      // Pass the admin's email to the server action
+      const result = await createUser(values.email, adminUser.email);
       setGeneratedLink(result.passwordResetLink);
       toast({
         title: "Usuário Criado com Sucesso!",
@@ -95,7 +107,7 @@ export default function CreateUserPage() {
               )}
             />
             <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !adminUser}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Criando..." : "Criar Usuário e Gerar Link"}
               </Button>
