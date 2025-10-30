@@ -6,21 +6,37 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
 
-// Initialize Firebase Admin SDK
+// --- Centralized Admin App Initialization ---
+
+let adminDb: FirebaseFirestore.Firestore;
+
+// Initialize Firebase Admin SDK only if it hasn't been already.
 if (!getApps().length) {
   // Ensure the private key is available before initializing
   if (!serviceAccount.private_key) {
-    throw new Error("Firebase Admin SDK private key is not defined. Check environment variables.");
-  }
-  try {
-    initializeApp({
-      credential: credential.cert(serviceAccount),
-    });
-  } catch (error: any) {
-    console.error("Firebase Admin Initialization Error:", error.message);
-    // Depending on the strictness required, you might want to re-throw or handle this
+    console.error("Firebase Admin SDK private key is not defined. Check environment variables.");
+    // We don't throw here to avoid crashing the server, but logs won't work.
+  } else {
+    try {
+      initializeApp({
+        credential: credential.cert(serviceAccount),
+      });
+    } catch (error: any) {
+      console.error("Firebase Admin Initialization Error:", error.message);
+    }
   }
 }
+
+// Get the Firestore instance from the initialized app.
+// This will throw an error if initialization failed, which is helpful for debugging.
+try {
+    adminDb = getFirestore();
+} catch (error) {
+    console.error("Could not get Firestore instance. Is the Admin SDK initialized correctly?", error);
+}
+
+
+// --- Log Action Function ---
 
 interface LogActionParams {
     action: AuditLogAction;
@@ -43,10 +59,13 @@ export const logAction = async ({
     batchId,
     details,
 }: LogActionParams): Promise<void> => {
-    try {
-        // Get Firestore instance after ensuring app is initialized
-        const adminDb = getFirestore();
+    // If adminDb failed to initialize, we can't proceed.
+    if (!adminDb) {
+        console.error("CRITICAL: Firestore for Admin SDK is not available. Cannot write to audit log.");
+        return;
+    }
 
+    try {
         const logData: any = {
             action,
             collectionName,
