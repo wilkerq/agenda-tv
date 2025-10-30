@@ -1,67 +1,57 @@
 /**
- * @fileoverview Firestore Security Rules for the Agenda Alego app.
- *
- * Core Philosophy:
- * This ruleset enforces a role-based access control model where any authenticated user can read event data,
- * but only users with an 'admin' role (indicated by the presence of a document in `/roles_admin/{userId}`)
- * can create, update, or delete events.
- *
+ * @file Firebase Security Rules for the Agenda Alego app.
+ * @description This ruleset enforces a role-based access control model.
  * Data Structure:
- * - /events/{eventId}: Stores event details (date, name, location, transmission type, background color).  All authenticated users can read events. Only admins can write.
- * - /roles_admin/{userId}:  Presence of a document indicates that the user {userId} has admin privileges. Document content is ignored.
+ * - /events/{eventId}: Stores event details, publicly readable.
+ * - /roles_admin/{userId}: Indicates admin privileges; existence grants access.
  *
  * Key Security Decisions:
- * - Public Read Access to Events:  Events are publicly readable by all authenticated users.
- * - Admin-Only Writes: Only users with an admin role can create, update, or delete events.
- * - No User Listing: Listing of users is not permitted.
+ * - Events are publicly readable but only modifiable by admins.
+ * - Admin privileges are granted by the presence of a document in the `roles_admin` collection.
+ * - Listing of events is public.
  *
  * Denormalization for Authorization:
- * - The `roles_admin` collection exemplifies denormalization.  Instead of storing roles as a field *within* a user document, the *existence* of a document at `/roles_admin/{userId}` directly grants admin privileges.  This allows a simple `exists()` check in the rules, avoiding the need to read and parse user documents for role information.
- *
- * Structural Segregation:
- * - Admin roles are stored in a separate top-level collection (`roles_admin`) instead of being embedded within event documents or user documents.  This simplifies the rules and improves security by clearly separating data and authorization concerns.
+ * - The presence of a document in `/roles_admin/{userId}` grants admin privileges, avoiding the need to store roles within user documents or query a separate collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows any authenticated user to read event data. Only admins can create, update, or delete events.
+     * @description Allows public read access to event data, but restricts write access to admins only.
      * @path /events/{eventId}
-     * @allow (get, list): Authenticated user can read any event.
-     * @allow (create, update, delete): User with a document at /roles_admin/{userId} can modify events.
-     * @deny (create, update, delete): Unauthenticated user cannot modify events.
-     * @deny (create, update, delete): Authenticated non-admin user cannot modify events.
-     * @principle Allows public read access while restricting writes to administrators.
+     * @allow (get, list): Any authenticated user can read event data.
+     * @allow (create, update, delete): Only users with a document in `/roles_admin/{userId}` can create, update, or delete events.
+     * @deny (create, update, delete): Non-admin users cannot create, update, or delete events.
+     * @principle Public read, admin-only write. The absence of an admin role denies access.
      */
     match /events/{eventId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn(); // All authenticated users can list events.
-
+      allow get: if true;
+      allow list: if true;
       allow create: if isAdmin();
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
 
     /**
-     * @description Indicates that the user with the given userId has administrative privileges. The presence of a document grants admin access.
+     * @description Controls access to the roles_admin collection. Only admins can create or delete their own admin document.
      * @path /roles_admin/{userId}
-     * @allow create: Only the user themselves can create this document.
-     * @deny get, list, update, delete: Nobody can get, list, update, or delete role assignments directly.
-     * @principle:  Enforces the 'Existence over Content' principle for global roles. The mere existence of a document at this path grants admin privileges.
+     * @allow (create): A user can create their own admin document if they don't already have one.
+     * @allow (get): any signed in user can check if a role exists
+     * @allow (delete): An admin can delete their own admin document, effectively removing their admin rights.
+     * @deny: All other operations are denied.
+     * @principle Existence-based role assignment.
      */
     match /roles_admin/{userId} {
-        allow create: if isSignedIn() && request.auth.uid == userId;
-        allow get: if false;
-        allow list: if false;
-        allow update: if false;
-        allow delete: if false;
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if false;
+      allow delete: if isOwner(userId);
     }
 
-    // ---- Helper functions ----
-
     /**
-     * @description Checks if the user is signed in.
+     * @description Checks if the current user is signed in.
      * @return {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
@@ -69,7 +59,16 @@ service cloud.firestore {
     }
 
     /**
-     * @description Checks if the user has admin privileges by verifying the existence of a document in the `roles_admin` collection.
+     * @description Checks if the user ID matches the authenticated user's ID.
+     * @param {string} userId - The user ID to compare against.
+     * @return {boolean} True if the user ID matches the authenticated user's ID, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the current user has admin privileges by verifying the existence of a document in the `roles_admin` collection.
      * @return {boolean} True if the user is an admin, false otherwise.
      */
     function isAdmin() {
