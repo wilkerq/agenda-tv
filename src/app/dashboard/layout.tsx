@@ -100,7 +100,7 @@ export default function DashboardLayout({
           <div className="flex h-14 items-center border-b border-slate-700 px-4 lg:h-[60px] lg:px-6">
             <Link href="/" className="flex items-center gap-2 font-semibold">
               <Package2 className="h-6 w-6" />
-              <span className="">Agenda Alego</span>
+              <span className="">Agenda da TV Alego</span>
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-2">
@@ -150,7 +150,7 @@ export default function DashboardLayout({
                     onClick={handleLinkClick}
                   >
                     <Package2 className="h-6 w-6" />
-                    <span>Agenda Alego</span>
+                    <span>Agenda da TV Alego</span>
                   </Link>
                   <SheetTitle>
                     <VisuallyHidden>Menu de Navegação</VisuallyHidden>
