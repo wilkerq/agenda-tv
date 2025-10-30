@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, FC } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, query, CollectionReference, DocumentData, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,15 +22,14 @@ import { Badge } from "@/components/ui/badge";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { logAction } from "@/lib/audit-log";
 import { onAuthStateChanged, type User } from 'firebase/auth';
-
+import { addPersonnel, updatePersonnel, deletePersonnel } from "@/lib/personnel-actions";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 
 const personnelSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
-  phone: z.string().min(10, "O telefone deve ser válido.").optional(),
+  phone: z.string().min(10, "O telefone deve ser válido.").optional().or(z.literal("")),
   turn: z.enum(turns).default("Geral"),
 });
 
@@ -45,19 +44,6 @@ const productionPersonnelSchema = personnelSchema.extend({
 });
 
 type ProductionPersonnel = z.infer<typeof productionPersonnelSchema> & { id: string };
-
-
-const serializePersonnelData = (data: z.infer<typeof personnelSchema> | z.infer<typeof productionPersonnelSchema>) => {
-  const serialized: any = {};
-  for (const key in data) {
-    const value = (data as any)[key];
-    if (value !== null && value !== undefined) {
-      serialized[key] = value;
-    }
-  }
-  return serialized;
-};
-
 
 interface PersonnelTabProps {
   collectionName: string;
@@ -101,95 +87,42 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUse
   }, [collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
-    if (!currentUser) return;
+    if (!currentUser?.email) return;
     setIsSubmitting(true);
-    const personnelCollectionRef = collection(db, collectionName);
-    
-    addDoc(personnelCollectionRef, values)
-      .then(async (docRef) => {
-        await logAction({
-          action: 'create',
-          collectionName,
-          documentId: docRef.id,
-          userEmail: currentUser.email!,
-          newData: serializePersonnelData(values)
-        });
-        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
-        form.reset();
-        setAddModalOpen(false);
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: personnelCollectionRef.path,
-          operation: 'create',
-          requestResourceData: values,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    try {
+      await addPersonnel(collectionName, values, currentUser.email);
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
+      form.reset();
+      setAddModalOpen(false);
+    } catch (error) {
+       toast({ title: "Erro", description: "Não foi possível adicionar o membro.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof personnelSchema>) => {
-    if (!editingPersonnel || !currentUser) return;
+    if (!editingPersonnel || !currentUser?.email) return;
     setIsSubmitting(true);
-    const docRef = doc(db, collectionName, editingPersonnel.id);
-    const docSnap = await getDoc(docRef);
-    const oldData = docSnap.exists() ? docSnap.data() : null;
-
-    updateDoc(docRef, values)
-      .then(async () => {
-         await logAction({
-          action: 'update',
-          collectionName,
-          documentId: editingPersonnel.id,
-          userEmail: currentUser.email!,
-          oldData: oldData ? serializePersonnelData(oldData as any) : undefined,
-          newData: serializePersonnelData(values)
-        });
-        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
-        setEditingPersonnel(null);
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: values,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    try {
+      await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email);
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
+      setEditingPersonnel(null);
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível atualizar o membro.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeletePersonnel = async (id: string) => {
-    if (!currentUser) return;
-    const docRef = doc(db, collectionName, id);
-    const docSnap = await getDoc(docRef);
-    const oldData = docSnap.exists() ? docSnap.data() : null;
-
-    deleteDoc(docRef)
-      .then(async () => {
-        if(oldData) {
-          await logAction({
-            action: 'delete',
-            collectionName,
-            documentId: id,
-            userEmail: currentUser.email!,
-            oldData: serializePersonnelData(oldData as any)
-          });
-        }
-        toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      });
+    if (!currentUser?.email) return;
+    try {
+      await deletePersonnel(collectionName, id, currentUser.email);
+      toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
+    } catch (error) {
+       toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });
+    }
   };
   
   const openEditModal = (person: Personnel) => {
@@ -435,95 +368,42 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
   }, [collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
-     if (!currentUser) return;
+    if (!currentUser?.email) return;
     setIsSubmitting(true);
-    const personnelCollectionRef = collection(db, collectionName);
-    
-    addDoc(personnelCollectionRef, values)
-      .then(async (docRef) => {
-        await logAction({
-          action: 'create',
-          collectionName,
-          documentId: docRef.id,
-          userEmail: currentUser.email!,
-          newData: serializePersonnelData(values)
-        });
-        toast({ title: "Sucesso!", description: "Novo membro adicionado." });
-        form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
-        setAddModalOpen(false);
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: personnelCollectionRef.path,
-          operation: 'create',
-          requestResourceData: values,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    try {
+      await addPersonnel(collectionName, values, currentUser.email);
+      toast({ title: "Sucesso!", description: "Novo membro adicionado." });
+      form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
+      setAddModalOpen(false);
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível adicionar o membro.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
-    if (!editingPersonnel || !currentUser) return;
+    if (!editingPersonnel || !currentUser?.email) return;
     setIsSubmitting(true);
-    const docRef = doc(db, collectionName, editingPersonnel.id);
-    const docSnap = await getDoc(docRef);
-    const oldData = docSnap.exists() ? docSnap.data() : null;
-
-    updateDoc(docRef, values)
-      .then(async() => {
-        await logAction({
-          action: 'update',
-          collectionName,
-          documentId: editingPersonnel.id,
-          userEmail: currentUser.email!,
-          oldData: oldData ? serializePersonnelData(oldData as any) : undefined,
-          newData: serializePersonnelData(values)
-        });
+    try {
+        await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email);
         toast({ title: "Sucesso!", description: "Membro atualizado." });
         setEditingPersonnel(null);
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: values,
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    } catch (error) {
+       toast({ title: "Erro", description: "Não foi possível atualizar o membro.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDeletePersonnel = async (id: string) => {
-     if (!currentUser) return;
-    const docRef = doc(db, collectionName, id);
-    const docSnap = await getDoc(docRef);
-    const oldData = docSnap.exists() ? docSnap.data() : null;
-
-    deleteDoc(docRef)
-      .then(async () => {
-         if (oldData) {
-          await logAction({
-            action: 'delete',
-            collectionName,
-            documentId: id,
-            userEmail: currentUser.email!,
-            oldData: serializePersonnelData(oldData as any)
-          });
-        }
-        toast({ title: "Sucesso!", description: "Membro removido." });
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-      });
+    if (!currentUser?.email) return;
+    try {
+      await deletePersonnel(collectionName, id, currentUser.email);
+      toast({ title: "Sucesso!", description: "Membro removido." });
+    } catch (error) {
+      toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });
+    }
   };
 
   const openEditModal = (person: ProductionPersonnel) => {
@@ -821,3 +701,5 @@ export default function OperatorsPage() {
     </div>
   );
 }
+
+    
