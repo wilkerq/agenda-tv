@@ -1,11 +1,27 @@
 
 'use server';
 
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { Timestamp, getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
-import { FirestorePermissionError, type SecurityRuleContext } from './errors';
-import { errorEmitter } from './error-emitter';
+
+// Initialize Firebase Admin SDK
+let adminApp: App;
+if (!getApps().length) {
+  adminApp = initializeApp({
+    credential: {
+      projectId: serviceAccount.project_id,
+      clientEmail: serviceAccount.client_email,
+      privateKey: serviceAccount.private_key,
+    },
+  });
+} else {
+  adminApp = getApps()[0];
+}
+
+const adminDb = getFirestore(adminApp);
+
 
 interface LogActionParams {
     action: AuditLogAction;
@@ -50,19 +66,11 @@ export const logAction = async ({
         logData.details = details;
     }
     
-    const logCollectionRef = collection(db, 'audit_logs');
-    
-    addDoc(logCollectionRef, logData)
-        .catch((serverError) => {
-            console.error("Error writing to audit log:", serverError);
-            // We emit the error but don't re-throw it, as logging failure should not
-            // block the primary user action.
-            const permissionError = new FirestorePermissionError({
-                path: logCollectionRef.path,
-                operation: 'create',
-                requestResourceData: logData,
-            } satisfies SecurityRuleContext);
-
-            errorEmitter.emit('permission-error', permissionError);
-        });
+    try {
+        await adminDb.collection('audit_logs').add(logData);
+    } catch (error) {
+        console.error("CRITICAL: Failed to write to audit log using Admin SDK.", error);
+        // This failure is critical and should be monitored.
+        // We are not throwing an error back to the client to avoid breaking the user flow.
+    }
 };
