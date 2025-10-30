@@ -1,61 +1,50 @@
 /**
- * @fileoverview Firestore Security Rules for the Agenda Alego app.
+ * @fileoverview Firestore Security Rules for Agenda Alego.
  *
  * Core Philosophy:
- * This ruleset enforces a role-based access control model where only authenticated administrators can create, update, or delete events.
- * All authenticated users can read event data.
+ * This ruleset implements a role-based access control system with public read access for events.
+ * Administrative users, identified by their presence in the `roles_admin` collection, can create, update, and delete events.
  *
  * Data Structure:
- * - /events/{eventId}: Stores event data, publicly readable.
- * - /roles_admin/{userId}: Presence of document grants admin privileges.
+ * - `/events/{eventId}`: Stores event data. All authenticated users can read events. Only admins can modify.
+ * - `/roles_admin/{userId}`: Indicates administrative privileges. The existence of a document for a user grants admin access.
  *
  * Key Security Decisions:
- * - Public read access to the 'events' collection to allow any authenticated user to view events.
- * - Administrative privileges are granted based on the existence of a document in the 'roles_admin' collection, following the "Existence over Content" principle.
- * - All write operations on the 'events' collection are restricted to administrators only.
- *
- * Denormalization for Authorization:
- * - No denormalization is needed in this simple role based setup, as we depend on the existence of a document in another collection.
- *
- * Structural Segregation:
- * - The segregation of admin roles into a dedicated collection (`roles_admin`) simplifies access control logic.
+ * - Events are publicly readable to all authenticated users, allowing for open listing.
+ * - Admin privileges are granted based on the presence of a document in the `/roles_admin` collection. This uses the "Existence over Content" principle.
+ * - Non-administrators are explicitly denied write access to events.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to all authenticated users and restricts write access to administrators for events.
+     * @description Grants read access to all authenticated users for events. Only admins can create, update, and delete events.
      * @path /events/{eventId}
-     * @allow (get, list): Any authenticated user can read event data.
-     * @allow (create, update, delete): Only users with a document in /roles_admin/{userId} can modify events.
-     * @deny (create, update, delete): Non-admin users cannot modify events.
-     * @principle Allows public read access while restricting writes to authorized administrators.
+     * @allow (get, list): Authenticated user reading an event or listing all events.
+     * @allow (create, update, delete): Admin user creating, updating, or deleting an event.
+     * @deny (create, update, delete): Non-admin user attempting to create, update, or delete an event.
+     * @principle Allows public read access for events while restricting write access to admins.
      */
     match /events/{eventId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource.data.id == eventId;
-      allow delete: if isAdmin() && exists(/databases/$(database)/documents/events/$(eventId));
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
     }
 
     /**
-     * @description Controls administrative privileges based on the existence of a document in this collection.
+     * @description Grants admin privileges based on the existence of a document in this collection.
      * @path /roles_admin/{userId}
-     * @allow (create): Allows a user to create their own admin document, effectively granting themselves admin rights. Only if no document exists for that user.
-     * @allow (get): Allows any authenticated user to check if a user is an admin.
-     * @allow (delete): Allows the admin to remove its own document, but only if the user id matches the document being deleted.
-     * @deny (create, update, delete): Non-admin users cannot create admin documents for other users.
-     * @principle Uses "Existence over Content" to manage global admin roles.
+     * @allow create: User creating their own admin document (self-assignment).
+     * @allow get: Admin reading their own admin document.
+     * @allow delete: Admin deleting their own admin document (revoking their own admin rights).
+     * @deny update, list: Updating and listing of admin roles is not permitted.
+     * @principle Implements "Existence over Content" for global admin roles.
      */
     match /roles_admin/{userId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if request.auth.uid == userId && !exists(/databases/$(database)/documents/roles_admin/$(userId));
-      allow update: if false;
-      allow delete: if request.auth.uid == userId && exists(/databases/$(database)/documents/roles_admin/$(userId));
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+      allow update, list: if false;
     }
 
     // Helper functions
@@ -63,9 +52,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
   }
 }
