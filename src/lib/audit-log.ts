@@ -2,19 +2,19 @@
 'use server';
 
 import { Timestamp, getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
 
 // Initialize Firebase Admin SDK
 let adminApp: App;
 if (!getApps().length) {
+  // Ensure the private key is available before initializing
+  if (!serviceAccount.private_key) {
+    throw new Error("Firebase Admin SDK private key is not defined. Check environment variables.");
+  }
   adminApp = initializeApp({
-    credential: {
-      projectId: serviceAccount.project_id,
-      clientEmail: serviceAccount.client_email,
-      privateKey: serviceAccount.private_key,
-    },
+    credential: credential.cert(serviceAccount),
   });
 } else {
   adminApp = getApps()[0];
