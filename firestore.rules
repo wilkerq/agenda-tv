@@ -3,43 +3,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    function isAuthenticated() {
-      return request.auth != null;
+    // Regra global para leitura: permite que qualquer pessoa leia qualquer documento.
+    match /{document=**} {
+      allow get, list: if true;
     }
 
+    // Regras de escrita para coleções específicas (apenas para usuários autenticados)
     match /events/{eventId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /events {
-      allow list: if isAuthenticated();
+      allow write: if request.auth != null;
     }
 
-    match /transmission_operators/{opId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /transmission_operators {
-      allow list: if isAuthenticated();
+    match /transmission_operators/{operatorId} {
+      allow write: if request.auth != null;
     }
 
-    match /cinematographic_reporters/{repId} {
-      allow read, write: if isAuthenticated();
-    }
-    match /cinematographic_reporters {
-      allow list: if isAuthenticated();
+    match /cinematographic_reporters/{reporterId} {
+      allow write: if request.auth != null;
     }
 
-    match /production_personnel/{prodId} {
-      allow read, write: if isAuthenticated();
-    }
-     match /production_personnel {
-      allow list: if isAuthenticated();
+    match /production_personnel/{personnelId} {
+        allow write: if request.auth != null;
     }
 
     match /audit_logs/{logId} {
-      allow read, write: if isAuthenticated();
-    }
-     match /audit_logs {
-      allow list: if isAuthenticated();
+        // Apenas o sistema (via server-side logic) deve poder escrever nos logs.
+        // O acesso do cliente é bloqueado.
+        allow write: if false;
     }
   }
 }
