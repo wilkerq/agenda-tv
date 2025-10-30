@@ -83,6 +83,9 @@ export const CreateEventFromImageOutputSchema = z.object({
   time: z.string().nullable().optional().describe("The extracted time of the event in 'HH:mm' format."),
   transmission: z.array(z.enum(transmissionTypes)).optional().describe('The types of transmission.'),
   transmissionOperator: z.string().optional().describe('The transmission operator responsible for the event.'),
+  cinematographicReporter: z.string().optional().describe('The cinematographic reporter for the event.'),
+  reporter: z.string().optional().describe('The reporter for the event.'),
+  producer: z.string().optional().describe('The producer for the event.'),
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
 
