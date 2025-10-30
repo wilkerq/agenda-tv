@@ -17,8 +17,8 @@ import {
 
 type EventListProps = {
   events: Event[];
-  onDeleteEvent?: (eventId: string) => void;
-  onEditEvent?: (event: Event) => void;
+  onDeleteEvent: (eventId: string) => void;
+  onEditEvent: (event: Event) => void;
 };
 
 const renderTransmission = (transmission: Event['transmission']) => {
@@ -74,45 +74,43 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
             </div>
           </div>
           
-          {onDeleteEvent && onEditEvent && (
-             <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-               <Button
-                  variant="outline"
+          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 bg-background/80 hover:bg-background"
+              onClick={() => onEditEvent(event)}
+            >
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Editar Evento</span>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
                   size="icon"
-                  className="h-8 w-8 bg-background/80 hover:bg-background"
-                  onClick={() => onEditEvent(event)}
+                  className="h-8 w-8"
                 >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Editar Evento</span>
+                  <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Excluir Evento</span>
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-8 w-8"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Excluir Evento</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Isso irá remover permanentemente o evento da agenda.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeleteEvent(event.id)}>
-                        Continuar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-             </div>
-          )}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Isso irá remover permanentemente o evento da agenda.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDeleteEvent(event.id)}>
+                    Continuar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       ))}
     </div>
