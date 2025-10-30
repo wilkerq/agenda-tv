@@ -159,5 +159,3 @@ export interface AuditLog {
     before?: object;
     after?: object;
 }
-
-    
