@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Check } from "lucide-react";
 import { createUser } from "@/lib/auth-actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useUser } from "@/firebase/provider"; // Import useUser
+import { useUser } from "@/firebase/provider";
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
@@ -26,7 +26,7 @@ export default function CreateUserPage() {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { user: adminUser } = useUser(); // Get the currently logged-in admin user
+  const { user: adminUser } = useUser();
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -50,7 +50,6 @@ export default function CreateUserPage() {
     setCopied(false);
 
     try {
-      // Pass the admin's email to the server action
       const result = await createUser(values.email, adminUser.email);
       setGeneratedLink(result.passwordResetLink);
       toast({
