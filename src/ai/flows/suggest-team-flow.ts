@@ -11,6 +11,8 @@ import { SuggestTeamInput, SuggestTeamInputSchema, SuggestTeamOutput, SuggestTea
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { errorEmitter } from '@/lib/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';
 
 export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamOutput> {
     return suggestTeamFlow(input);
@@ -20,9 +22,19 @@ export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamO
 const fetchPersonnel = async (collectionName: string) => {
     const personnelCollectionRef = collection(db, collectionName);
     const q = query(personnelCollectionRef);
-    const snapshot = await getDocs(q);
-    // Correctly spread the document data along with the ID
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const snapshot = await getDocs(q);
+        // Correctly spread the document data along with the ID
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+            path: personnelCollectionRef.path,
+            operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        // Re-throw the original error to stop execution
+        throw serverError;
+    }
 };
 
 // Helper to fetch events for a specific day
@@ -36,17 +48,26 @@ const getEventsForDay = async (date: Date): Promise<any[]> => {
       where('date', '>=', Timestamp.fromDate(start)),
       where('date', '<=', Timestamp.fromDate(end))
     );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Serialize date objects to strings for the logic function
-        return {
-            ...data,
-            date: data.date ? (data.date as Timestamp).toDate().toISOString() : null,
-            departure: data.departure ? (data.departure as Timestamp).toDate().toISOString() : null,
-            arrival: data.arrival ? (data.arrival as Timestamp).toDate().toISOString() : null,
-        }
-    });
+     try {
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            // Serialize date objects to strings for the logic function
+            return {
+                ...data,
+                date: data.date ? (data.date as Timestamp).toDate().toISOString() : null,
+                departure: data.departure ? (data.departure as Timestamp).toDate().toISOString() : null,
+                arrival: data.arrival ? (data.arrival as Timestamp).toDate().toISOString() : null,
+            }
+        });
+    } catch (serverError) {
+        const permissionError = new FirestorePermissionError({
+            path: eventsCollectionRef.path,
+            operation: 'list',
+        } satisfies SecurityRuleContext);
+        errorEmitter.emit('permission-error', permissionError);
+        throw serverError;
+    }
 };
 
 
