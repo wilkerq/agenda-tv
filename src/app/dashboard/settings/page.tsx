@@ -12,30 +12,35 @@ const settingsLinks = [
     title: "Gerenciar Pessoal",
     description: "Adicione, edite ou remova operadores, repórteres e produtores.",
     icon: Users,
+    isInternal: true,
   },
   {
     href: "/dashboard/users/create",
     title: "Criar Usuários",
     description: "Adicione novos usuários com permissão para acessar o painel administrativo.",
     icon: UserPlus,
+    isInternal: true,
   },
   {
     href: "/dashboard/logs",
     title: "Logs de Auditoria",
     description: "Visualize o histórico de todas as alterações feitas no sistema.",
     icon: History,
+    isInternal: true,
   },
   {
     href: "/",
     title: "Página Pública",
     description: "Acesse a visualização do calendário público de eventos.",
     icon: Home,
+    isInternal: false,
   },
   {
     href: "/panel",
     title: "Painel de TV",
     description: "Acesse a visualização da agenda da semana para as TVs.",
     icon: Tv,
+    isInternal: false,
   },
 ];
 
@@ -62,7 +67,7 @@ export default function SettingsPage() {
                 <CardDescription>{link.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href={link.href} target={link.href.startsWith('/') ? '_blank' : '_self'}>
+                <Link href={link.href} target={link.isInternal ? '_self' : '_blank'}>
                   <Button variant="outline" className="w-full">
                     Acessar <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
