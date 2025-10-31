@@ -1,7 +1,7 @@
 
 'use server';
 
-import { adminDb } from '@/lib/audit-log';
+import { getFirestore } from 'firebase-admin/firestore';
 import type { ReschedulingSuggestion } from './types';
 import { logAction } from './audit-log';
 
@@ -13,6 +13,8 @@ export async function reallocateConflictingEvents(
     adminUserEmail: string
 ): Promise<{ success: boolean; message: string; updatedIds: string[] }> {
     
+    const adminDb = getFirestore();
+
     if (!suggestions || suggestions.length === 0) {
         return { success: false, message: "Nenhuma sugestão fornecida.", updatedIds: [] };
     }

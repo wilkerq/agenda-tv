@@ -95,4 +95,6 @@ export const logAction = async ({
     }
 };
 
-export { adminDb };
+// This export is what caused the error. It's not an async function.
+// We are removing it. The adminDb instance is still available within this module.
+// export { adminDb };
