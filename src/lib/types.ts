@@ -90,6 +90,16 @@ export const CreateEventFromImageOutputSchema = z.object({
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
 
 // Schemas for suggestion-logic
+
+export const ReschedulingSuggestionSchema = z.object({
+    conflictingEventId: z.string(),
+    conflictingEventTitle: z.string(),
+    personToMove: z.string(),
+    suggestedReplacement: z.string().optional().nullable(),
+    role: z.enum(['transmissionOperator', 'cinematographicReporter', 'reporter', 'producer']),
+});
+export type ReschedulingSuggestion = z.infer<typeof ReschedulingSuggestionSchema>;
+
 export const SuggestTeamInputSchema = z.object({
   date: z.string().describe("The full date and time of the event in ISO 8601 format."),
   location: z.string().describe("The venue or place where the event will occur."),
@@ -103,6 +113,7 @@ export const SuggestTeamOutputSchema = z.object({
   reporter: z.string().optional().describe('The suggested reporter.'),
   producer: z.string().optional().describe('The suggested producer.'),
   transmission: z.array(z.enum(transmissionTypes)).optional().describe('The suggested transmission types for the event.'),
+  reschedulingSuggestions: z.array(ReschedulingSuggestionSchema).optional().describe("A list of events that need to be rescheduled due to conflicts."),
 });
 export type SuggestTeamOutput = z.infer<typeof SuggestTeamOutputSchema>;
 
@@ -150,7 +161,7 @@ export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
 
 
 // Audit Log Types
-export type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user';
+export type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate';
 
 export interface AuditLog {
     id: string;

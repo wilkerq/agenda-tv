@@ -30,23 +30,34 @@ const fetchPersonnel = async (collectionName: string) => {
     }
 };
 
-// Helper to fetch events for a specific day
-const getEventsForDay = async (date: Date): Promise<any[]> => {
-    const start = startOfDay(date);
-    const end = endOfDay(date);
-
+// Helper to fetch events for a specific day or all future events
+const getEvents = async (date?: Date): Promise<any[]> => {
     const eventsCollectionRef = collection(db, 'events');
-    const q = query(
-      eventsCollectionRef,
-      where('date', '>=', Timestamp.fromDate(start)),
-      where('date', '<=', Timestamp.fromDate(end))
-    );
+    let q: Query;
+
+    if (date) {
+        const start = startOfDay(date);
+        const end = endOfDay(date);
+        q = query(
+            eventsCollectionRef,
+            where('date', '>=', Timestamp.fromDate(start)),
+            where('date', '<=', Timestamp.fromDate(end))
+        );
+    } else {
+        // Fetch all events from today onwards
+        q = query(
+            eventsCollectionRef,
+            where('date', '>=', Timestamp.fromDate(startOfDay(new Date())))
+        );
+    }
+    
      try {
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => {
             const data = doc.data();
             // Serialize date objects to strings for the logic function
             return {
+                id: doc.id, // Ensure ID is included
                 ...data,
                 date: data.date ? (data.date as Timestamp).toDate().toISOString() : null,
                 departure: data.departure ? (data.departure as Timestamp).toDate().toISOString() : null,
@@ -70,20 +81,24 @@ export const suggestTeam = async (input: SuggestTeamInput): Promise<SuggestTeamO
         operators,
         cinematographicReporters,
         productionPersonnel,
-        eventsToday
+        eventsToday,
+        allFutureEvents, // Fetch all future events for reallocation logic
     ] = await Promise.all([
         fetchPersonnel('transmission_operators'),
         fetchPersonnel('cinematographic_reporters'),
         fetchPersonnel('production_personnel'),
-        getEventsForDay(parseISO(input.date))
+        getEvents(parseISO(input.date)),
+        getEvents(), // No date means fetch all future events
     ]);
 
     const result = await suggestTeamLogic({
         ...input,
+        // Pass all data to the logic function
         operators: operators as any,
         cinematographicReporters: cinematographicReporters as any,
         productionPersonnel: productionPersonnel as any,
-        eventsToday
+        eventsToday,
+        allFutureEvents, // Pass future events
     });
 
     // Ensure the returned transmission type matches the schema

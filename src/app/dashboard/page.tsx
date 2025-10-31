@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn } from "@/lib/types";
+import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn, ReschedulingSuggestion } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
@@ -25,6 +25,7 @@ import { logAction } from "@/lib/audit-log";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { reallocateConflictingEvents } from "@/lib/events-actions";
 
 
 const getEventTurn = (date: Date): EventTurn => {
@@ -72,6 +73,8 @@ export default function DashboardPage() {
   const [pendingEvent, setPendingEvent] = useState<PendingEvent | null>(null);
   const [isConflictDialogOpen, setIsConflictDialogOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  const [reallocationSuggestions, setReallocationSuggestions] = useState<ReschedulingSuggestion[] | null>(null);
 
   useEffect(() => {
     // Set the initial date and confirm client-side rendering
@@ -245,41 +248,53 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
 
 
 const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (!user || !user.email) {
-      toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
-      return;
-    }
+  if (!user?.email) {
+    toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
+    return;
+  }
   
-    const eventRef = doc(db, "events", eventId);
-    const userEmail = user.email;
+  const eventRef = doc(db, "events", eventId);
+  
+  try {
     const eventSnap = await getDoc(eventRef);
-    const oldData = eventSnap.exists() ? eventSnap.data() : null;
-  
-    // This will now be caught by the global error listener if it fails.
-    await deleteDoc(eventRef);
-  
-    // This code only runs if deleteDoc was successful.
-    if (oldData) {
-      const serializableOldData = {
-        ...oldData,
-        date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
-        departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
-        arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-      };
-      await logAction({
-        action: 'delete',
-        collectionName: 'events',
-        documentId: eventId,
-        userEmail: userEmail,
-        oldData: serializableOldData,
-      });
+    if (!eventSnap.exists()) {
+      throw new Error("Evento não encontrado para registrar o log de exclusão.");
     }
-  
+    const oldData = eventSnap.data();
+
+    // Aguarda a exclusão ser concluída
+    await deleteDoc(eventRef);
+    
+    // Se a exclusão for bem-sucedida, registra o log e mostra a notificação
+    const serializableOldData = {
+      ...oldData,
+      date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
+      departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
+      arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
+    };
+    await logAction({
+      action: 'delete',
+      collectionName: 'events',
+      documentId: eventId,
+      userEmail: user.email,
+      oldData: serializableOldData,
+    });
+
     toast({
       title: "Evento Excluído!",
       description: "O evento foi removido da agenda com sucesso.",
     });
-  }, [toast, user]);
+
+  } catch (error) {
+    console.error("Falha ao excluir evento:", error);
+    // Emite um erro contextualizado para o listener global
+    const permissionError = new FirestorePermissionError({
+      path: eventRef.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  }
+}, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
     if (!user || !user.email) {
@@ -395,6 +410,31 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     });
   };
 
+  const handleConfirmReallocation = async (suggestions: ReschedulingSuggestion[]) => {
+      if (!user?.email) {
+          toast({ title: "Erro de Autenticação", description: "Usuário não logado.", variant: "destructive" });
+          return;
+      }
+      try {
+          const result = await reallocateConflictingEvents(suggestions, user.email);
+          if (result.success) {
+              toast({
+                  title: "Sucesso!",
+                  description: result.message,
+              });
+          } else {
+              throw new Error(result.message);
+          }
+      } catch (error: any) {
+           toast({
+              title: "Erro no Reagendamento",
+              description: error.message || "Não foi possível reagendar os eventos.",
+              variant: "destructive",
+          });
+      }
+  };
+
+
   if (!isClient) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -425,7 +465,14 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
                 Preencha os campos de data, hora e local, depois use o botão "Sugerir Equipe" para preencher a equipe.
               </CardDescription>
             </DialogHeader>
-            <AddEventForm onAddEvent={handleAddEvent} preloadedData={preloadedEventData} onSuccess={handleAddSuccess} />
+            <AddEventForm 
+                onAddEvent={handleAddEvent} 
+                preloadedData={preloadedEventData} 
+                onSuccess={handleAddSuccess}
+                reallocationSuggestions={reallocationSuggestions}
+                setReallocationSuggestions={setReallocationSuggestions}
+                onConfirmReallocation={handleConfirmReallocation}
+            />
           </DialogContent>
         </Dialog>
 
@@ -523,9 +570,6 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </div>
   );
 }
-
-    

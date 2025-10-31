@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
@@ -37,13 +37,15 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 import { suggestTeam } from "@/ai/flows/suggest-team-flow";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { reallocateConflictingEvents } from "@/lib/events-actions";
 
 
 const locations = [
@@ -105,6 +107,10 @@ type AddEventFormProps = {
   onAddEvent: (eventData: EventFormData, repeatSettings?: RepeatSettings) => Promise<void>;
   preloadedData?: Partial<EventFormData>;
   onSuccess?: () => void;
+  // Props for the reallocation modal
+  reallocationSuggestions: ReschedulingSuggestion[] | null;
+  setReallocationSuggestions: (suggestions: ReschedulingSuggestion[] | null) => void;
+  onConfirmReallocation: (suggestions: ReschedulingSuggestion[]) => Promise<void>;
 };
 
 type Personnel = {
@@ -118,7 +124,7 @@ type ProductionPersonnel = Personnel & {
   isProducer: boolean;
 };
 
-export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventFormProps) {
+export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocationSuggestions, setReallocationSuggestions, onConfirmReallocation }: AddEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const { toast } = useToast();
@@ -127,6 +133,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
+  
+  const [suggestionData, setSuggestionData] = React.useState<SuggestTeamOutput | null>(null);
 
   const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
   const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
@@ -195,7 +203,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   });
 
   const handleSuggestion = React.useCallback(async () => {
-    const { date, time, location, transmission } = form.getValues();
+    const { date, time, location, transmission, departureDate, departureTime, arrivalDate, arrivalTime } = form.getValues();
     
     if (!user) {
        toast({ title: "Autenticação necessária", description: "Você precisa estar logado para usar a sugestão.", variant: "destructive"});
@@ -212,53 +220,65 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     }
     
     setIsSuggesting(true);
+    setSuggestionData(null); // Clear previous suggestions
     try {
         const [hours, minutes] = time.split(":").map(Number);
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
+        const departureDateTime = departureDate && departureTime ? parseISO(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
+        const arrivalDateTime = arrivalDate && arrivalTime ? parseISO(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
+
         const result = await suggestTeam({
             date: eventDate.toISOString(),
+            departure: departureDateTime?.toISOString(),
+            arrival: arrivalDateTime?.toISOString(),
             location: location,
             transmissionTypes: transmission as TransmissionType[],
         });
         
-        const suggestionsMade: string[] = [];
+        setSuggestionData(result);
 
-        if (result.transmissionOperator) {
-            form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
-            suggestionsMade.push(`Op. Transmissão: ${result.transmissionOperator}`);
-        }
-        if (result.cinematographicReporter) {
-            form.setValue("cinematographicReporter", result.cinematographicReporter, { shouldValidate: true });
-            suggestionsMade.push(`Rep. Cinematográfico: ${result.cinematographicReporter}`);
-        }
-        if (result.reporter) {
-            form.setValue("reporter", result.reporter, { shouldValidate: true });
-            suggestionsMade.push(`Repórter: ${result.reporter}`);
-        }
-        if (result.producer) {
-            form.setValue("producer", result.producer, { shouldValidate: true });
-            suggestionsMade.push(`Produtor: ${result.producer}`);
-        }
-        
-        if (suggestionsMade.length > 0) {
-            toast({
-                title: "Equipe Sugerida com Sucesso!",
-                description: (
-                    <ul className="mt-2 list-disc list-inside">
-                        {suggestionsMade.map((s, i) => <li key={i}>{s}</li>)}
-                    </ul>
-                ),
-            });
+        // Se houver sugestões de reescalonamento, abra o modal
+        if (result.reschedulingSuggestions && result.reschedulingSuggestions.length > 0) {
+            setReallocationSuggestions(result.reschedulingSuggestions);
         } else {
-             toast({
-                title: "Nenhuma sugestão disponível",
-                description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
-                variant: "default",
-            });
+             // Caso contrário, aplique as sugestões diretamente
+            const suggestionsMade: string[] = [];
+            if (result.transmissionOperator) {
+                form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
+                suggestionsMade.push(`Op. Transmissão: ${result.transmissionOperator}`);
+            }
+            if (result.cinematographicReporter) {
+                form.setValue("cinematographicReporter", result.cinematographicReporter, { shouldValidate: true });
+                suggestionsMade.push(`Rep. Cinematográfico: ${result.cinematographicReporter}`);
+            }
+            if (result.reporter) {
+                form.setValue("reporter", result.reporter, { shouldValidate: true });
+                suggestionsMade.push(`Repórter: ${result.reporter}`);
+            }
+            if (result.producer) {
+                form.setValue("producer", result.producer, { shouldValidate: true });
+                suggestionsMade.push(`Produtor: ${result.producer}`);
+            }
+            
+            if (suggestionsMade.length > 0) {
+                toast({
+                    title: "Equipe Sugerida com Sucesso!",
+                    description: (
+                        <ul className="mt-2 list-disc list-inside">
+                            {suggestionsMade.map((s, i) => <li key={i}>{s}</li>)}
+                        </ul>
+                    ),
+                });
+            } else {
+                 toast({
+                    title: "Nenhuma sugestão disponível",
+                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                    variant: "default",
+                });
+            }
         }
-
     } catch (error) {
         console.error("Error during auto-population:", error);
         toast({
@@ -269,7 +289,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user]);
+  }, [form, toast, user, setReallocationSuggestions]);
 
 
   React.useEffect(() => {
@@ -290,6 +310,25 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
       });
     }
   }, [preloadedData, form]);
+  
+  // Handler to apply suggestions after confirmation
+  const applyConfirmedSuggestions = () => {
+    if (!suggestionData) return;
+
+    if (suggestionData.transmissionOperator) form.setValue("transmissionOperator", suggestionData.transmissionOperator, { shouldValidate: true });
+    if (suggestionData.cinematographicReporter) form.setValue("cinematographicReporter", suggestionData.cinematographicReporter, { shouldValidate: true });
+    if (suggestionData.reporter) form.setValue("reporter", suggestionData.reporter, { shouldValidate: true });
+    if (suggestionData.producer) form.setValue("producer", suggestionData.producer, { shouldValidate: true });
+
+    toast({
+      title: "Equipe da Viagem Confirmada!",
+      description: "A equipe para o evento de viagem foi preenchida no formulário.",
+    });
+    
+    // Clear suggestions
+    setSuggestionData(null);
+  };
+
 
   const repeats = form.watch("repeats");
   const transmission = form.watch("transmission");
@@ -361,6 +400,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
   }
 
   return (
+    <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
         <div className="grid md:grid-cols-2 gap-8">
@@ -752,5 +792,27 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess }: AddEventF
         </div>
       </form>
     </Form>
+    <AlertDialog open={!!reallocationSuggestions} onOpenChange={(isOpen) => !isOpen && setReallocationSuggestions(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Conflito de Agendamento Detectado</AlertDialogTitle>
+            <AlertDialogDescription>
+                A equipe sugerida para esta viagem já está alocada em outros eventos. Deseja confirmar o reagendamento automático?
+                <ul className="mt-4 list-disc list-inside space-y-2 text-sm text-foreground">
+                    {reallocationSuggestions?.map((s, i) => (
+                         <li key={i}>
+                            <strong>{s.personToMove}</strong> será substituído por <strong>{s.suggestedReplacement || 'ninguém'}</strong> no evento <span className="italic">"{s.conflictingEventTitle}"</span>.
+                        </li>
+                    ))}
+                </ul>
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setReallocationSuggestions(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={applyConfirmedSuggestions}>Confirmar e Reagendar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

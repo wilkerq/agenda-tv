@@ -94,3 +94,5 @@ export const logAction = async ({
         // We are not throwing an error back to the client to avoid breaking the user flow.
     }
 };
+
+export { adminDb };
