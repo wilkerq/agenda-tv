@@ -27,12 +27,12 @@ export async function createUser(email: string, adminEmail: string): Promise<{ u
 
         // Log the action
         await logAction({
-            action: 'create',
+            action: 'create-user',
             collectionName: 'users',
             documentId: userRecord.uid,
-            userEmail: adminEmail,
+            userEmail: adminEmail, // Correct: log which admin performed the action
             newData: {
-                email: userRecord.email,
+                createdUserEmail: userRecord.email,
                 uid: userRecord.uid,
             },
         });

@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { History, FilePen, Trash2, FilePlus, User, Send } from "lucide-react";
+import { History, FilePen, Trash2, FilePlus, User, Send, UserPlus as UserPlusIcon } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 
-type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send';
+type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user';
 
 interface AuditLog {
     id: string;
@@ -39,6 +39,7 @@ const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>;
     update: { text: "Atualização", icon: FilePen, className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700" },
     delete: { text: "Exclusão", icon: Trash2, className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700" },
     'automatic-send': { text: "Envio Automático", icon: Send, className: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-700" },
+    'create-user': { text: "Criação de Usuário", icon: UserPlusIcon, className: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/50 dark:text-cyan-300 dark:border-cyan-700" },
 };
 
 export default function LogsPage() {
@@ -88,7 +89,14 @@ export default function LogsPage() {
         if (log.action === 'automatic-send') {
             return "Envio Automático de Agendas";
         }
-        return `Evento: ${ (log.after as any)?.name || (log.before as any)?.name || log.documentId }`
+        if (log.action === 'create-user') {
+            return `Criação do Usuário: ${(log.after as any)?.createdUserEmail || log.documentId}`;
+        }
+        const title = (log.after as any)?.name || (log.before as any)?.name;
+        if (title) {
+            return `${log.collectionName}: ${title}`;
+        }
+        return `Doc. ID: ${log.documentId}`;
     }
 
     return (
@@ -139,6 +147,7 @@ export default function LogsPage() {
                                     </AccordionTrigger>
                                     <AccordionContent>
                                         <Card className="bg-muted/50 dark:bg-slate-800/50 p-4">
+                                            <p className="text-xs text-muted-foreground mb-2">ID do Documento: <code className="font-mono bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded-sm">{log.documentId}</code></p>
                                             {log.action === 'automatic-send' && log.details ? (
                                                 <div>
                                                     <h4 className="font-semibold mb-2">Detalhes da Execução</h4>
@@ -157,7 +166,7 @@ export default function LogsPage() {
                                                 </div>
                                             ) : (
                                                 <>
-                                                    <h4 className="font-semibold mb-2">Detalhes da Alteração</h4>
+                                                    <h4 className="font-semibold mb-2">Dados da Alteração</h4>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         {log.before && (
                                                             <div>
