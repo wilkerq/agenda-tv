@@ -1,41 +1,46 @@
+
 "use server";
 
-// =================================================================
-// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
-// Importamos 'credential' e 'ServiceAccount' para inicializar corretamente.
-// =================================================================
-import { initializeApp, getApps, type ServiceAccount } from "firebase-admin/app";
-import { credential } from "firebase-admin"; // Importado da raiz
+import { initializeApp, getApps, type ServiceAccount, type App } from "firebase-admin/app";
+import { credential } from "firebase-admin";
 import { getAuth } from "firebase-admin/auth";
-import { serviceAccount } from "./service-account"; // Assumes service-account.ts is configured
+import { serviceAccount } from "./service-account";
 import { logAction } from "./audit-log";
 
-// =================================================================
-// CORREÇÃO APLICADA AQUI:
-// Usamos 'credential.cert()' em vez de criar o objeto manualmente.
-// Usamos 'as ServiceAccount' para garantir a correspondência de tipo.
-// =================================================================
-const app = getApps().length === 0 ? initializeApp({
-    credential: credential.cert(serviceAccount as ServiceAccount)
-}) : getApps()[0];
+let app: App;
+// Initialize Firebase Admin SDK only if it hasn't been already and credentials are provided.
+if (!getApps().length) {
+  if (serviceAccount.private_key) {
+    app = initializeApp({
+      credential: credential.cert(serviceAccount as ServiceAccount)
+    });
+  } else {
+    console.warn("Firebase Admin credentials not found. Skipping initialization.");
+  }
+} else {
+  app = getApps()[0];
+}
 
-const adminAuth = getAuth(app);
+// Get the Auth instance only if the app was initialized.
+const adminAuth = app ? getAuth(app) : null;
 
 export async function createUser(email: string, adminEmail: string): Promise<{ uid: string, passwordResetLink: string }> {
+    if (!adminAuth) {
+        throw new Error("Firebase Admin SDK is not initialized. Cannot create user.");
+    }
+    
     try {
         const userRecord = await adminAuth.createUser({
             email: email,
         });
         
-        // Geramos o link para o usuário definir a senha
         const passwordResetLink = await adminAuth.generatePasswordResetLink(email);
 
-        // Log the action
         await logAction({
             action: 'create-user',
             collectionName: 'users',
             documentId: userRecord.uid,
-            userEmail: adminEmail, // Correct: log which admin performed the action
+            userEmail: adminEmail,
             newData: {
                 createdUserEmail: userRecord.email,
                 uid: userRecord.uid,
@@ -49,7 +54,6 @@ export async function createUser(email: string, adminEmail: string): Promise<{ u
 
     } catch (error: any) {
         console.error("Error creating new user:", error);
-        // Re-throw the error to be handled by the calling function on the client
         throw error;
     }
 }

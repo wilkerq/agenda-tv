@@ -1,51 +1,35 @@
+
 'use server';
 
-// =================================================================
-// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
-// Importamos o tipo 'ServiceAccount' para a asserção
-// =================================================================
-import { initializeApp, getApps, type ServiceAccount } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, type ServiceAccount, type App } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { credential } from 'firebase-admin';
 import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
 
-// --- Centralized Admin App Initialization ---
+let adminDb: Firestore | undefined;
+let app: App | undefined;
 
-let adminDb: FirebaseFirestore.Firestore;
-
-// Initialize Firebase Admin SDK only if it hasn't been already.
+// Initialize Firebase Admin SDK only if it hasn't been already and credentials are provided.
 if (!getApps().length) {
-  // Ensure the private key is available before initializing
-  if (!serviceAccount.private_key) {
-    console.error("Firebase Admin SDK private key is not defined. Check environment variables.");
-    // We don't throw here to avoid crashing the server, but logs won't work.
-  } else {
+  if (serviceAccount.private_key) {
     try {
-      initializeApp({
-        // =================================================================
-        // CORREÇÃO APLICADA AQUI:
-        // Usamos 'as ServiceAccount' para forçar o TypeScript
-        // a aceitar o tipo do objeto, resolvendo o conflito.
-        // =================================================================
+      app = initializeApp({
         credential: credential.cert(serviceAccount as ServiceAccount),
       });
+      adminDb = getFirestore(app);
     } catch (error: any) {
       console.error("Firebase Admin Initialization Error:", error.message);
     }
+  } else {
+    console.warn("Firebase Admin credentials not available. Audit logging will be disabled.");
+  }
+} else {
+  app = getApps()[0];
+  if (app) {
+    adminDb = getFirestore(app);
   }
 }
-
-// Get the Firestore instance from the initialized app.
-// This will throw an error if initialization failed, which is helpful for debugging.
-try {
-    adminDb = getFirestore();
-} catch (error) {
-    console.error("Could not get Firestore instance. Is the Admin SDK initialized correctly?", error);
-}
-
-
-// --- Log Action Function ---
 
 interface LogActionParams {
     action: AuditLogAction;
@@ -68,7 +52,6 @@ export const logAction = async ({
     batchId,
     details,
 }: LogActionParams): Promise<void> => {
-    // If adminDb failed to initialize, we can't proceed.
     if (!adminDb) {
         console.error("CRITICAL: Firestore for Admin SDK is not available. Cannot write to audit log.");
         return;
@@ -99,11 +82,5 @@ export const logAction = async ({
         await adminDb.collection('audit_logs').add(logData);
     } catch (error) {
         console.error("CRITICAL: Failed to write to audit log using Admin SDK.", error);
-        // This failure is critical and should be monitored.
-        // We are not throwing an error back to the client to avoid breaking the user flow.
     }
 };
-
-// This export is what caused the error. It's not an async function.
-// We are removing it. The adminDb instance is still available within this module.
-// export { adminDb };
