@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider";
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'Agenda Alego',
@@ -34,9 +34,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <FirebaseClientProvider>
+            {children}
+          </FirebaseClientProvider>
           <Toaster />
-          <FirebaseErrorListener />
         </ThemeProvider>
       </body>
     </html>

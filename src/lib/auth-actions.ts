@@ -7,13 +7,17 @@ import { getAuth } from "firebase-admin/auth";
 import { serviceAccount } from "./service-account";
 import { logAction } from "./audit-log";
 
-let app: App;
+let app: App | undefined;
 // Initialize Firebase Admin SDK only if it hasn't been already and credentials are provided.
 if (!getApps().length) {
   if (serviceAccount.private_key) {
-    app = initializeApp({
-      credential: credential.cert(serviceAccount as ServiceAccount)
-    });
+    try {
+      app = initializeApp({
+        credential: credential.cert(serviceAccount as ServiceAccount)
+      });
+    } catch (e) {
+      console.error('Firebase Admin SDK initialization error:', e);
+    }
   } else {
     console.warn("Firebase Admin credentials not found. Skipping initialization.");
   }
