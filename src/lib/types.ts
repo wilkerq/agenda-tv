@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 export const transmissionTypes = ["youtube", "tv", "pauta", "viagem"] as const;
@@ -100,12 +99,19 @@ export const ReschedulingSuggestionSchema = z.object({
 });
 export type ReschedulingSuggestion = z.infer<typeof ReschedulingSuggestionSchema>;
 
+// =================================================================
+// CORREÇÃO DO BUILD APLICADA AQUI
+// =================================================================
 export const SuggestTeamInputSchema = z.object({
   date: z.string().describe("The full date and time of the event in ISO 8601 format."),
   location: z.string().describe("The venue or place where the event will occur."),
   transmissionTypes: z.array(z.enum(transmissionTypes)).describe("The type of event (e.g., youtube, tv)."),
+  // LINHAS ADICIONADAS:
+  departure: z.string().optional().nullable().describe("Data de partida ISO (para viagens)"),
+  arrival: z.string().optional().nullable().describe("Data de chegada ISO (para viagens)"),
 });
 export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
+// =================================================================
 
 export const SuggestTeamOutputSchema = z.object({
   transmissionOperator: z.string().optional().describe('The suggested transmission operator.'),

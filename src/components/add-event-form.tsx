@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,8 +44,6 @@ import { suggestTeam } from "@/ai/flows/suggest-team-flow";
 import { errorEmitter } from "@/lib/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { reallocateConflictingEvents } from "@/lib/events-actions";
-
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -64,7 +61,11 @@ const transmissionOptions = [
     { id: 'viagem', label: 'Viagem' },
 ] as const;
 
-const formSchema = z.object({
+// =================================================================
+// CORREÇÃO DO ZOD (BUILD) APLICADA AQUI
+// =================================================================
+// PASSO 1: Define o objeto base PRIMEIRO
+const baseSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
   location: z.string({ required_error: "O local do evento é obrigatório." }),
   date: z.date({ required_error: "A data do evento é obrigatória." }),
@@ -84,7 +85,10 @@ const formSchema = z.object({
   departureTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
   arrivalDate: z.date().optional(),
   arrivalTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
-}).refine(data => {
+});
+
+// PASSO 2: Cria o schema final para o formulário, aplicando os refinamentos
+const formSchema = baseSchema.refine(data => {
     if (data.repeats) {
         return !!data.repeatFrequency && !!data.repeatCount;
     }
@@ -101,6 +105,7 @@ const formSchema = z.object({
     message: "Data e hora de partida e chegada são obrigatórias para viagens.",
     path: ["departureDate"],
 });
+// =================================================================
 
 
 type AddEventFormProps = {
@@ -110,6 +115,7 @@ type AddEventFormProps = {
   // Props for the reallocation modal
   reallocationSuggestions: ReschedulingSuggestion[] | null;
   setReallocationSuggestions: (suggestions: ReschedulingSuggestion[] | null) => void;
+  // Prop que chama a Server Action de reescalonamento
   onConfirmReallocation: (suggestions: ReschedulingSuggestion[]) => Promise<void>;
 };
 
@@ -134,6 +140,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
   
+  // Armazena a SUGESTÃO COMPLETA (incluindo equipe e conflitos)
   const [suggestionData, setSuggestionData] = React.useState<SuggestTeamOutput | null>(null);
 
   const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
@@ -218,28 +225,50 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       })
       return;
     }
+
+    // CORREÇÃO: Validação de data/hora de viagem se o tipo 'viagem' estiver selecionado
+    if (transmission.includes('viagem')) {
+        // =================================================================
+        // CORREÇÃO DO ZOD (BUILD) APLICADA AQUI
+        // =================================================================
+        // Usa 'baseSchema' para o .pick()
+        const { success } = baseSchema.pick({ departureDate: true, departureTime: true, arrivalDate: true, arrivalTime: true }).safeParse(form.getValues());
+        // =================================================================
+        
+        if (!success) {
+            toast({
+                title: "Datas de Viagem Incompletas",
+                description: "Data e hora de partida e chegada são obrigatórias para sugerir equipe de viagem.",
+                variant: "destructive"
+            });
+            return;
+        }
+    }
     
     setIsSuggesting(true);
-    setSuggestionData(null); // Clear previous suggestions
+    setSuggestionData(null); // Limpa sugestões anteriores
     try {
         const [hours, minutes] = time.split(":").map(Number);
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        const departureDateTime = departureDate && departureTime ? parseISO(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
-        const arrivalDateTime = arrivalDate && arrivalTime ? parseISO(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
+        // Combina data e hora para departure/arrival
+        const departureDateTime = departureDate && departureTime ? new Date(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
+        const arrivalDateTime = arrivalDate && arrivalTime ? new Date(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
 
         const result = await suggestTeam({
             date: eventDate.toISOString(),
-            departure: departureDateTime?.toISOString(),
-            arrival: arrivalDateTime?.toISOString(),
+            // Envia os campos corretos
+            departure: departureDateTime?.toISOString() || null,
+            arrival: arrivalDateTime?.toISOString() || null,
             location: location,
             transmissionTypes: transmission as TransmissionType[],
         });
         
+        // Armazena a resposta COMPLETA
         setSuggestionData(result);
 
-        // Se houver sugestões de reescalonamento, abra o modal
+        // Se houver sugestões de reescalonamento, PASSA PARA O ESTADO PAI (que controla o modal)
         if (result.reschedulingSuggestions && result.reschedulingSuggestions.length > 0) {
             setReallocationSuggestions(result.reschedulingSuggestions);
         } else {
@@ -289,7 +318,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, setReallocationSuggestions]);
+  }, [form, toast, user, setReallocationSuggestions]); // Adicionado 'setReallocationSuggestions'
 
 
   React.useEffect(() => {
@@ -307,12 +336,20 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         producer: preloadedData.producer || "",
         repeats: false,
         repeatCount: 1,
+        // Pré-carrega datas/horas de viagem se existirem
+        departureDate: preloadedData.departure ? new Date(preloadedData.departure) : undefined,
+        departureTime: preloadedData.departure ? format(new Date(preloadedData.departure), "HH:mm") : "",
+        arrivalDate: preloadedData.arrival ? new Date(preloadedData.arrival) : undefined,
+        arrivalTime: preloadedData.arrival ? format(new Date(preloadedData.arrival), "HH:mm") : "",
       });
     }
   }, [preloadedData, form]);
   
-  // Handler to apply suggestions after confirmation
-  const applyConfirmedSuggestions = () => {
+  /**
+   * (Função Helper) Apenas aplica os nomes da equipe no formulário.
+   * Não salva no banco, não fecha o modal.
+   */
+  const applyConfirmedSuggestionsToForm = () => {
     if (!suggestionData) return;
 
     if (suggestionData.transmissionOperator) form.setValue("transmissionOperator", suggestionData.transmissionOperator, { shouldValidate: true });
@@ -325,8 +362,44 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       description: "A equipe para o evento de viagem foi preenchida no formulário.",
     });
     
-    // Clear suggestions
+    // Limpa apenas os dados da sugestão, não as 'reallocationSuggestions'
+    // que são controladas pelo modal.
     setSuggestionData(null);
+  };
+
+  /**
+   * Handler para o botão "Confirmar e Reagendar" do Modal.
+   * Executa a ação de BD (via prop) e DEPOIS aplica no formulário.
+   */
+  const handleConfirmAndApply = async () => {
+    if (!reallocationSuggestions) return;
+
+    setIsSubmitting(true); // Usa o estado de submit para loading
+    try {
+        // Passo 1: Chama a Server Action de reescalonamento (passada via prop)
+        await onConfirmReallocation(reallocationSuggestions);
+        
+        // Passo 2: Aplica as sugestões da equipe no formulário local
+        applyConfirmedSuggestionsToForm();
+
+        // Passo 3: Limpa as sugestões e fecha o modal (via prop)
+        setReallocationSuggestions(null);
+
+        toast({
+            title: "Reagendamento Concluído!",
+            description: "Os eventos conflitantes foram atualizados e a equipe da viagem foi escalada.",
+        });
+
+    } catch (error) {
+        console.error("Falha ao confirmar reagendamento:", error);
+        toast({
+            title: "Erro ao Reagendar",
+            description: "Não foi possível atualizar os eventos conflitantes. Tente novamente.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
 
@@ -499,7 +572,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
           />
           <FormItem>
              <FormLabel className="text-transparent">.</FormLabel>
-            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting || !user} className="w-full">
+            <Button type="button" onClick={handleSuggestion} disabled={isSuggesting || !user || isSubmitting} className="w-full">
                 {isSuggesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
                 Sugerir Equipe
             </Button>
@@ -517,7 +590,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -536,7 +609,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="none">Nenhum</SelectItem>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -555,7 +628,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="none">Nenhum</SelectItem>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -574,7 +647,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="none">Nenhum</SelectItem>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -787,7 +860,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 disabled={isSubmitting}
             >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Adicionando..." : "Adicionar Evento"}
+                {isSubmitting ? "Salvando..." : (preloadedData ? "Atualizar Evento" : "Adicionar Evento")}
             </Button>
         </div>
       </form>
@@ -808,8 +881,14 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setReallocationSuggestions(null)}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={applyConfirmedSuggestions}>Confirmar e Reagendar</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setReallocationSuggestions(null)} disabled={isSubmitting}>
+                Cancelar
+            </AlertDialogCancel>
+            
+            <AlertDialogAction onClick={handleConfirmAndApply} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirmar e Reagendar"}
+            </AlertDialogAction>
+            
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

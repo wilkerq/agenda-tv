@@ -21,16 +21,38 @@ type EventListProps = {
   onEditEvent: (event: Event) => void;
 };
 
+// =================================================================
+// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
+// Os ícones Lucide não aceitam a prop 'title'.
+// Deve-se aninhar o elemento SVG <title> dentro do componente.
+// =================================================================
 const renderTransmission = (transmission: Event['transmission']) => {
   return (
     <div className="flex items-center gap-2">
-      {transmission.includes('tv') && <Tv className="h-4 w-4 text-blue-600" title="TV Aberta" />}
-      {transmission.includes('youtube') && <Youtube className="h-4 w-4 text-red-600" title="YouTube" />}
-      {transmission.includes('pauta') && <Newspaper className="h-4 w-4 text-gray-600" title="Pauta" />}
-      {transmission.includes('viagem') && <Plane className="h-4 w-4 text-purple-600" title="Viagem" />}
+      {transmission.includes('tv') && (
+        <Tv className="h-4 w-4 text-blue-600">
+          <title>TV Aberta</title>
+        </Tv>
+      )}
+      {transmission.includes('youtube') && (
+        <Youtube className="h-4 w-4 text-red-600">
+          <title>YouTube</title>
+        </Youtube>
+      )}
+      {transmission.includes('pauta') && (
+        <Newspaper className="h-4 w-4 text-gray-600">
+          <title>Pauta</title>
+        </Newspaper>
+      )}
+      {transmission.includes('viagem') && (
+        <Plane className="h-4 w-4 text-purple-600">
+          <title>Viagem</title>
+        </Plane>
+      )}
     </div>
   );
 };
+// =================================================================
 
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {

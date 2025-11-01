@@ -1,8 +1,12 @@
-
 'use server';
 
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+// =================================================================
+// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
+// Importamos o tipo 'ServiceAccount' para a asserção
+// =================================================================
+import { initializeApp, getApps, type ServiceAccount } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { credential } from 'firebase-admin';
 import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
 
@@ -19,7 +23,12 @@ if (!getApps().length) {
   } else {
     try {
       initializeApp({
-        credential: credential.cert(serviceAccount),
+        // =================================================================
+        // CORREÇÃO APLICADA AQUI:
+        // Usamos 'as ServiceAccount' para forçar o TypeScript
+        // a aceitar o tipo do objeto, resolvendo o conflito.
+        // =================================================================
+        credential: credential.cert(serviceAccount as ServiceAccount),
       });
     } catch (error: any) {
       console.error("Firebase Admin Initialization Error:", error.message);

@@ -6,8 +6,7 @@
  */
 import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
 import { SuggestTeamInput, SuggestTeamOutput, type TransmissionType } from '@/lib/types';
-import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, Timestamp, type Query } from 'firebase/firestore';import { db } from '@/lib/firebase';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
 import { errorEmitter } from '@/lib/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';

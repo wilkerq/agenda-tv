@@ -1,17 +1,22 @@
-
 "use server";
 
-import { initializeApp, getApps } from "firebase-admin/app";
+// =================================================================
+// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
+// Importamos 'credential' e 'ServiceAccount' para inicializar corretamente.
+// =================================================================
+import { initializeApp, getApps, type ServiceAccount } from "firebase-admin/app";
+import { credential } from "firebase-admin"; // Importado da raiz
 import { getAuth } from "firebase-admin/auth";
 import { serviceAccount } from "./service-account"; // Assumes service-account.ts is configured
 import { logAction } from "./audit-log";
 
+// =================================================================
+// CORREÇÃO APLICADA AQUI:
+// Usamos 'credential.cert()' em vez de criar o objeto manualmente.
+// Usamos 'as ServiceAccount' para garantir a correspondência de tipo.
+// =================================================================
 const app = getApps().length === 0 ? initializeApp({
-    credential: {
-        projectId: serviceAccount.project_id,
-        clientEmail: serviceAccount.client_email,
-        privateKey: serviceAccount.private_key,
-    }
+    credential: credential.cert(serviceAccount as ServiceAccount)
 }) : getApps()[0];
 
 const adminAuth = getAuth(app);

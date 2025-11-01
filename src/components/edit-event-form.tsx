@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -160,10 +159,16 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       cinematographicReporter: event.cinematographicReporter || "",
       reporter: event.reporter || "",
       producer: event.producer || "",
-      departureDate: event.departure,
+      
+      // =================================================================
+      // CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
+      // Convertendo 'null' para 'undefined' para corresponder ao schema
+      // =================================================================
+      departureDate: event.departure || undefined,
       departureTime: event.departure ? format(event.departure, "HH:mm") : "",
-      arrivalDate: event.arrival,
+      arrivalDate: event.arrival || undefined,
       arrivalTime: event.arrival ? format(event.arrival, "HH:mm") : "",
+      // =================================================================
     },
   });
 
@@ -268,6 +273,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -286,6 +292,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -304,6 +311,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -322,6 +330,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
