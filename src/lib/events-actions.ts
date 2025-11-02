@@ -1,6 +1,6 @@
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 import type { ReschedulingSuggestion } from './types';
 import { logAction } from './audit-log';
 
@@ -12,6 +12,7 @@ export async function reallocateConflictingEvents(
     adminUserEmail: string
 ): Promise<{ success: boolean; message: string; updatedIds: string[] }> {
     
+    const adminDb = getAdminDb();
     if (!adminDb) {
         throw new Error("A conexão com o banco de dados do administrador não está disponível.");
     }

@@ -13,7 +13,7 @@ import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
 import { logAction } from '@/lib/audit-log';
-import { adminDb } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -39,7 +39,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     outputSchema: SendDailyAgendaOutputSchema,
   },
   async (input) => {
-    
+    const adminDb = getAdminDb();
     if (!adminDb) {
         throw new Error("Admin DB not initialized");
     }

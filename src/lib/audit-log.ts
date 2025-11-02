@@ -1,7 +1,7 @@
 'use server';
 
 import type { AuditLogAction } from './types';
-import { adminDb } from './firebase-admin';
+import { getAdminDb } from './firebase-admin';
 
 interface LogActionParams {
   action: AuditLogAction;
@@ -24,6 +24,7 @@ export const logAction = async ({
     details,
     batchId
 }: LogActionParams) => {
+    const adminDb = getAdminDb();
     
     if (!adminDb) {
         console.error("CRITICAL: Firestore for Admin SDK is not available. Cannot write to audit log.");

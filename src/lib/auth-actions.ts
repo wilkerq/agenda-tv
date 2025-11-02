@@ -1,13 +1,11 @@
 
 "use server";
 
-import { getAuth } from "firebase-admin/auth";
-import { adminApp } from "./firebase-admin"; 
+import { getAdminAuth } from "./firebase-admin"; 
 import { logAction } from "./audit-log";
 
-const adminAuth = getAuth(adminApp);
-
 export async function createUser(email: string, adminEmail: string): Promise<{ uid: string, passwordResetLink: string }> {
+    const adminAuth = getAdminAuth();
     if (!adminAuth) {
         throw new Error("Firebase Admin SDK is not initialized. Cannot create user.");
     }
