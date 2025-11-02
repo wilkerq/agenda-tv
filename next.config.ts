@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import 'dotenv/config';
 
 // Ensure dotenv is configured at the very top
 require('dotenv').config();
