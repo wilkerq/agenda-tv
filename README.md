@@ -1,4 +1,5 @@
-# Firebase Studio
+
+.# Firebase Studio
 
 Este é um projeto Next.js criado no Firebase Studio.
 
