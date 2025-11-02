@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Check } from "lucide-react";
 import { createUser } from "@/lib/auth-actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
@@ -26,6 +28,8 @@ export default function CreateUserPage() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { user: adminUser } = useUser();
+  const db = useFirestore();
+
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -49,11 +53,21 @@ export default function CreateUserPage() {
     setCopied(false);
 
     try {
-      const result = await createUser(values.email, adminUser.email);
-      setGeneratedLink(result.passwordResetLink);
+      // 1. Create the user in Firebase Auth
+      const { uid, passwordResetLink } = await createUser(values.email, adminUser.email);
+      
+      // 2. Grant admin role in Firestore
+      const adminRoleRef = doc(db, "roles_admin", uid);
+      await setDoc(adminRoleRef, {
+        email: values.email,
+        grantedAt: new Date(),
+        grantedBy: adminUser.email,
+      });
+
+      setGeneratedLink(passwordResetLink);
       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `O usuário ${values.email} foi adicionado. Copie o link abaixo e envie para ele.`,
+        description: `O usuário ${values.email} foi adicionado como administrador. Copie o link abaixo e envie para ele.`,
       });
       form.reset();
     } catch (error: any) {
@@ -83,9 +97,9 @@ export default function CreateUserPage() {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Criar Novo Usuário</CardTitle>
+        <CardTitle>Criar Novo Usuário Administrador</CardTitle>
         <CardDescription>
-          Insira o e-mail do novo usuário. Um link será gerado para que ele possa definir sua própria senha.
+          Insira o e-mail do novo usuário. Um link será gerado para que ele possa definir sua própria senha e ele terá permissões de administrador.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -105,7 +119,7 @@ export default function CreateUserPage() {
               )}
             />
             <div className="flex justify-end">
-              <Button type="submit" disabled={isSubmitting || !adminUser}>
+              <Button type="submit" disabled={isSubmitting || !adminUser || !db}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isSubmitting ? "Criando..." : "Criar Usuário e Gerar Link"}
               </Button>
