@@ -2,9 +2,11 @@
 'use server';
 
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase"; 
+import { initializeFirebase } from "@/firebase";
 import { logAction } from "./audit-log";
 import { revalidatePath } from "next/cache";
+
+const { firestore: db } = initializeFirebase();
 
 const serializePersonnelData = (data: any) => {
   const serialized: any = {};
@@ -83,5 +85,3 @@ export async function deletePersonnel(collectionName: string, id: string, userEm
         throw new Error("Failed to delete personnel.");
     }
 }
-
-    

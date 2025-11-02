@@ -3,10 +3,10 @@
 // It reads the service account credentials from environment variables.
 // IMPORTANT: This file SHOULD be in your .gitignore to prevent credentials from being exposed.
 
-// A chave privada é lida de uma variável de ambiente codificada em Base64
-// para evitar problemas com caracteres de nova linha em ambientes de contêiner.
-const privateKey = process.env.FIREBASE_PRIVATE_KEY_BASE64 
-  ? Buffer.from(process.env.FIREBASE_PRIVATE_KEY_BASE64, 'base64').toString('utf-8')
+// The private key is read from a Base64 encoded environment variable
+// to avoid issues with newline characters in container environments.
+const privateKey = process.env.FIREBASE_PRIVATE_KEY
+  ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
   : undefined;
 
 // Ensure you have these environment variables set in your deployment environment.
