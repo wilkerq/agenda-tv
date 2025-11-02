@@ -3,8 +3,8 @@
 // It reads the service account credentials from environment variables.
 // IMPORTANT: This file SHOULD be in your .gitignore to prevent credentials from being exposed.
 
-// The private key is read from a Base64 encoded environment variable
-// to avoid issues with newline characters in container environments.
+// The private key is read from the environment variable.
+// It needs to be processed to handle newline characters correctly.
 const privateKey = process.env.FIREBASE_PRIVATE_KEY
   ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
   : undefined;
