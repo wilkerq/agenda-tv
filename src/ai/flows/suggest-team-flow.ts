@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow for suggesting an event team.
@@ -8,7 +7,7 @@ import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
 import { SuggestTeamInput, SuggestTeamOutput, type TransmissionType } from '@/lib/types';
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
-import { adminDb } from '@/lib/audit-log';
+import { adminDb } from '@/lib/firebase-admin';
 
 
 // Helper to fetch personnel data

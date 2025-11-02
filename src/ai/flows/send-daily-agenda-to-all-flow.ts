@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to automatically send the next day's agenda to all operators.
@@ -8,12 +7,13 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { Timestamp, FieldPath } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
-import { logAction, adminDb } from '@/lib/audit-log';
+import { logAction } from '@/lib/audit-log';
+import { adminDb } from '@/lib/firebase-admin';
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),

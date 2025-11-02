@@ -1,6 +1,6 @@
 'use server';
 
-import { adminDb } from '@/lib/audit-log';
+import { adminDb } from '@/lib/firebase-admin';
 import type { ReschedulingSuggestion } from './types';
 import { logAction } from './audit-log';
 
