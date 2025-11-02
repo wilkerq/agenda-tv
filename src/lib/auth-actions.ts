@@ -1,32 +1,13 @@
 
 "use server";
 
-import { initializeApp, getApps, type ServiceAccount, type App } from "firebase-admin/app";
-import { credential } from "firebase-admin";
+import { getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { serviceAccount } from "./service-account";
+import { adminDb } from "./firebase-admin"; // Import the shared instance
 import { logAction } from "./audit-log";
 
-let app: App | undefined;
-// Initialize Firebase Admin SDK only if it hasn't been already and credentials are provided.
-if (!getApps().length) {
-  if (serviceAccount.private_key) {
-    try {
-      app = initializeApp({
-        credential: credential.cert(serviceAccount as ServiceAccount)
-      });
-    } catch (e) {
-      console.error('Firebase Admin SDK initialization error:', e);
-    }
-  } else {
-    console.warn("Firebase Admin credentials not found. Skipping initialization.");
-  }
-} else {
-  app = getApps()[0];
-}
-
-// Get the Auth instance only if the app was initialized.
-const adminAuth = app ? getAuth(app) : null;
+// Get the Auth instance from the existing app.
+const adminAuth = getApps().length ? getAuth(getApps()[0]) : null;
 
 export async function createUser(email: string, adminEmail: string): Promise<{ uid: string, passwordResetLink: string }> {
     if (!adminAuth) {
