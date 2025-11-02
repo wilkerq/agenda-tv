@@ -8,35 +8,38 @@ let adminApp: App | undefined;
 let adminDb: Firestore | undefined;
 let adminAuth: Auth | undefined;
 
-// Verifica se todas as credenciais essenciais estão presentes
-const hasAllCredentials = 
-    serviceAccount.project_id &&
-    serviceAccount.private_key &&
-    serviceAccount.client_email;
+function initializeAdminSDK() {
+    // Verifica se todas as credenciais essenciais estão presentes
+    const hasAllCredentials = 
+        serviceAccount.project_id &&
+        serviceAccount.private_key &&
+        serviceAccount.client_email;
 
-if (getApps().length === 0 && hasAllCredentials) {
-    try {
-      adminApp = initializeApp({
-        credential: credential.cert(serviceAccount as ServiceAccount),
-      });
-      adminDb = getFirestore(adminApp);
-      adminAuth = getAuth(adminApp);
-    } catch (error: any) {
-      console.error('Falha na inicialização do Firebase Admin SDK:', error.message);
-      // Impede que o restante do código tente usar um SDK não inicializado
-      adminApp = undefined;
-      adminDb = undefined;
-      adminAuth = undefined;
-    }
-} else if (getApps().length > 0) {
-    const existingApp = getApps()[0];
-    if (existingApp) {
+    if (getApps().some(app => app.name === 'firebase-admin-sdk')) {
+        // Se já existe, usa a instância existente.
+        const existingApp = getApps().find(app => app.name === 'firebase-admin-sdk')!;
         adminApp = existingApp;
+    } else if (hasAllCredentials) {
+        // Se não existe e tem credenciais, inicializa.
+        try {
+          adminApp = initializeApp({
+            credential: credential.cert(serviceAccount as ServiceAccount),
+          }, 'firebase-admin-sdk');
+        } catch (error: any) {
+          console.error('Falha na inicialização do Firebase Admin SDK:', error.message);
+          // Impede que o restante do código tente usar um SDK não inicializado
+          adminApp = undefined;
+        }
+    }
+    
+    if (adminApp) {
         adminDb = getFirestore(adminApp);
         adminAuth = getAuth(adminApp);
     }
 }
 
+// Garante que a inicialização ocorra na primeira vez que o módulo é carregado.
+initializeAdminSDK();
 
 /**
  * Retorna a instância do Firestore do Admin SDK.

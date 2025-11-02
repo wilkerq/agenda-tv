@@ -2,6 +2,8 @@
 import type {NextConfig} from 'next';
 import 'dotenv/config';
 
+require('dotenv').config();
+
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
