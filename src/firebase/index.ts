@@ -22,10 +22,13 @@ export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; fi
     firebaseApp = getApp();
   }
 
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    firestore
   };
 }
 
@@ -33,5 +36,6 @@ export * from './provider';
 export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
+export * from './auth/use-user';
 export * from './errors';
 export * from './error-emitter';
