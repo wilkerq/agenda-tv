@@ -19,25 +19,27 @@ if (!getApps().length) {
       });
       adminDb = getFirestore(app);
     } catch (error: any) {
-      console.error("Firebase Admin Initialization Error:", error.message);
+        console.error('Firebase Admin SDK initialization error:', error);
     }
   } else {
-    console.warn("Firebase Admin credentials not available. Audit logging will be disabled.");
+    console.warn("Firebase Admin credentials not found. Skipping Admin SDK initialization.");
   }
 } else {
   app = getApps()[0];
-  adminDb = getFirestore(app);
+  if (app) {
+    adminDb = getFirestore(app);
+  }
 }
 
 interface LogActionParams {
-    action: AuditLogAction;
-    collectionName: string;
-    documentId: string;
-    userEmail: string;
-    newData?: object;
-    oldData?: object;
-    batchId?: string;
-    details?: object;
+  action: AuditLogAction;
+  collectionName: string;
+  documentId: string;
+  userEmail: string;
+  oldData?: any;
+  newData?: any;
+  details?: any;
+  batchId?: string;
 }
 
 export const logAction = async ({
@@ -45,11 +47,12 @@ export const logAction = async ({
     collectionName,
     documentId,
     userEmail,
-    newData,
     oldData,
-    batchId,
+    newData,
     details,
-}: LogActionParams): Promise<void> => {
+    batchId
+}: LogActionParams) => {
+    
     if (!adminDb) {
         console.error("CRITICAL: Firestore for Admin SDK is not available. Cannot write to audit log.");
         return;
@@ -85,3 +88,4 @@ export const logAction = async ({
 
 // Export the adminDb instance for server-side use in other actions
 export { adminDb };
+
