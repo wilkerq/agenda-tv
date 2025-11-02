@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow for suggesting an event team.
@@ -7,48 +8,40 @@ import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
 import { SuggestTeamInput, SuggestTeamOutput, type TransmissionType } from '@/lib/types';
 import { collection, getDocs, query, where, Timestamp, type Query } from 'firebase/firestore';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, initializeFirebase } from '@/firebase';
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext } from '@/firebase';
+import { adminDb } from '@/lib/audit-log';
 
-const { firestore: db } = initializeFirebase();
 
 // Helper to fetch personnel data
 const fetchPersonnel = async (collectionName: string) => {
-    const personnelCollectionRef = collection(db, collectionName);
+    const personnelCollectionRef = adminDb.collection(collectionName);
     try {
-        const snapshot = await getDocs(personnelCollectionRef);
+        const snapshot = await personnelCollectionRef.get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (serverError) {
-        const permissionError = new FirestorePermissionError({
-            path: personnelCollectionRef.path,
-            operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
+        console.error(`Error fetching from ${collectionName}:`, serverError);
+        throw new Error(`Failed to fetch from ${collectionName}`);
     }
 };
 
 // Helper to fetch events for a specific day or all future events
 const getEvents = async (date?: Date): Promise<any[]> => {
-    const eventsCollectionRef = collection(db, 'events');
-    let q: Query;
+    const eventsCollectionRef = adminDb.collection('events');
+    let q: FirebaseFirestore.Query;
 
     if (date) {
         const start = startOfDay(date);
         const end = endOfDay(date);
-        q = query(
-            eventsCollectionRef,
-            where('date', '>=', Timestamp.fromDate(start)),
-            where('date', '<=', Timestamp.fromDate(end))
-        );
+        q = eventsCollectionRef
+            .where('date', '>=', Timestamp.fromDate(start))
+            .where('date', '<=', Timestamp.fromDate(end));
     } else {
-        q = query(
-            eventsCollectionRef,
-            where('date', '>=', Timestamp.fromDate(startOfDay(new Date())))
-        );
+        q = eventsCollectionRef
+            .where('date', '>=', Timestamp.fromDate(startOfDay(new Date())));
     }
     
      try {
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await q.get();
         return querySnapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -60,12 +53,8 @@ const getEvents = async (date?: Date): Promise<any[]> => {
             }
         });
     } catch (serverError) {
-        const permissionError = new FirestorePermissionError({
-            path: eventsCollectionRef.path,
-            operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
-        throw serverError;
+        console.error(`Error fetching events:`, serverError);
+        throw new Error(`Failed to fetch events`);
     }
 };
 

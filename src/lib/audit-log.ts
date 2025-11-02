@@ -7,8 +7,8 @@ import { credential } from 'firebase-admin';
 import { serviceAccount } from './service-account';
 import type { AuditLogAction } from './types';
 
-let adminDb: Firestore | undefined;
-let app: App | undefined;
+let adminDb: Firestore;
+let app: App;
 
 // Initialize Firebase Admin SDK only if it hasn't been already and credentials are provided.
 if (!getApps().length) {
@@ -26,9 +26,7 @@ if (!getApps().length) {
   }
 } else {
   app = getApps()[0];
-  if (app) {
-    adminDb = getFirestore(app);
-  }
+  adminDb = getFirestore(app);
 }
 
 interface LogActionParams {
@@ -84,3 +82,6 @@ export const logAction = async ({
         console.error("CRITICAL: Failed to write to audit log using Admin SDK.", error);
     }
 };
+
+// Export the adminDb instance for server-side use in other actions
+export { adminDb };

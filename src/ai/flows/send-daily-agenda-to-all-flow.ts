@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to automatically send the next day's agenda to all operators.
@@ -7,17 +8,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, getDocs, query, where, Timestamp, orderBy, addDoc, or, and } from 'firebase/firestore';
+import { Timestamp, FieldPath } from 'firebase-admin/firestore';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, initializeFirebase } from '@/firebase';
-import { logAction } from '@/lib/audit-log';
-
-// Since this is a server-side flow, we can initialize Firebase here if needed.
-// However, it's better to get the instance from a central place.
-const { firestore: db } = initializeFirebase();
+import { logAction, adminDb } from '@/lib/audit-log';
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -43,14 +39,19 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     outputSchema: SendDailyAgendaOutputSchema,
   },
   async (input) => {
+    
+    if (!adminDb) {
+        throw new Error("Admin DB not initialized");
+    }
+    
     // 1. Fetch all personnel from all relevant collections
     const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
     const allPersonnel: { name: string, phone?: string }[] = [];
     
     for (const coll of personnelCollections) {
-        const personnelCollectionRef = collection(db, coll);
+        const personnelCollectionRef = adminDb.collection(coll);
         try {
-            const personnelSnapshot = await getDocs(personnelCollectionRef);
+            const personnelSnapshot = await personnelCollectionRef.get();
             personnelSnapshot.forEach(doc => {
                 const data = doc.data();
                 // Ensure no duplicates by name
@@ -59,12 +60,8 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
                 }
             });
         } catch (serverError) {
-             const permissionError = new FirestorePermissionError({
-                path: personnelCollectionRef.path,
-                operation: 'list',
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
+             console.error(`Error fetching personnel from ${coll}`, serverError);
+             throw serverError;
         }
     }
 
@@ -82,57 +79,61 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       return { success: true, messagesSent: 0, errors: [] };
     }
 
-    const eventsCollectionRef = collection(db, "events");
-    const eventsQuery = query(
-        eventsCollectionRef,
-        and(
-            where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
-            where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
-            or(
-                where("transmissionOperator", "in", personnelNames),
-                where("cinematographicReporter", "in", personnelNames),
-                where("reporter", "in", personnelNames),
-                where("producer", "in", personnelNames)
-            )
-        ),
-        orderBy("date", "asc")
-    );
+    const eventsCollectionRef = adminDb.collection("events");
+    
+    // Firestore Admin SDK does not support 'or' queries directly in this manner.
+    // We will fetch for each field and merge.
+    const fieldsToQuery = ["transmissionOperator", "cinematographicReporter", "reporter", "producer"];
+    const allEventsForTomorrow: Event[] = [];
+    const eventIds = new Set<string>();
 
     try {
-        const eventsSnapshot = await getDocs(eventsQuery);
-        // 3. Group events by personnel
-        eventsSnapshot.docs.forEach(doc => {
-            const event = {
-                id: doc.id,
-                ...doc.data(),
-                date: (doc.data().date as Timestamp).toDate(),
-            } as Event;
+      for (const field of fieldsToQuery) {
+          const eventsQuery = eventsCollectionRef
+              .where("date", ">=", Timestamp.fromDate(startOfTomorrow))
+              .where("date", "<=", Timestamp.fromDate(endOfTomorrow))
+              .where(field, "in", personnelNames);
+              
+          const eventsSnapshot = await eventsQuery.get();
+          eventsSnapshot.docs.forEach(doc => {
+              if (!eventIds.has(doc.id)) {
+                  eventIds.add(doc.id);
+                  const data = doc.data();
+                  allEventsForTomorrow.push({
+                      id: doc.id,
+                      ...data,
+                      date: (data.date as Timestamp).toDate(),
+                  } as Event);
+              }
+          });
+      }
+      
+      allEventsForTomorrow.sort((a,b) => a.date.getTime() - b.date.getTime());
 
-            const involvedPersonnel = new Set([
-                event.transmissionOperator,
-                event.cinematographicReporter,
-                event.reporter,
-                event.producer,
-            ]);
 
-            involvedPersonnel.forEach(personName => {
-                if (personName && personnelNames.includes(personName)) {
-                    if (!personnelWithEvents[personName]) {
-                        personnelWithEvents[personName] = { 
-                            phone: allPersonnel.find(p => p.name === personName)?.phone,
-                            events: [] 
-                        };
-                    }
-                    personnelWithEvents[personName].events.push(event);
-                }
-            });
-        });
+      // 3. Group events by personnel
+      allEventsForTomorrow.forEach(event => {
+          const involvedPersonnel = new Set([
+              event.transmissionOperator,
+              event.cinematographicReporter,
+              event.reporter,
+              event.producer,
+          ]);
+
+          involvedPersonnel.forEach(personName => {
+              if (personName && personnelNames.includes(personName)) {
+                  if (!personnelWithEvents[personName]) {
+                      personnelWithEvents[personName] = { 
+                          phone: allPersonnel.find(p => p.name === personName)?.phone,
+                          events: [] 
+                      };
+                  }
+                  personnelWithEvents[personName].events.push(event);
+              }
+          });
+      });
     } catch (serverError) {
-         const permissionError = new FirestorePermissionError({
-            path: eventsCollectionRef.path,
-            operation: 'list',
-        } satisfies SecurityRuleContext);
-        errorEmitter.emit('permission-error', permissionError);
+        console.error("Error fetching tomorrow's events", serverError);
         throw serverError;
     }
 
