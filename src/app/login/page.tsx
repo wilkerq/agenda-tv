@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -15,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase/provider"; // Corrigido
+import { useAuth } from "@/firebase";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -24,7 +23,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth(); // Corrigido
+  const auth = useAuth();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

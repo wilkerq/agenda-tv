@@ -4,26 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { firebaseConfig } from "@/firebase/config";
 
-let app;
-if (!getApps().length) {
-  try {
-    // This will succeed on the client side, where the config is available
-    app = initializeApp(firebaseConfig);
-  } catch (e) {
-    // This might happen in some server-side rendering scenarios during build if config is not properly propagated
-    console.error("Firebase initialization failed:", e);
-    // As a fallback, try to get the app if it was initialized elsewhere
-    app = getApps().length > 0 ? getApp() : undefined;
-  }
-} else {
-  app = getApp();
-}
+// This file is simplified to re-export the initialized services.
+// The actual initialization is now handled by src/firebase/client-provider.tsx
+// which ensures it only runs on the client-side.
 
-// Check if app was successfully initialized before getting other services
-const db = app ? getFirestore(app) : undefined;
-const auth = app ? getAuth(app) : undefined;
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Export potentially undefined services. The app should handle this gracefully.
-// The use of FirebaseClientProvider and hooks like useAuth is the recommended way
-// to ensure services are available.
+const db = getFirestore(app);
+const auth = getAuth(app);
+
 export { app, db, auth };
