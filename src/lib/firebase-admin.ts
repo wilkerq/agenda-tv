@@ -4,16 +4,17 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { serviceAccount } from './service-account';
 
-let adminApp: App;
-let adminDb: Firestore;
-let adminAuth: Auth;
+let adminApp: App | undefined;
+let adminDb: Firestore | undefined;
+let adminAuth: Auth | undefined;
 
-if (process.env.NODE_ENV === 'development' && !getApps().length) {
-    console.log("Initializing Firebase Admin SDK for development...");
-}
+// Verifica se todas as credenciais essenciais estão presentes
+const hasAllCredentials = 
+    serviceAccount.project_id &&
+    serviceAccount.private_key &&
+    serviceAccount.client_email;
 
-if (!getApps().length) {
-  if (serviceAccount.private_key) {
+if (getApps().length === 0 && hasAllCredentials) {
     try {
       adminApp = initializeApp({
         credential: credential.cert(serviceAccount as ServiceAccount),
@@ -21,18 +22,21 @@ if (!getApps().length) {
       adminDb = getFirestore(adminApp);
       adminAuth = getAuth(adminApp);
     } catch (error: any) {
-      console.error('Firebase Admin SDK initialization error:', error.message);
+      console.error('Falha na inicialização do Firebase Admin SDK:', error.message);
+      // Impede que o restante do código tente usar um SDK não inicializado
+      adminApp = undefined;
+      adminDb = undefined;
+      adminAuth = undefined;
     }
-  } else {
-    console.warn("Firebase Admin credentials not found. Skipping Admin SDK initialization.");
-  }
-} else {
-  adminApp = getApps()[0];
-  if (adminApp) {
-    adminDb = getFirestore(adminApp);
-    adminAuth = getAuth(adminApp);
-  }
+} else if (getApps().length > 0) {
+    const existingApp = getApps()[0];
+    if (existingApp) {
+        adminApp = existingApp;
+        adminDb = getFirestore(adminApp);
+        adminAuth = getAuth(adminApp);
+    }
 }
+
 
 /**
  * Retorna a instância do Firestore do Admin SDK.
