@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit tool for fetching the daily event schedule from Firestore.
@@ -9,9 +8,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { startOfDay, endOfDay, parseISO, format } from 'date-fns';
 import { DailyScheduleSchema, ScheduleEvent } from '@/lib/types';
+import { initializeFirebase } from '@/firebase';
+
+const { firestore: db } = initializeFirebase();
 
 export const getScheduleTool = ai.defineTool(
     {

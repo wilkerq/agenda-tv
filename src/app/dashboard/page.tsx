@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs, getDoc } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn, ReschedulingSuggestion } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
@@ -13,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, type User } from "firebase/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSameDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
@@ -22,8 +19,7 @@ import { PlusCircle, Sparkles, Users, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { reallocateConflictingEvents } from "@/lib/events-actions";
 
@@ -66,7 +62,8 @@ export default function DashboardPage() {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isAddFromImageModalOpen, setAddFromImageModalOpen] = useState(false);
   const [preloadedEventData, setPreloadedEventData] = useState<Partial<EventFormData> | undefined>(undefined);
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useUser();
+  const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -84,18 +81,13 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        router.push("/login");
-      } else {
-        setUser(currentUser);
-      }
-    });
-    return () => unsubscribeAuth();
-  }, [router]);
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
 
   useEffect(() => {
-    if (!selectedDate || !user) {
+    if (!selectedDate || !user || !db) {
       setLoading(false);
       return; 
     }
@@ -139,7 +131,7 @@ export default function DashboardPage() {
       setLoading(false);
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: eventsCollectionRef.path,
+            path: (q as any)._query.path.canonicalString(), // path might not be public on query type
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -147,13 +139,13 @@ export default function DashboardPage() {
     });
 
     return () => unsubscribeSnapshot();
-  }, [selectedDate, user]);
+  }, [selectedDate, user, db]);
 
 
  const confirmAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    if (!user || !user.email) {
+    if (!user || !user.email || !db) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para adicionar um evento.", variant: "destructive" });
-        throw new Error("User not authenticated");
+        throw new Error("User not authenticated or db not available");
     }
 
     const userEmail = user.email;
@@ -223,7 +215,7 @@ export default function DashboardPage() {
             errorEmitter.emit('permission-error', permissionError);
           });
     }
-}, [user, toast]);
+}, [user, toast, db]);
 
 const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
     // Duplication check
@@ -236,70 +228,57 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
         if (conflictingEvent) {
             setPendingEvent({ data: eventData, repeatSettings });
             setIsConflictDialogOpen(true);
-            // Don't throw error here, just stop execution and wait for dialog
             return; 
         }
     }
 
-    // If no conflict, proceed directly
     await confirmAddEvent(eventData, repeatSettings);
 
 }, [selectedDate, events, confirmAddEvent]);
 
 
 const handleDeleteEvent = useCallback(async (eventId: string) => {
-  if (!user?.email) {
+  if (!user?.email || !db) {
     toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
     return;
   }
   
   const eventRef = doc(db, "events", eventId);
-  
-  try {
-    const eventSnap = await getDoc(eventRef);
-    if (!eventSnap.exists()) {
+  const eventSnap = await getDoc(eventRef);
+  if (!eventSnap.exists()) {
       throw new Error("Evento não encontrado para registrar o log de exclusão.");
-    }
-    const oldData = eventSnap.data();
+  }
+  const oldData = eventSnap.data();
 
-    // Aguarda a exclusão ser concluída
-    await deleteDoc(eventRef);
-    
-    // Se a exclusão for bem-sucedida, registra o log e mostra a notificação
-    const serializableOldData = {
+  // A exclusão é tentada. Se falhar, o listener global de erros irá capturar.
+  await deleteDoc(eventRef);
+
+  // Se a exclusão for bem-sucedida, o código abaixo é executado.
+  const serializableOldData = {
       ...oldData,
       date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
       departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
       arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-    };
-    await logAction({
+  };
+  await logAction({
       action: 'delete',
       collectionName: 'events',
       documentId: eventId,
       userEmail: user.email,
       oldData: serializableOldData,
-    });
+  });
 
-    toast({
+  toast({
       title: "Evento Excluído!",
       description: "O evento foi removido da agenda com sucesso.",
-    });
+  });
 
-  } catch (error) {
-    console.error("Falha ao excluir evento:", error);
-    // Emite um erro contextualizado para o listener global
-    const permissionError = new FirestorePermissionError({
-      path: eventRef.path,
-      operation: 'delete',
-    } satisfies SecurityRuleContext);
-    errorEmitter.emit('permission-error', permissionError);
-  }
-}, [toast, user]);
+}, [toast, user, db]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
-    if (!user || !user.email) {
+    if (!user || !user.email || !db) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para editar um evento.", variant: "destructive" });
-        throw new Error("User not authenticated");
+        throw new Error("User not authenticated or db not available");
     }
     
     const eventRef = doc(db, "events", eventId);
@@ -361,10 +340,9 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
               requestResourceData: updatedData,
            } satisfies SecurityRuleContext);
            errorEmitter.emit('permission-error', permissionError);
-           // Throwing an error to be caught by the form handling logic
            throw serverError;
         });
-  }, [toast, user]);
+  }, [toast, user, db]);
 
 
   const handleOpenEditModal = (event: Event) => {

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -13,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Copy, Check } from "lucide-react";
 import { createUser } from "@/lib/auth-actions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useUser } from "@/firebase/provider";
+import { useUser } from "@/firebase";
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),

@@ -1,16 +1,12 @@
+// Este arquivo foi preterido em favor da estrutura centralizada em /src/firebase.
+// A lógica foi movida para garantir uma única fonte de verdade para a inicialização do Firebase.
+// As exportações são mantidas temporariamente para evitar quebras em importações não migradas,
+// mas elas agora apontam para a nova estrutura.
 
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { firebaseConfig } from "@/firebase/config";
+import { getFirestore } from "firebase/firestore";
+import { initializeFirebase } from "@/firebase";
 
-// This file is simplified to re-export the initialized services.
-// The actual initialization is now handled by src/firebase/client-provider.tsx
-// which ensures it only runs on the client-side.
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-const db = getFirestore(app);
-const auth = getAuth(app);
+const { app, db, auth } = initializeFirebase();
 
 export { app, db, auth };

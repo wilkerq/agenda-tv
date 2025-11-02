@@ -8,7 +8,6 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Plane, LogIn, LogOut } from "lucide-react";
 import * as React from "react";
 import { collection, onSnapshot, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,8 +38,7 @@ import type { Event, TransmissionType, EventFormData } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
 
 const locations = [
@@ -108,6 +106,7 @@ type ProductionPersonnel = {
 
 export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const db = useFirestore();
 
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
@@ -117,6 +116,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
   const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
 
   React.useEffect(() => {
+    if (!db) return;
     const unsub1 = onSnapshot(query(collection(db, 'transmission_operators')), (snapshot) => {
         const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
         setTransmissionOperators(data.sort((a,b) => a.name.localeCompare(b.name)));
@@ -144,7 +144,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         unsub2();
         unsub3();
     };
-  }, []);
+  }, [db]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -159,16 +159,10 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       cinematographicReporter: event.cinematographicReporter || "",
       reporter: event.reporter || "",
       producer: event.producer || "",
-      
-      // =================================================================
-      // CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
-      // Convertendo 'null' para 'undefined' para corresponder ao schema
-      // =================================================================
       departureDate: event.departure || undefined,
       departureTime: event.departure ? format(event.departure, "HH:mm") : "",
       arrivalDate: event.arrival || undefined,
       arrivalTime: event.arrival ? format(event.arrival, "HH:mm") : "",
-      // =================================================================
     },
   });
 
@@ -202,10 +196,8 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         };
 
         await onEditEvent(event.id, eventData);
-        onClose(); // Close the modal only on success
+        onClose();
     } catch(error) {
-        // Error is now handled by the parent component's useCallback which emits a contextual error.
-        // No need for a toast here.
     } finally {
         setIsSubmitting(false);
     }

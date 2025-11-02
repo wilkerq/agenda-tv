@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, query, orderBy, Timestamp, CollectionReference, DocumentData } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +11,9 @@ import { ptBR } from "date-fns/locale";
 import { History, FilePen, Trash2, FilePlus, User, Send, UserPlus as UserPlusIcon } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
-type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user';
+type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate';
 
 interface AuditLog {
     id: string;
@@ -27,11 +24,7 @@ interface AuditLog {
     timestamp: Date;
     before?: object;
     after?: object;
-    details?: {
-        messagesSent: number;
-        errors: string[];
-        targetDate: string;
-    };
+    details?: object;
 }
 
 const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>; className: string }> = {
@@ -40,14 +33,17 @@ const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>;
     delete: { text: "Exclusão", icon: Trash2, className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700" },
     'automatic-send': { text: "Envio Automático", icon: Send, className: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-700" },
     'create-user': { text: "Criação de Usuário", icon: UserPlusIcon, className: "bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/50 dark:text-cyan-300 dark:border-cyan-700" },
+    reallocate: { text: "Reagendamento", icon: FilePen, className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700" },
 };
 
 export default function LogsPage() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
+    const db = useFirestore();
 
     useEffect(() => {
+        if (!db) return;
         const logsCollectionRef = collection(db, "audit_logs");
         const q = query(logsCollectionRef, orderBy("timestamp", "desc"));
 
@@ -72,7 +68,7 @@ export default function LogsPage() {
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [db]);
 
     const renderJsonViewer = (data: object) => (
         <div className="p-2 rounded-md bg-slate-50 dark:bg-slate-800 my-2 text-sm text-foreground">
@@ -148,21 +144,11 @@ export default function LogsPage() {
                                     <AccordionContent>
                                         <Card className="bg-muted/50 dark:bg-slate-800/50 p-4">
                                             <p className="text-xs text-muted-foreground mb-2">ID do Documento: <code className="font-mono bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded-sm">{log.documentId}</code></p>
-                                            {log.action === 'automatic-send' && log.details ? (
+                                            
+                                            {log.details ? (
                                                 <div>
-                                                    <h4 className="font-semibold mb-2">Detalhes da Execução</h4>
-                                                    <p className="text-sm"><strong>Data da Agenda Enviada:</strong> {format(new Date(log.details.targetDate), 'dd/MM/yyyy')}</p>
-                                                    <p className="text-sm"><strong>Mensagens Enviadas com Sucesso:</strong> {log.details.messagesSent}</p>
-                                                    {log.details.errors.length > 0 ? (
-                                                        <div className="mt-2">
-                                                            <h5 className="text-sm font-medium text-red-600 dark:text-red-400">Falhas</h5>
-                                                            <ul className="list-disc list-inside text-sm text-red-600 dark:text-red-400">
-                                                                {log.details.errors.map((err, i) => <li key={i}>{err}</li>)}
-                                                            </ul>
-                                                        </div>
-                                                    ) : (
-                                                       <p className="text-sm text-green-600 dark:text-green-400 mt-1">Todos os envios foram bem-sucedidos.</p>
-                                                    )}
+                                                    <h4 className="font-semibold mb-2">Detalhes da Ação</h4>
+                                                    {renderJsonViewer(log.details)}
                                                 </div>
                                             ) : (
                                                 <>
@@ -181,7 +167,7 @@ export default function LogsPage() {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {!log.before && !log.after && (
+                                                    {!log.before && !log.after && !log.details && (
                                                         <p className="text-sm text-muted-foreground">Não há dados detalhados para esta ação.</p>
                                                     )}
                                                 </>

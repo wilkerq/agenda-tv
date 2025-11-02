@@ -1,15 +1,12 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, Timestamp, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Event, EventStatus, EventTurn } from "@/lib/types";
 import { getHours } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { PanelCalendar } from "@/components/panel-calendar";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -25,8 +22,10 @@ const getEventStatus = (date: Date): EventStatus => {
 export default function PanelPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const db = useFirestore();
 
   useEffect(() => {
+    if (!db) return;
     const eventsCollectionRef = collection(db, "events");
     const q = query(eventsCollectionRef, orderBy("date", "asc"));
     
@@ -54,7 +53,7 @@ export default function PanelPage() {
       setLoading(false);
     }, (serverError) => {
        const permissionError = new FirestorePermissionError({
-        path: eventsCollectionRef.path,
+        path: (eventsCollectionRef as any).path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -62,7 +61,7 @@ export default function PanelPage() {
     });
 
     return () => unsubscribeSnapshot();
-  }, []);
+  }, [db]);
 
   if (loading) {
     return (

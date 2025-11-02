@@ -1,21 +1,18 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, Timestamp, orderBy, query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import { Event, EventStatus, EventTurn } from "@/lib/types";
 import { PublicCalendar } from "@/components/public-calendar";
 import { EventDetailCard } from "@/components/event-detail-card";
 import { isSameDay, getHours } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { ptBR } from 'date-fns/locale';
 
 const getEventTurn = (date: Date): EventTurn => {
   const hour = getHours(date);
@@ -30,6 +27,7 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [isClient, setIsClient] = useState(false);
+  const db = useFirestore();
 
   useEffect(() => {
     // Set the initial date and confirm client-side rendering
@@ -39,6 +37,7 @@ export default function HomePage() {
 
 
   useEffect(() => {
+    if (!db) return;
     const eventsCollectionRef = collection(db, "events");
     const q = query(eventsCollectionRef, orderBy("date", "asc"));
     
@@ -71,7 +70,7 @@ export default function HomePage() {
       setLoading(false);
     }, (serverError) => {
        const permissionError = new FirestorePermissionError({
-        path: eventsCollectionRef.path,
+        path: (eventsCollectionRef as any).path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -79,7 +78,7 @@ export default function HomePage() {
     });
 
     return () => unsubscribeSnapshot();
-  }, []);
+  }, [db]);
 
   useEffect(() => {
     if (selectedDate) {

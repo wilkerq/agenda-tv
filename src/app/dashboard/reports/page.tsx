@@ -1,23 +1,19 @@
-
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { collection, onSnapshot, orderBy, query, Timestamp, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import type { Event, ReportDataInput, ReportItem, ReportSummaryOutput } from "@/lib/types";
+import type { Event, ReportDataInput, ReportSummaryOutput } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Bot, Loader2, Moon, Sparkles, Tv, Users, Youtube, FileDown, Activity } from "lucide-react";
+import { Activity, Bot, Loader2, Moon, Tv, Users, Youtube, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import 'jspdf-autotable';
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
 type OperatorReport = {
   count: number;
@@ -56,11 +52,13 @@ export default function ReportsPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summary, setSummary] = useState<ReportSummaryOutput | null>(null);
   const { toast } = useToast();
+  const db = useFirestore();
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
 
   useEffect(() => {
+    if (!db) return;
     setLoading(true);
 
     const year = parseInt(selectedYear);
@@ -134,7 +132,7 @@ export default function ReportsPage() {
       setSummary(null); // Reset summary when filters change
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: eventsCollectionRef.path,
+          path: (eventsCollectionRef as any).path,
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
@@ -142,7 +140,7 @@ export default function ReportsPage() {
     });
 
     return () => unsubscribe();
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, db]);
   
   const sortedOperators = useMemo(() => Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count), [reportData]);
   const sortedLocations = useMemo(() => Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]), [locationReport]);
@@ -312,9 +310,9 @@ export default function ReportsPage() {
                 {isSummaryLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <Activity className="mr-2 h-4 w-4" />
+                  <Bot className="mr-2 h-4 w-4" />
                 )}
-                Gerar Resumo
+                Gerar Resumo com IA
               </Button>
             </CardFooter>
           </Card>

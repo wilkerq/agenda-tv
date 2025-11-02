@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A flow to automatically send the next day's agenda to all operators.
@@ -9,15 +8,16 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { collection, getDocs, query, where, Timestamp, orderBy, addDoc, or, and } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Event, Operator } from '@/lib/types';
-import { errorEmitter } from '@/lib/error-emitter';
-import { FirestorePermissionError, type SecurityRuleContext } from '@/lib/errors';
+import type { Event } from '@/lib/types';
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, initializeFirebase } from '@/firebase';
 import { logAction } from '@/lib/audit-log';
 
+// Since this is a server-side flow, we can initialize Firebase here if needed.
+// However, it's better to get the instance from a central place.
+const { firestore: db } = initializeFirebase();
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),

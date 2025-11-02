@@ -3,13 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, startOfDay, endOfDay, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Users, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
+import { CalendarIcon, Loader2, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
-import { collection, onSnapshot, query, where, getDocs, Timestamp } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { collection, onSnapshot, query } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,8 +39,7 @@ import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 import { suggestTeam } from "@/ai/flows/suggest-team-flow";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const locations = [
@@ -61,10 +58,6 @@ const transmissionOptions = [
     { id: 'viagem', label: 'Viagem' },
 ] as const;
 
-// =================================================================
-// CORREÇÃO DO ZOD (BUILD) APLICADA AQUI
-// =================================================================
-// PASSO 1: Define o objeto base PRIMEIRO
 const baseSchema = z.object({
   name: z.string().min(3, "O nome do evento deve ter pelo menos 3 caracteres."),
   location: z.string({ required_error: "O local do evento é obrigatório." }),
@@ -87,7 +80,6 @@ const baseSchema = z.object({
   arrivalTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
 });
 
-// PASSO 2: Cria o schema final para o formulário, aplicando os refinamentos
 const formSchema = baseSchema.refine(data => {
     if (data.repeats) {
         return !!data.repeatFrequency && !!data.repeatCount;
@@ -105,17 +97,14 @@ const formSchema = baseSchema.refine(data => {
     message: "Data e hora de partida e chegada são obrigatórias para viagens.",
     path: ["departureDate"],
 });
-// =================================================================
 
 
 type AddEventFormProps = {
   onAddEvent: (eventData: EventFormData, repeatSettings?: RepeatSettings) => Promise<void>;
   preloadedData?: Partial<EventFormData>;
   onSuccess?: () => void;
-  // Props for the reallocation modal
   reallocationSuggestions: ReschedulingSuggestion[] | null;
   setReallocationSuggestions: (suggestions: ReschedulingSuggestion[] | null) => void;
-  // Prop que chama a Server Action de reescalonamento
   onConfirmReallocation: (suggestions: ReschedulingSuggestion[]) => Promise<void>;
 };
 
@@ -134,29 +123,20 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuggesting, setIsSuggesting] = React.useState(false);
   const { toast } = useToast();
-  const [user, setUser] = React.useState<User | null>(null);
+  const { user } = useUser();
+  const db = useFirestore();
 
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
   
-  // Armazena a SUGESTÃO COMPLETA (incluindo equipe e conflitos)
   const [suggestionData, setSuggestionData] = React.useState<SuggestTeamOutput | null>(null);
 
   const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
   const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
 
-
   React.useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-
-    return () => unsubscribeAuth();
-  }, []);
-
-  React.useEffect(() => {
-    if (!user) return;
+    if (!user || !db) return;
 
     const fetchPersonnel = <T extends Personnel>(collectionName: string, setData: React.Dispatch<React.SetStateAction<T[]>>) => {
       const personnelCollectionRef = collection(db, collectionName);
@@ -167,7 +147,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         setData(data.sort((a,b) => a.name.localeCompare(b.name)));
       }, (serverError) => {
           const permissionError = new FirestorePermissionError({
-              path: personnelCollectionRef.path,
+              path: (personnelCollectionRef as any).path,
               operation: 'list',
           } satisfies SecurityRuleContext);
           errorEmitter.emit('permission-error', permissionError);
@@ -185,7 +165,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       unsub3();
     }
 
-  }, [user]);
+  }, [user, db]);
 
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -226,14 +206,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       return;
     }
 
-    // CORREÇÃO: Validação de data/hora de viagem se o tipo 'viagem' estiver selecionado
     if (transmission.includes('viagem')) {
-        // =================================================================
-        // CORREÇÃO DO ZOD (BUILD) APLICADA AQUI
-        // =================================================================
-        // Usa 'baseSchema' para o .pick()
         const { success } = baseSchema.pick({ departureDate: true, departureTime: true, arrivalDate: true, arrivalTime: true }).safeParse(form.getValues());
-        // =================================================================
         
         if (!success) {
             toast({
@@ -246,33 +220,28 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     }
     
     setIsSuggesting(true);
-    setSuggestionData(null); // Limpa sugestões anteriores
+    setSuggestionData(null); 
     try {
         const [hours, minutes] = time.split(":").map(Number);
         const eventDate = new Date(date);
         eventDate.setHours(hours, minutes, 0, 0);
 
-        // Combina data e hora para departure/arrival
         const departureDateTime = departureDate && departureTime ? new Date(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
         const arrivalDateTime = arrivalDate && arrivalTime ? new Date(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
 
         const result = await suggestTeam({
             date: eventDate.toISOString(),
-            // Envia os campos corretos
             departure: departureDateTime?.toISOString() || null,
             arrival: arrivalDateTime?.toISOString() || null,
             location: location,
             transmissionTypes: transmission as TransmissionType[],
         });
         
-        // Armazena a resposta COMPLETA
         setSuggestionData(result);
 
-        // Se houver sugestões de reescalonamento, PASSA PARA O ESTADO PAI (que controla o modal)
         if (result.reschedulingSuggestions && result.reschedulingSuggestions.length > 0) {
             setReallocationSuggestions(result.reschedulingSuggestions);
         } else {
-             // Caso contrário, aplique as sugestões diretamente
             const suggestionsMade: string[] = [];
             if (result.transmissionOperator) {
                 form.setValue("transmissionOperator", result.transmissionOperator, { shouldValidate: true });
@@ -318,7 +287,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, setReallocationSuggestions]); // Adicionado 'setReallocationSuggestions'
+  }, [form, toast, user, setReallocationSuggestions]);
 
 
   React.useEffect(() => {
@@ -336,7 +305,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         producer: preloadedData.producer || "",
         repeats: false,
         repeatCount: 1,
-        // Pré-carrega datas/horas de viagem se existirem
         departureDate: preloadedData.departure ? new Date(preloadedData.departure) : undefined,
         departureTime: preloadedData.departure ? format(new Date(preloadedData.departure), "HH:mm") : "",
         arrivalDate: preloadedData.arrival ? new Date(preloadedData.arrival) : undefined,
@@ -345,10 +313,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     }
   }, [preloadedData, form]);
   
-  /**
-   * (Função Helper) Apenas aplica os nomes da equipe no formulário.
-   * Não salva no banco, não fecha o modal.
-   */
   const applyConfirmedSuggestionsToForm = () => {
     if (!suggestionData) return;
 
@@ -362,27 +326,18 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       description: "A equipe para o evento de viagem foi preenchida no formulário.",
     });
     
-    // Limpa apenas os dados da sugestão, não as 'reallocationSuggestions'
-    // que são controladas pelo modal.
     setSuggestionData(null);
   };
 
-  /**
-   * Handler para o botão "Confirmar e Reagendar" do Modal.
-   * Executa a ação de BD (via prop) e DEPOIS aplica no formulário.
-   */
   const handleConfirmAndApply = async () => {
     if (!reallocationSuggestions) return;
 
-    setIsSubmitting(true); // Usa o estado de submit para loading
+    setIsSubmitting(true);
     try {
-        // Passo 1: Chama a Server Action de reescalonamento (passada via prop)
         await onConfirmReallocation(reallocationSuggestions);
         
-        // Passo 2: Aplica as sugestões da equipe no formulário local
         applyConfirmedSuggestionsToForm();
 
-        // Passo 3: Limpa as sugestões e fecha o modal (via prop)
         setReallocationSuggestions(null);
 
         toast({
@@ -465,8 +420,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       }
 
     } catch (error: any) {
-        // Error is now handled by the parent component's useCallback which emits a contextual error.
-        // No need for a toast here.
     } finally {
         setIsSubmitting(false);
     }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -31,10 +30,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, VisuallyHidden, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { getAuth, signOut, onAuthStateChanged, type User } from "firebase/auth";
+import { getAuth, signOut, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
-import { app } from "@/lib/firebase";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useUser } from "@/firebase";
 
 export default function DashboardLayout({
   children,
@@ -44,8 +43,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const auth = getAuth(app);
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isUserLoading } = useUser();
+  const auth = getAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -54,14 +53,11 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-       if (!currentUser) {
-        router.push("/login");
-      }
-    });
-    return () => unsubscribe();
-  }, [auth, router]);
+    // Se o carregamento do usuário terminou e não há usuário, redirecione
+    if (!isUserLoading && !user) {
+      router.push("/login");
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogout = async () => {
     try {

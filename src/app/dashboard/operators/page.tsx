@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, FC } from "react";
 import { collection, onSnapshot, query } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -19,10 +17,10 @@ import { Loader2, PlusCircle, Trash2, Edit } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useUser, useFirestore } from '@/firebase';
 import { addPersonnel, updatePersonnel, deletePersonnel } from "@/lib/personnel-actions";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
@@ -48,16 +46,17 @@ type ProductionPersonnel = z.infer<typeof productionPersonnelSchema> & { id: str
 interface PersonnelTabProps {
   collectionName: string;
   title: string;
-  currentUser: User | null;
 }
 
-const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUser }) => {
+const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<Personnel | null>(null);
   const { toast } = useToast();
+  const db = useFirestore();
+  const { user: currentUser } = useUser();
 
   const form = useForm<z.infer<typeof personnelSchema>>({
     resolver: zodResolver(personnelSchema),
@@ -65,6 +64,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUse
   });
 
   useEffect(() => {
+    if (!db) return;
     const personnelCollectionRef = collection(db, collectionName);
     const q = query(personnelCollectionRef);
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -84,7 +84,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUse
     });
 
     return () => unsubscribe();
-  }, [collectionName]);
+  }, [collectionName, db]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     if (!currentUser?.email) return;
@@ -329,16 +329,17 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title, currentUse
 interface ProductionPersonnelTabProps {
   collectionName: "production_personnel";
   title: string;
-  currentUser: User | null;
 }
 
-const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionName, title, currentUser }) => {
+const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionName, title }) => {
   const [personnel, setPersonnel] = useState<ProductionPersonnel[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [editingPersonnel, setEditingPersonnel] = useState<ProductionPersonnel | null>(null);
   const { toast } = useToast();
+  const db = useFirestore();
+  const { user: currentUser } = useUser();
 
   const form = useForm<z.infer<typeof productionPersonnelSchema>>({
     resolver: zodResolver(productionPersonnelSchema),
@@ -346,6 +347,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
   });
 
   useEffect(() => {
+    if (!db) return;
     const personnelCollectionRef = collection(db, collectionName);
     const q = query(personnelCollectionRef);
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -365,7 +367,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     });
 
     return () => unsubscribe();
-  }, [collectionName]);
+  }, [collectionName, db]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
     if (!currentUser?.email) return;
@@ -667,15 +669,6 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
 
 
 export default function OperatorsPage() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-        setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, []);
-
   return (
     <div className="space-y-6">
       <CardHeader className="p-0">
@@ -689,17 +682,15 @@ export default function OperatorsPage() {
           <TabsTrigger value="production_personnel">Pessoal de Produção</TabsTrigger>
         </TabsList>
         <TabsContent value="transmission_operators">
-          <PersonnelTab collectionName="transmission_operators" title="Operadores de Transmissão" currentUser={currentUser} />
+          <PersonnelTab collectionName="transmission_operators" title="Operadores de Transmissão" />
         </TabsContent>
         <TabsContent value="cinematographic_reporters">
-          <PersonnelTab collectionName="cinematographic_reporters" title="Repórteres Cinematográficos" currentUser={currentUser} />
+          <PersonnelTab collectionName="cinematographic_reporters" title="Repórteres Cinematográficos" />
         </TabsContent>
         <TabsContent value="production_personnel">
-          <ProductionPersonnelTab collectionName="production_personnel" title="Pessoal de Produção (Repórteres/Produtores)" currentUser={currentUser} />
+          <ProductionPersonnelTab collectionName="production_personnel" title="Pessoal de Produção (Repórteres/Produtores)" />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
-    

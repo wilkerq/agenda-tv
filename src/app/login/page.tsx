@@ -29,6 +29,16 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    if (!auth) {
+        toast({
+            title: "Erro de Inicialização",
+            description: "O serviço de autenticação não está pronto. Tente novamente em alguns segundos.",
+            variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({

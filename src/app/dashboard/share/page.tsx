@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,8 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
 interface EventsByPersonnel {
   [personnelName: string]: Event[];
@@ -26,6 +23,7 @@ export default function ShareSchedulePage() {
   const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const db = useFirestore();
 
   useEffect(() => {
     // Set the initial date on the client side to avoid hydration mismatch
@@ -34,7 +32,7 @@ export default function ShareSchedulePage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
-    if (!selectedDate) {
+    if (!selectedDate || !db) {
       setEventsByPersonnel({});
       setIsFetchingEvents(false);
       return;
@@ -87,14 +85,14 @@ export default function ShareSchedulePage() {
 
     } catch (serverError) {
       const permissionError = new FirestorePermissionError({
-        path: eventsCollectionRef.path,
+        path: (eventsCollectionRef as any).path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsFetchingEvents(false);
     }
-  }, [selectedDate, toast]);
+  }, [selectedDate, toast, db]);
 
 
   useEffect(() => {

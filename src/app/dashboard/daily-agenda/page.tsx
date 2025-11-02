@@ -1,9 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 import type { Event } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,8 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter } from "@/lib/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/lib/errors";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
@@ -26,6 +23,7 @@ export default function DailyAgendaPage() {
   const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
+  const db = useFirestore();
 
   // Set the initial date only on the client-side to prevent hydration errors.
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function DailyAgendaPage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
-    if (!selectedDate) {
+    if (!selectedDate || !db) {
       setEvents([]);
       setIsFetchingEvents(false);
       return;
@@ -68,7 +66,7 @@ export default function DailyAgendaPage() {
 
     } catch (serverError) {
       const permissionError = new FirestorePermissionError({
-        path: eventsCollectionRef.path,
+        path: (eventsCollectionRef as any).path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -76,7 +74,7 @@ export default function DailyAgendaPage() {
     } finally {
       setIsFetchingEvents(false);
     }
-  }, [selectedDate]);
+  }, [selectedDate, db]);
 
 
   useEffect(() => {
@@ -273,7 +271,7 @@ export default function DailyAgendaPage() {
                  <Button onClick={handleShare} disabled={!message || isGeneratingMessage}>
                   <Share2 className="mr-2 h-4 w-4" />
                   Compartilhar Pauta no WhatsApp
-                </Button>
+                </Button>MESSAGE
             </CardFooter>
         </Card>
       </div>
