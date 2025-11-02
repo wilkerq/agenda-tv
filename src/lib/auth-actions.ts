@@ -1,13 +1,11 @@
 
 "use server";
 
-import { getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { adminDb } from "./firebase-admin"; // Import the shared instance
+import { adminApp } from "./firebase-admin"; 
 import { logAction } from "./audit-log";
 
-// Get the Auth instance from the existing app.
-const adminAuth = getApps().length ? getAuth(getApps()[0]) : null;
+const adminAuth = getAuth(adminApp);
 
 export async function createUser(email: string, adminEmail: string): Promise<{ uid: string, passwordResetLink: string }> {
     if (!adminAuth) {
