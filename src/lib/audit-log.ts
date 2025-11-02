@@ -1,4 +1,3 @@
-
 'use server';
 
 import { initializeApp, getApps, type ServiceAccount, type App } from 'firebase-admin/app';
@@ -88,4 +87,3 @@ export const logAction = async ({
 
 // Export the adminDb instance for server-side use in other actions
 export { adminDb };
-
