@@ -9,36 +9,44 @@ let adminDb: Firestore | undefined;
 let adminAuth: Auth | undefined;
 
 function initializeAdminSDK() {
-    // Verifica se todas as credenciais essenciais estão presentes
+    // Verifica se já existe uma app com este nome para evitar re-inicialização
+    if (getApps().some(app => app.name === 'firebase-admin-sdk')) {
+        const existingApp = getApps().find(app => app.name === 'firebase-admin-sdk')!;
+        if (!adminApp) adminApp = existingApp;
+        if (!adminDb) adminDb = getFirestore(existingApp);
+        if (!adminAuth) adminAuth = getAuth(existingApp);
+        return;
+    }
+
+    // Verifica se as credenciais mínimas estão presentes no objeto importado
     const hasAllCredentials = 
         serviceAccount.project_id &&
         serviceAccount.private_key &&
         serviceAccount.client_email;
 
-    if (getApps().some(app => app.name === 'firebase-admin-sdk')) {
-        // Se já existe, usa a instância existente.
-        const existingApp = getApps().find(app => app.name === 'firebase-admin-sdk')!;
-        adminApp = existingApp;
-    } else if (hasAllCredentials) {
-        // Se não existe e tem credenciais, inicializa.
+    if (hasAllCredentials) {
         try {
           adminApp = initializeApp({
+            // Força a conversão de tipo para ServiceAccount, pois já validamos os campos
             credential: credential.cert(serviceAccount as ServiceAccount),
-          }, 'firebase-admin-sdk');
+          }, 'firebase-admin-sdk'); // Nomeia a instância para evitar conflitos
+          
+          adminDb = getFirestore(adminApp);
+          adminAuth = getAuth(adminApp);
+
         } catch (error: any) {
-          console.error('Falha na inicialização do Firebase Admin SDK:', error.message);
-          // Impede que o restante do código tente usar um SDK não inicializado
+          console.error('CRITICAL: Falha na inicialização do Firebase Admin SDK. Verifique as credenciais.', error.message);
+          // Deixa as instâncias como 'undefined' para que os getters lancem erros claros.
           adminApp = undefined;
+          adminDb = undefined;
+          adminAuth = undefined;
         }
-    }
-    
-    if (adminApp) {
-        adminDb = getFirestore(adminApp);
-        adminAuth = getAuth(adminApp);
+    } else {
+        console.warn("WARN: Credenciais do Firebase Admin SDK não encontradas no service-account.ts. As funções de admin não funcionarão.");
     }
 }
 
-// Garante que a inicialização ocorra na primeira vez que o módulo é carregado.
+// Garante que a inicialização ocorra na primeira vez que o módulo é carregado no servidor.
 initializeAdminSDK();
 
 /**
@@ -48,6 +56,7 @@ initializeAdminSDK();
  */
 export function getAdminDb(): Firestore {
   if (!adminDb) {
+    // Este erro agora indica uma falha na inicialização, que deve ser logada acima.
     throw new Error("Admin DB not initialized. Check Firebase Admin credentials.");
   }
   return adminDb;

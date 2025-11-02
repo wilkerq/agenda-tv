@@ -1,9 +1,6 @@
 
 import type {NextConfig} from 'next';
 
-// Ensure dotenv is configured at the very top
-require('dotenv').config();
-
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'standalone',
