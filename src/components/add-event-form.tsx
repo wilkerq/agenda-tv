@@ -369,6 +369,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       return newDate;
   };
 
+  const processValue = (value?: string) => {
+    return value === "__NONE__" ? undefined : value;
+  };
+  
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
@@ -380,10 +384,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
           date: eventDate,
           transmission: values.transmission as TransmissionType[],
           pauta: values.pauta,
-          transmissionOperator: values.transmissionOperator,
-          cinematographicReporter: values.cinematographicReporter,
-          reporter: values.reporter,
-          producer: values.producer,
+          transmissionOperator: processValue(values.transmissionOperator),
+          cinematographicReporter: processValue(values.cinematographicReporter),
+          reporter: processValue(values.reporter),
+          producer: processValue(values.producer),
           departure: combineDateTime(values.departureDate, values.departureTime) || null,
           arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
       };
@@ -543,7 +547,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Nenhum</SelectItem>
+                            <SelectItem value="__NONE__">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -562,7 +566,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="">Nenhum</SelectItem>
+                             <SelectItem value="__NONE__">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -581,7 +585,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="">Nenhum</SelectItem>
+                             <SelectItem value="__NONE__">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -600,7 +604,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                             <SelectItem value="">Nenhum</SelectItem>
+                             <SelectItem value="__NONE__">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
