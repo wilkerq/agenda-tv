@@ -1,9 +1,10 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
@@ -190,17 +191,17 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   });
 
   const handleSuggestion = React.useCallback(async () => {
-    const { date, time, location, transmission, departureDate, departureTime, arrivalDate, arrivalTime } = form.getValues();
+    const { name, date, time, location, transmission, departureDate, departureTime, arrivalDate, arrivalTime } = form.getValues();
     
     if (!user) {
        toast({ title: "Autenticação necessária", description: "Você precisa estar logado para usar a sugestão.", variant: "destructive"});
        return;
     }
 
-    if (!date || !time || !location || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+    if (!name || !date || !time || !location || !/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
       toast({
         title: "Dados Incompletos",
-        description: "Por favor, preencha a data, hora e local do evento antes de pedir uma sugestão.",
+        description: "Por favor, preencha o nome, data, hora e local do evento antes de pedir uma sugestão.",
         variant: "destructive"
       })
       return;
@@ -230,11 +231,13 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         const arrivalDateTime = arrivalDate && arrivalTime ? new Date(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
 
         const result = await suggestTeam({
+            name: name,
             date: eventDate.toISOString(),
-            departure: departureDateTime?.toISOString() || null,
-            arrival: arrivalDateTime?.toISOString() || null,
+            time: time,
             location: location,
             transmissionTypes: transmission as TransmissionType[],
+            departure: departureDateTime?.toISOString() || null,
+            arrival: arrivalDateTime?.toISOString() || null,
         });
         
         setSuggestionData(result);
@@ -272,7 +275,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             } else {
                  toast({
                     title: "Nenhuma sugestão disponível",
-                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
                     variant: "default",
                 });
             }

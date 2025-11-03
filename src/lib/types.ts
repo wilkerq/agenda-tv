@@ -102,7 +102,7 @@ export type ReschedulingSuggestion = z.infer<typeof ReschedulingSuggestionSchema
 
 export const SuggestTeamInputSchema = z.object({
   name: z.string().describe("The name of the event."),
-  date: z.string().describe("The full date and time of the event in ISO 8601 format."),
+  date: z.string().describe("The date for the event, in ISO 8601 format."),
   time: z.string().describe("The time of the event in HH:mm format."),
   location: z.string().describe("The venue or place where the event will occur."),
   transmissionTypes: z.array(z.enum(transmissionTypes)).describe("The type of event (e.g., youtube, tv)."),

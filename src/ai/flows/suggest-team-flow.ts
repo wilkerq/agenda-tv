@@ -14,7 +14,7 @@ import {
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
 import { getAdminDb } from '@/lib/firebase-admin'; // Use o Admin DB no servidor
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 // Helper to fetch all available personnel from all collections using Admin SDK
 const fetchAllPersonnel = async () => {
@@ -50,11 +50,16 @@ const suggestTeamPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-pro-latest', 
     // Available tools for the AI
     tools: [getScheduleTool],
+    // Add date to the input schema for the tool
+    inputSchema: SuggestTeamInputSchema.extend({
+        personnel: z.any(), // Add personnel to the schema
+    }),
+    outputSchema: SuggestTeamOutputSchema,
     // System message to guide the AI's behavior
     system: `You are an expert production manager for a legislative TV station. Your task is to assemble the best possible team for a given event based on the event's details and the daily schedule.
 
 Your primary goals are:
-1.  **Avoid Double-Booking:** Use the \`getSchedule\` tool to check which team members are already assigned to other events on the same day. Do not assign a person to two events that are close in time.
+1.  **Avoid Double-Booking:** Use the \`getSchedule\` tool to check which team members are already assigned to other events on the specified 'date'. Pass the 'date' field from the input to this tool.
 2.  **Match Skills to Needs:** Assign a "transmissionOperator", "cinematographicReporter", "reporter", and "producer" as needed based on the event's transmission types.
 3.  **Provide a Complete Team:** Try to fill all roles, but it's okay to leave a role empty if no one suitable is available.
 4.  **Use Only Provided Personnel:** You can only assign personnel from the list provided in the prompt. Do not invent names.
@@ -65,7 +70,7 @@ You will receive the event details and a list of all available personnel. Use th
         Event Details:
         - Name: {{{name}}}
         - Location: {{{location}}}
-        - Date: ${format(new Date(), 'yyyy-MM-dd')}
+        - Date: {{{date}}}
         - Time: {{{time}}}
         - Transmission Types: {{#each transmissionTypes}}{{{this}}}{{/each}}
 
@@ -87,25 +92,18 @@ const suggestTeamFlow = ai.defineFlow(
     async (input) => {
         // 1. Fetch all available personnel
         const allPersonnel = await fetchAllPersonnel();
-
+        
         // 2. Extract date and time from the input
-        const [hours, minutes] = input.time.split(':').map(Number);
-        const eventDate = new Date(input.date);
-        eventDate.setHours(hours, minutes);
+        const eventDate = parseISO(input.date);
 
-        // 3. Call the AI prompt with the necessary context
+        // 3. Call the AI prompt with the necessary context, including the personnel and the date for the tool
         const { output } = await suggestTeamPrompt({
-            name: input.name,
-            location: input.location,
-            time: input.time,
-            transmissionTypes: input.transmissionTypes,
+            ...input,
+            date: format(eventDate, 'yyyy-MM-dd'), // Format date for the tool
             personnel: allPersonnel,
-            // We pass the date in the prompt context for the AI to use with the getSchedule tool
-            date: format(eventDate, 'yyyy-MM-dd')
         });
 
         // 4. Return the structured output from the AI
         return output || {};
     }
 );
-
