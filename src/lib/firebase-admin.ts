@@ -8,13 +8,11 @@ let adminAuth: Auth | undefined;
 
 /**
  * Initializes the Firebase Admin SDK if not already initialized.
- * This function should be called once at the start of the server.
+ * This function is self-invoking and ensures that the SDK is ready
+ * as soon as this module is imported on the server.
  */
 function initializeAdminSDK() {
-  if (getApps().find(app => app?.name === '[DEFAULT]')) {
-    adminApp = getApps()[0];
-  } else {
-    // Initialize from environment variables
+  if (getApps().length === 0) {
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -22,7 +20,7 @@ function initializeAdminSDK() {
     };
 
     if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
-      console.error("Firebase Admin credentials are not set in environment variables. Cannot initialize Admin SDK.");
+      console.error("CRITICAL: Firebase Admin credentials are not set in environment variables. Admin SDK initialization failed.");
       return;
     }
 
@@ -31,17 +29,21 @@ function initializeAdminSDK() {
         credential: cert(serviceAccount),
       });
     } catch (error: any) {
-      console.error("Failed to initialize Firebase Admin SDK:", error);
-      return;
+      console.error("CRITICAL: Failed to initialize Firebase Admin SDK:", error);
+      return; // Stop execution if initialization fails
     }
+  } else {
+    adminApp = getApps()[0]!;
   }
 
-  // Get the Firestore and Auth instances
-  adminDb = getFirestore(adminApp);
-  adminAuth = getAuth(adminApp);
+  // Get the Firestore and Auth instances only if the app was successfully initialized
+  if (adminApp) {
+    adminDb = getFirestore(adminApp);
+    adminAuth = getAuth(adminApp);
+  }
 }
 
-// Immediately call the initialization function when this module is loaded.
+// Immediately call the initialization function when this module is loaded on the server.
 initializeAdminSDK();
 
 /**
