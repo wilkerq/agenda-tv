@@ -39,7 +39,7 @@ export default function CreateUserPage() {
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
-    if (!adminUser?.email) {
+    if (!adminUser?.email || !db) {
       toast({
         title: "Erro de Autenticação",
         description: "Não foi possível identificar o administrador logado. Faça login novamente.",
@@ -53,10 +53,10 @@ export default function CreateUserPage() {
     setCopied(false);
 
     try {
-      // 1. Create the user in Firebase Auth
+      // 1. Create the user in Firebase Auth using the server action
       const { uid, passwordResetLink } = await createUser(values.email, adminUser.email);
       
-      // 2. Grant admin role in Firestore
+      // 2. Grant admin role in Firestore on the client-side
       const adminRoleRef = doc(db, "roles_admin", uid);
       await setDoc(adminRoleRef, {
         email: values.email,
@@ -73,7 +73,7 @@ export default function CreateUserPage() {
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
       let errorMessage = "Ocorreu um erro desconhecido.";
-      if (error.code === 'auth/email-already-exists') {
+      if (error.code === 'auth/email-already-exists' || (error.message && error.message.includes("EMAIL_EXISTS"))) {
         errorMessage = "Este endereço de email já está em uso por outra conta.";
       }
       toast({
