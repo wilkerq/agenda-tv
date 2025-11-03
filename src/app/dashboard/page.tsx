@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -238,40 +239,47 @@ const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettin
 
 
 const handleDeleteEvent = useCallback(async (eventId: string) => {
-  if (!user?.email || !db) {
-    toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
-    return;
-  }
-  
-  const eventRef = doc(db, "events", eventId);
-  const eventSnap = await getDoc(eventRef);
-  if (!eventSnap.exists()) {
-      throw new Error("Evento não encontrado para registrar o log de exclusão.");
-  }
-  const oldData = eventSnap.data();
+    if (!user?.email || !db) {
+        toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
+        return;
+    }
+    
+    const eventRef = doc(db, "events", eventId);
+    const eventSnap = await getDoc(eventRef);
+    if (!eventSnap.exists()) {
+        toast({ title: "Erro", description: "Evento não encontrado para exclusão.", variant: "destructive" });
+        return;
+    }
+    const oldData = eventSnap.data();
 
-  // A exclusão é tentada. Se falhar, o listener global de erros irá capturar.
-  await deleteDoc(eventRef);
+    deleteDoc(eventRef)
+        .then(async () => {
+            const serializableOldData = {
+                ...oldData,
+                date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
+                departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
+                arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
+            };
+            await logAction({
+                action: 'delete',
+                collectionName: 'events',
+                documentId: eventId,
+                userEmail: user.email!,
+                oldData: serializableOldData,
+            });
 
-  // Se a exclusão for bem-sucedida, o código abaixo é executado.
-  const serializableOldData = {
-      ...oldData,
-      date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
-      departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
-      arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-  };
-  await logAction({
-      action: 'delete',
-      collectionName: 'events',
-      documentId: eventId,
-      userEmail: user.email,
-      oldData: serializableOldData,
-  });
-
-  toast({
-      title: "Evento Excluído!",
-      description: "O evento foi removido da agenda com sucesso.",
-  });
+            toast({
+                title: "Evento Excluído!",
+                description: "O evento foi removido da agenda com sucesso.",
+            });
+        })
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: eventRef.path,
+                operation: 'delete',
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
 }, [toast, user, db]);
 
@@ -551,3 +559,5 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
+
+    
