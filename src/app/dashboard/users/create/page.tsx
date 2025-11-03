@@ -9,37 +9,37 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Copy, Check } from "lucide-react";
-import { createUser } from "@/lib/auth-actions";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useUser, useFirestore } from "@/firebase";
+import { Loader2 } from "lucide-react";
+import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { logAction } from "@/lib/audit-log";
 
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
 export default function CreateUserPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { user: adminUser } = useUser();
   const db = useFirestore();
-
+  const auth = useAuth();
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       email: "",
+      password: "",
     },
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
-    if (!adminUser?.email || !db) {
+    if (!adminUser?.email || !db || !auth) {
       toast({
         title: "Erro de Autenticação",
         description: "Não foi possível identificar o administrador logado. Faça login novamente.",
@@ -49,34 +49,42 @@ export default function CreateUserPage() {
     }
     
     setIsSubmitting(true);
-    setGeneratedLink(null);
-    setCopied(false);
 
     try {
-      // 1. Create the user in Firebase Auth using the server action
-      const { uid, passwordResetLink } = await createUser(values.email, adminUser.email);
+      // 1. Create the user in Firebase Auth using the client SDK
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const newUser = userCredential.user;
       
       // 2. Grant admin role in Firestore on the client-side
-      const adminRoleRef = doc(db, "roles_admin", uid);
+      const adminRoleRef = doc(db, "roles_admin", newUser.uid);
       await setDoc(adminRoleRef, {
         email: values.email,
         grantedAt: new Date(),
         grantedBy: adminUser.email,
       });
 
-      setGeneratedLink(passwordResetLink);
+      // 3. Log the action
+      await logAction({
+          action: 'create-user',
+          collectionName: 'users',
+          documentId: newUser.uid,
+          userEmail: adminUser.email,
+          newData: {
+              createdUserEmail: values.email,
+              uid: newUser.uid,
+          },
+      });
+
       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `O usuário ${values.email} foi adicionado como administrador. Copie o link abaixo e envie para ele.`,
+        description: `O usuário ${values.email} foi adicionado como administrador.`,
       });
       form.reset();
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
       let errorMessage = "Ocorreu um erro desconhecido.";
-      if (error.code === 'auth/email-already-exists' || (error.message && error.message.includes("EMAIL_EXISTS"))) {
+      if (error.code === 'auth/email-already-in-use') {
         errorMessage = "Este endereço de email já está em uso por outra conta.";
-      } else if (error.message.includes("Firebase Admin SDK is not initialized")) {
-        errorMessage = "O serviço de administração não pôde ser contatado. Tente novamente mais tarde."
       }
       toast({
         title: "Falha ao Criar Usuário",
@@ -88,20 +96,13 @@ export default function CreateUserPage() {
     }
   };
 
-  const handleCopy = () => {
-    if (generatedLink) {
-      navigator.clipboard.writeText(generatedLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
-    }
-  };
 
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>Criar Novo Usuário Administrador</CardTitle>
         <CardDescription>
-          Insira o e-mail do novo usuário. Um link será gerado para que ele possa definir sua própria senha e ele terá permissões de administrador.
+          Insira o e-mail e uma senha temporária para o novo usuário. Ele terá permissões de administrador.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -112,9 +113,22 @@ export default function CreateUserPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email do Novo Usuário</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="email@exemplo.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha Temporária</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,36 +137,11 @@ export default function CreateUserPage() {
             <div className="flex justify-end">
               <Button type="submit" disabled={isSubmitting || !adminUser || !db}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Criando..." : "Criar Usuário e Gerar Link"}
+                {isSubmitting ? "Criando..." : "Criar Usuário"}
               </Button>
             </div>
           </form>
         </Form>
-
-        {generatedLink && (
-            <Alert className="mt-6">
-                <AlertTitle className="font-semibold">Link de Definição de Senha</AlertTitle>
-                <AlertDescription className="break-all text-sm text-muted-foreground mt-2">
-                    Envie este link para o novo usuário. Ele é válido por um tempo limitado.
-                </AlertDescription>
-                 <div className="relative mt-4">
-                    <Input 
-                        readOnly 
-                        value={generatedLink} 
-                        className="pr-12 bg-muted"
-                    />
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                        onClick={handleCopy}
-                    >
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                </div>
-            </Alert>
-        )}
-
       </CardContent>
     </Card>
   );
