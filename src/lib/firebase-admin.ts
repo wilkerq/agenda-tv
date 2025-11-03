@@ -1,41 +1,53 @@
-import { initializeApp, getApps, type App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps, type App, cert } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
 import { serviceAccount } from '@/lib/service-account';
 
-let adminApp: App | undefined;
-let adminDb: Firestore | undefined;
-let adminAuth: Auth | undefined;
+let adminApp: App;
+let adminDb: Firestore;
+let adminAuth: Auth;
 
-function initializeAdminSDK() {
+/**
+ * Initializes the Firebase Admin SDK if not already initialized.
+ * This function is self-invoked to ensure a single instance is created.
+ */
+(function initializeAdminSDK() {
   const adminApps = getApps().filter(app => app.name === 'firebase-admin-sdk');
 
   if (adminApps.length > 0) {
-    adminApp = adminApps[0];
-    adminDb = getFirestore(adminApp);
-    adminAuth = getAuth(adminApp);
-    return;
+    adminApp = adminApps[0]!;
+  } else {
+    // Check if the service account credentials are valid before initializing.
+    if (!serviceAccount.project_id || !serviceAccount.private_key) {
+      console.error(
+        'CRITICAL: Firebase service account credentials are missing or incomplete in src/lib/service-account.ts. Admin SDK will not be initialized.'
+      );
+      // Return early to prevent initialization errors.
+      return;
+    }
+
+    try {
+      adminApp = initializeApp(
+        {
+          credential: cert(serviceAccount),
+        },
+        'firebase-admin-sdk'
+      );
+    } catch (error: any) {
+      console.error(
+        'CRITICAL: Failed to initialize Firebase Admin SDK. Error: ' +
+          error.message
+      );
+      // Return early if initialization fails.
+      return;
+    }
   }
 
-  try {
-    adminApp = initializeApp({
-      credential: credential.cert(serviceAccount),
-    }, 'firebase-admin-sdk');
+  // Get other services only if the app was successfully initialized.
+  adminDb = getFirestore(adminApp);
+  adminAuth = getAuth(adminApp);
+})();
 
-    adminDb = getFirestore(adminApp);
-    adminAuth = getAuth(adminApp);
-    console.log("Firebase Admin SDK inicializado com sucesso.");
-
-  } catch (error: any) {
-    console.error('CRITICAL: Falha na inicialização do Firebase Admin SDK.', error.message);
-    adminApp = undefined;
-    adminDb = undefined;
-    adminAuth = undefined;
-  }
-}
-
-// Chame a função de inicialização no nível do módulo para garantir que seja executada uma vez.
-initializeAdminSDK();
 
 /**
  * Retorna a instância do Firestore do Admin SDK.
