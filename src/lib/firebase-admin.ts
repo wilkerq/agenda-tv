@@ -1,6 +1,7 @@
 import { initializeApp, getApps, type App, credential } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAuth, type Auth } from 'firebase-admin/auth';
+import { serviceAccount } from '@/lib/service-account';
 
 let adminApp: App | undefined;
 let adminDb: Firestore | undefined;
@@ -16,38 +17,20 @@ function initializeAdminSDK() {
     return;
   }
 
-  const serviceAccount = {
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  };
+  try {
+    adminApp = initializeApp({
+      credential: credential.cert(serviceAccount),
+    }, 'firebase-admin-sdk');
 
-  const hasAllCredentials =
-      serviceAccount.projectId &&
-      serviceAccount.privateKey &&
-      serviceAccount.clientEmail;
+    adminDb = getFirestore(adminApp);
+    adminAuth = getAuth(adminApp);
+    console.log("Firebase Admin SDK inicializado com sucesso.");
 
-  if (hasAllCredentials) {
-    try {
-      adminApp = initializeApp({
-        credential: credential.cert(serviceAccount),
-      }, 'firebase-admin-sdk');
-
-      adminDb = getFirestore(adminApp);
-      adminAuth = getAuth(adminApp);
-      console.log("Firebase Admin SDK inicializado com sucesso.");
-
-    } catch (error: any) {
-      console.error('CRITICAL: Falha na inicialização do Firebase Admin SDK. Verifique as credenciais.', error.message);
-      adminApp = undefined;
-      adminDb = undefined;
-      adminAuth = undefined;
-    }
-  } else {
-    console.warn("WARN: Credenciais do Firebase Admin SDK incompletas. As funções de admin não funcionarão. Verifique seu arquivo .env");
-    if (!serviceAccount.projectId) console.warn("- NEXT_PUBLIC_FIREBASE_PROJECT_ID está faltando");
-    if (!serviceAccount.clientEmail) console.warn("- FIREBASE_CLIENT_EMAIL está faltando");
-    if (!serviceAccount.privateKey) console.warn("- FIREBASE_PRIVATE_KEY está faltando");
+  } catch (error: any) {
+    console.error('CRITICAL: Falha na inicialização do Firebase Admin SDK.', error.message);
+    adminApp = undefined;
+    adminDb = undefined;
+    adminAuth = undefined;
   }
 }
 
