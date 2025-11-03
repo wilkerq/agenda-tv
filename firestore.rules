@@ -8,7 +8,7 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read, write: if isAuthenticated();
+      allow read, write, delete: if isAuthenticated();
     }
     match /events {
       allow list: if isAuthenticated();
