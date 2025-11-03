@@ -19,7 +19,6 @@ export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Prom
   return generateWhatsAppMessageFlow(input);
 }
 
-// Flow Definition
 const generateWhatsAppMessageFlow = ai.defineFlow(
   {
     name: 'generateWhatsAppMessageFlow',
@@ -32,7 +31,7 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
     const greeting = `Olá, *${input.operatorName}*! 👋\n\n`;
     const scheduleHeader = `Sua agenda para *${input.scheduleDate}* está pronta:\n\n`;
     const eventsHeader = `📅 Eventos:\n`;
-    const eventList = input.events.join('\n');
+    const eventList = input.events.map(e => `• ${e}`).join('\n');
     const closing = `\n\nQualquer dúvida, estou à disposição! Tenha um excelente dia! ✨`;
     const message = greeting + scheduleHeader + eventsHeader + eventList + closing;
 
@@ -64,7 +63,7 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
        return { message, sent: true };
 
     } catch (error) {
-      console.error('Error sending message to n8n webhook:', error);
+      console.error('Error sending to n8n webhook:', error);
       // Return the message anyway, but indicate it was not sent
       return { message, sent: false };
     }

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { Provider } from 'jotai';
 
 export const metadata: Metadata = {
   title: 'Agenda Alego',
@@ -28,17 +29,19 @@ export default function RootLayout({
           "min-h-screen bg-background font-sans antialiased"
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <FirebaseClientProvider>
-            {children}
-          </FirebaseClientProvider>
-          <Toaster />
-        </ThemeProvider>
+        <Provider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <FirebaseClientProvider>
+              {children}
+            </FirebaseClientProvider>
+            <Toaster />
+          </ThemeProvider>
+        </Provider>
       </body>
     </html>
   );

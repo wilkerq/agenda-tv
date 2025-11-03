@@ -20,7 +20,6 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
     return generateDailyAgendaFlow(input);
 }
 
-// Flow Definition
 const generateDailyAgendaFlow = ai.defineFlow(
   {
     name: 'generateDailyAgendaFlow',
@@ -28,11 +27,10 @@ const generateDailyAgendaFlow = ai.defineFlow(
     outputSchema: DailyAgendaOutputSchema,
   },
   async (input) => {
-    
     // Using simple string formatting as AI is disabled for this flow
     const formattedDate = format(new Date(input.scheduleDate), "PPPP", { locale: ptBR });
     const header = `*PAUTA DO DIA* 🎬\n\n*${formattedDate}*\n\n`;
-    const eventList = input.events.join('\n');
+    const eventList = input.events.map(e => `• ${e}`).join('\n');
     const message = header + eventList;
     
     return { message };

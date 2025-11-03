@@ -4,7 +4,11 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench } from "lucide-react";
+import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit } from "lucide-react";
+import { useAtom } from "jotai";
+import { operationModeAtom } from "@/lib/state";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const settingsLinks = [
   {
@@ -52,6 +56,8 @@ const settingsLinks = [
 ];
 
 export default function SettingsPage() {
+  const [operationMode, setOperationMode] = useAtom(operationModeAtom);
+
   return (
     <div className="space-y-6">
       <CardHeader className="p-0">
@@ -61,6 +67,45 @@ export default function SettingsPage() {
         </CardDescription>
       </CardHeader>
       
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            Modo de Operação
+          </CardTitle>
+          <CardDescription>
+            Escolha se as operações como sugestão de equipe e resumo de relatórios devem usar Inteligência Artificial ou a lógica programada padrão.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4 rounded-md border p-4">
+            <BrainCircuit className="h-6 w-6 text-muted-foreground" />
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">
+                Usar Lógica Padrão
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Operações rápidas e previsíveis baseadas em regras fixas.
+              </p>
+            </div>
+            <Switch
+              checked={operationMode === 'ai'}
+              onCheckedChange={(checked) => setOperationMode(checked ? 'ai' : 'logic')}
+              aria-readonly
+            />
+            <div className="flex-1 space-y-1 text-right">
+               <p className="text-sm font-medium leading-none">
+                Usar Inteligência Artificial
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Respostas mais dinâmicas e inteligentes, mas pode ser mais lento.
+              </p>
+            </div>
+             <Sparkles className="h-6 w-6 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsLinks.map((link) => {
           const Icon = link.icon;
