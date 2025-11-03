@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
 import { getOperationMode } from '@/lib/state';
 import { suggestTeam as suggestTeamWithLogic } from '@/lib/suggestion-logic';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, ensureAdminInitialized } from '@/lib/firebase-admin'; // Import ensureAdminInitialized
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfDay, endOfDay } from 'date-fns';
 
@@ -75,6 +75,9 @@ const suggestTeamFlow = ai.defineFlow(
         outputSchema: SuggestTeamOutputSchema,
     },
     async (input) => {
+        // Ensure the Admin SDK is initialized before any logic that might use it.
+        ensureAdminInitialized();
+
         const mode = await getOperationMode();
         const eventDate = parseISO(input.date);
 
@@ -100,7 +103,7 @@ const suggestTeamFlow = ai.defineFlow(
 
         } else {
              // --- LOGIC MODE ---
-            const db = getAdminDb();
+            const db = getAdminDb(); // Now this should be safe to call
             const start = startOfDay(eventDate);
             const end = endOfDay(eventDate);
 
