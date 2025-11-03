@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, History, UserPlus, Tv, Home } from "lucide-react";
+import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench } from "lucide-react";
 
 const settingsLinks = [
   {
@@ -26,6 +26,13 @@ const settingsLinks = [
     title: "Logs de Auditoria",
     description: "Visualize o histórico de todas as alterações feitas no sistema.",
     icon: History,
+    isInternal: true,
+  },
+    {
+    href: "/dashboard/debug",
+    title: "Depuração de Ambiente",
+    description: "Verifique as variáveis de ambiente do servidor.",
+    icon: Wrench,
     isInternal: true,
   },
   {
