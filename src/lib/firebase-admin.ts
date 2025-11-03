@@ -1,3 +1,4 @@
+
 import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
@@ -12,7 +13,9 @@ let adminAuth: Auth | undefined;
  * as soon as this module is imported on the server.
  */
 function initializeAdminSDK() {
-  if (getApps().length === 0) {
+  if (getApps().length > 0) {
+    adminApp = getApps()[0];
+  } else {
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -23,20 +26,18 @@ function initializeAdminSDK() {
       console.error("CRITICAL: Firebase Admin credentials are not set in environment variables. Admin SDK initialization failed.");
       return;
     }
-
+    
     try {
       adminApp = initializeApp({
         credential: cert(serviceAccount),
       });
     } catch (error: any) {
-      console.error("CRITICAL: Failed to initialize Firebase Admin SDK:", error);
-      return; // Stop execution if initialization fails
+        console.error("CRITICAL: Failed to initialize Firebase Admin SDK:", error);
+        // This might happen if the private key is malformed.
+        return;
     }
-  } else {
-    adminApp = getApps()[0]!;
   }
 
-  // Get the Firestore and Auth instances only if the app was successfully initialized
   if (adminApp) {
     adminDb = getFirestore(adminApp);
     adminAuth = getAuth(adminApp);
@@ -53,7 +54,7 @@ initializeAdminSDK();
  */
 export function getAdminDb(): Firestore {
   if (!adminDb) {
-    throw new Error("Admin DB not initialized. Check Firebase Admin credentials.");
+    throw new Error("Admin DB not initialized. Check Firebase Admin credentials and server logs.");
   }
   return adminDb;
 }
@@ -65,7 +66,7 @@ export function getAdminDb(): Firestore {
  */
 export function getAdminAuth(): Auth {
   if (!adminAuth) {
-    throw new Error("Admin Auth not initialized. Check Firebase Admin credentials.");
+    throw new Error("Admin Auth not initialized. Check Firebase Admin credentials and server logs.");
   }
   return adminAuth;
 }
@@ -77,7 +78,7 @@ export function getAdminAuth(): Auth {
  */
 export function getAdminApp(): App {
     if (!adminApp) {
-        throw new Error("Admin App not initialized. Check Firebase Admin credentials.");
+        throw new Error("Admin App not initialized. Check Firebase Admin credentials and server logs.");
     }
     return adminApp;
 }
