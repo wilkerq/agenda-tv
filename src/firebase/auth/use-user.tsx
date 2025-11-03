@@ -2,25 +2,15 @@
 
 import { useContext } from 'react';
 import type { User } from 'firebase/auth';
-import { FirebaseContext } from '@/firebase/provider';
+import { FirebaseContext, useFirebase, UserHookResult } from '@/firebase/provider';
 
-// Tipo de retorno para useUser() - específico para o estado de autenticação do usuário
-export interface UserHookResult {
-  user: User | null;
-  isUserLoading: boolean;
-  userError: Error | null;
-}
 
 /**
- * Hook específico para acessar o estado do usuário autenticado.
- * Fornece o objeto User, o status de carregamento e quaisquer erros de autenticação.
- * @returns {UserHookResult} Objeto com user, isUserLoading, userError.
+ * Hook specific for accessing the authenticated user's state.
+ * This provides the User object, loading status, and any auth errors.
+ * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
 export const useUser = (): UserHookResult => {
-  const context = useContext(FirebaseContext);
-  if (context === undefined) {
-    throw new Error('useUser deve ser usado dentro de um FirebaseProvider.');
-  }
-  const { user, isUserLoading, userError } = context;
+  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
   return { user, isUserLoading, userError };
 };

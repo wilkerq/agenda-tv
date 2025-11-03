@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, FC } from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,7 +21,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUser, useFirestore } from '@/firebase';
-import { addPersonnel, updatePersonnel, deletePersonnel } from "@/lib/personnel-actions";
+import { revalidatePath } from "next/cache";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 
@@ -42,6 +42,31 @@ const productionPersonnelSchema = personnelSchema.extend({
 });
 
 type ProductionPersonnel = z.infer<typeof productionPersonnelSchema> & { id: string };
+
+async function addPersonnel(collectionName: string, data: any, userEmail: string, db: any) {
+    const collectionRef = collection(db, collectionName);
+    addDoc(collectionRef, data).catch(error => {
+        const permissionError = new FirestorePermissionError({ path: collectionRef.path, operation: 'create', requestResourceData: data });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+}
+
+async function updatePersonnel(collectionName: string, id: string, data: any, userEmail: string, db: any) {
+    const docRef = doc(db, collectionName, id);
+     updateDoc(docRef, data).catch(error => {
+        const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: data });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+}
+
+async function deletePersonnel(collectionName: string, id: string, userEmail: string, db: any) {
+    const docRef = doc(db, collectionName, id);
+    deleteDoc(docRef).catch(error => {
+        const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+}
+
 
 interface PersonnelTabProps {
   collectionName: string;
@@ -90,7 +115,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     if (!currentUser?.email) return;
     setIsSubmitting(true);
     try {
-      await addPersonnel(collectionName, values, currentUser.email);
+      await addPersonnel(collectionName, values, currentUser.email, db);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
       form.reset();
       setAddModalOpen(false);
@@ -105,7 +130,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     if (!editingPersonnel || !currentUser?.email) return;
     setIsSubmitting(true);
     try {
-      await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email);
+      await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email, db);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
       setEditingPersonnel(null);
     } catch (error) {
@@ -118,7 +143,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   const handleDeletePersonnel = async (id: string) => {
     if (!currentUser?.email) return;
     try {
-      await deletePersonnel(collectionName, id, currentUser.email);
+      await deletePersonnel(collectionName, id, currentUser.email, db);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
     } catch (error) {
        toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });
@@ -373,7 +398,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     if (!currentUser?.email) return;
     setIsSubmitting(true);
     try {
-      await addPersonnel(collectionName, values, currentUser.email);
+      await addPersonnel(collectionName, values, currentUser.email, db);
       toast({ title: "Sucesso!", description: "Novo membro adicionado." });
       form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
       setAddModalOpen(false);
@@ -388,7 +413,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     if (!editingPersonnel || !currentUser?.email) return;
     setIsSubmitting(true);
     try {
-        await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email);
+        await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email, db);
         toast({ title: "Sucesso!", description: "Membro atualizado." });
         setEditingPersonnel(null);
     } catch (error) {
@@ -401,7 +426,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
   const handleDeletePersonnel = async (id: string) => {
     if (!currentUser?.email) return;
     try {
-      await deletePersonnel(collectionName, id, currentUser.email);
+      await deletePersonnel(collectionName, id, currentUser.email, db);
       toast({ title: "Sucesso!", description: "Membro removido." });
     } catch (error) {
       toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });

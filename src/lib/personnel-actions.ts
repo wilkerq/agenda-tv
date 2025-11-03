@@ -1,4 +1,3 @@
-
 'use server';
 
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
@@ -6,6 +5,7 @@ import { initializeFirebase } from "@/firebase";
 import { logAction } from "./audit-log";
 import { revalidatePath } from "next/cache";
 
+// This is a client-side firestore instance, not admin
 const { firestore: db } = initializeFirebase();
 
 const serializePersonnelData = (data: any) => {
@@ -19,69 +19,53 @@ const serializePersonnelData = (data: any) => {
   return serialized;
 };
 
-
 export async function addPersonnel(collectionName: string, data: any, userEmail: string) {
-    try {
-        const collectionRef = collection(db, collectionName);
-        const docRef = await addDoc(collectionRef, data);
+    const collectionRef = collection(db, collectionName);
+    const docRef = await addDoc(collectionRef, data);
 
-        await logAction({
-            action: 'create',
-            collectionName,
-            documentId: docRef.id,
-            userEmail: userEmail,
-            newData: serializePersonnelData(data),
-        });
-        revalidatePath('/dashboard/operators');
-    } catch (error) {
-        console.error("Error adding personnel:", error);
-        throw new Error("Failed to add personnel.");
-    }
+    await logAction({
+        action: 'create',
+        collectionName,
+        documentId: docRef.id,
+        userEmail: userEmail,
+        newData: serializePersonnelData(data),
+    });
+    revalidatePath('/dashboard/operators');
 }
 
 export async function updatePersonnel(collectionName: string, id: string, data: any, userEmail: string) {
-    try {
-        const docRef = doc(db, collectionName, id);
-        const docSnap = await getDoc(docRef);
-        const oldData = docSnap.exists() ? docSnap.data() : null;
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
 
-        await updateDoc(docRef, data);
+    await updateDoc(docRef, data);
 
-        await logAction({
-            action: 'update',
-            collectionName,
-            documentId: id,
-            userEmail: userEmail,
-            oldData: oldData ? serializePersonnelData(oldData) : undefined,
-            newData: serializePersonnelData(data),
-        });
-        revalidatePath('/dashboard/operators');
-    } catch (error) {
-        console.error("Error updating personnel:", error);
-        throw new Error("Failed to update personnel.");
-    }
+    await logAction({
+        action: 'update',
+        collectionName,
+        documentId: id,
+        userEmail: userEmail,
+        oldData: oldData ? serializePersonnelData(oldData) : undefined,
+        newData: serializePersonnelData(data),
+    });
+    revalidatePath('/dashboard/operators');
 }
 
 export async function deletePersonnel(collectionName: string, id: string, userEmail: string) {
-    try {
-        const docRef = doc(db, collectionName, id);
-        const docSnap = await getDoc(docRef);
-        const oldData = docSnap.exists() ? docSnap.data() : null;
+    const docRef = doc(db, collectionName, id);
+    const docSnap = await getDoc(docRef);
+    const oldData = docSnap.exists() ? docSnap.data() : null;
 
-        await deleteDoc(docRef);
+    await deleteDoc(docRef);
 
-        if (oldData) {
-            await logAction({
-                action: 'delete',
-                collectionName,
-                documentId: id,
-                userEmail: userEmail,
-                oldData: serializePersonnelData(oldData),
-            });
-        }
-        revalidatePath('/dashboard/operators');
-    } catch (error) {
-        console.error("Error deleting personnel:", error);
-        throw new Error("Failed to delete personnel.");
+    if (oldData) {
+        await logAction({
+            action: 'delete',
+            collectionName,
+            documentId: id,
+            userEmail: userEmail,
+            oldData: serializePersonnelData(oldData),
+        });
     }
+    revalidatePath('/dashboard/operators');
 }

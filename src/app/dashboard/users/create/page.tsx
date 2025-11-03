@@ -75,6 +75,8 @@ export default function CreateUserPage() {
       let errorMessage = "Ocorreu um erro desconhecido.";
       if (error.code === 'auth/email-already-exists' || (error.message && error.message.includes("EMAIL_EXISTS"))) {
         errorMessage = "Este endereço de email já está em uso por outra conta.";
+      } else if (error.message.includes("Firebase Admin SDK is not initialized")) {
+        errorMessage = "O serviço de administração não pôde ser contatado. Tente novamente mais tarde."
       }
       toast({
         title: "Falha ao Criar Usuário",

@@ -1,34 +1,46 @@
-/**
- * @fileoverview Firestore Security Rules for the Event Management App.
- *
- * Core Philosophy:
- * This ruleset allows public read access to all events, but restricts write access.
- * Since there's no authentication implemented, all write operations are disabled.
- *
- * Data Structure:
- * All events are stored in the top-level `/events/{eventId}` collection.
- *
- * Key Security Decisions:
- * - Public read access is granted for `get` and `list` operations on the `/events` collection.
- * - All write operations (create, update, delete) are explicitly denied because there is no authentication.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Allows public read access to events and denies all write access.
-     * @path /events/{eventId}
-     * @allow (get, list) - Any user can read any event.
-     * @deny (create, update, delete) - No user can create, update, or delete any event due to lack of authentication.
-     * @principle Grants public read access and restricts write access.
-     */
+  
+    // Helper function to check if the user has an admin role
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+    
+    // Events can be read by anyone, but only created, updated, or deleted by admins.
     match /events/{eventId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Personnel collections (operators, reporters, etc.) can be read by any authenticated user,
+    // but only written to by admins. This allows the frontend to populate selection lists
+    // while restricting management to admins.
+    match /transmission_operators/{operatorId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    match /cinematographic_reporters/{reporterId} {
+       allow read: if request.auth != null;
+       allow write: if isAdmin();
+    }
+    
+    match /production_personnel/{personnelId} {
+       allow read: if request.auth != null;
+       allow write: if isAdmin();
+    }
+
+    // Audit logs can only be read and created by admins. Deletion is disallowed.
+    match /audit_logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+    
+    // The admin roles collection can only be read or modified by other existing admins.
+    // This prevents a user from making themselves an admin.
+    match /roles_admin/{userId} {
+      allow read, write: if isAdmin();
     }
   }
 }
