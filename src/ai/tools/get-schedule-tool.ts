@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit tool for fetching the daily event schedule from Firestore.
@@ -7,12 +8,10 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { startOfDay, endOfDay, parseISO, format } from 'date-fns';
 import { DailyScheduleSchema, ScheduleEvent } from '@/lib/types';
-import { initializeFirebase } from '@/firebase';
-
-const { firestore: db } = initializeFirebase();
+import { getAdminDb } from '@/lib/firebase-admin';
 
 export const getScheduleTool = ai.defineTool(
     {
@@ -24,18 +23,17 @@ export const getScheduleTool = ai.defineTool(
         outputSchema: DailyScheduleSchema,
     },
     async (input) => {
+        const db = getAdminDb();
         const targetDate = parseISO(input.date);
         const start = startOfDay(targetDate);
         const end = endOfDay(targetDate);
 
-        const eventsCollection = collection(db, 'events');
-        const q = query(
-            eventsCollection,
-            where('date', '>=', Timestamp.fromDate(start)),
-            where('date', '<=', Timestamp.fromDate(end))
-        );
+        const eventsCollection = db.collection('events');
+        const q = eventsCollection
+            .where('date', '>=', Timestamp.fromDate(start))
+            .where('date', '<=', Timestamp.fromDate(end));
 
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await q.get();
 
         const events: ScheduleEvent[] = querySnapshot.docs.map(doc => {
             const data = doc.data();

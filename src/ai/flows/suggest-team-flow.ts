@@ -13,18 +13,16 @@ import {
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
-import { collection, getDocs } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { getAdminDb } from '@/lib/firebase-admin'; // Use o Admin DB no servidor
 import { format } from 'date-fns';
 
-const { firestore: db } = initializeFirebase();
-
-// Helper to fetch all available personnel from all collections
+// Helper to fetch all available personnel from all collections using Admin SDK
 const fetchAllPersonnel = async () => {
+    const db = getAdminDb();
     const collections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
     const personnel: { id: string, name: string, role: string }[] = [];
     for (const coll of collections) {
-        const snapshot = await getDocs(collection(db, coll));
+        const snapshot = await db.collection(coll).get();
         snapshot.forEach(doc => {
             const data = doc.data();
             let role = coll.replace(/s$/, ''); // basic singularization
@@ -110,3 +108,4 @@ const suggestTeamFlow = ai.defineFlow(
         return output || {};
     }
 );
+
