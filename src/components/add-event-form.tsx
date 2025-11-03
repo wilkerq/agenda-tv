@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion, Personnel } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
@@ -107,12 +107,6 @@ type AddEventFormProps = {
   reallocationSuggestions: ReschedulingSuggestion[] | null;
   setReallocationSuggestions: (suggestions: ReschedulingSuggestion[] | null) => void;
   onConfirmReallocation: (suggestions: ReschedulingSuggestion[]) => Promise<void>;
-};
-
-type Personnel = {
-  id: string;
-  name: string;
-  turn: 'Manhã' | 'Tarde' | 'Noite' | 'Geral';
 };
 
 type ProductionPersonnel = Personnel & {
@@ -238,6 +232,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             transmissionTypes: transmission as TransmissionType[],
             departure: departureDateTime?.toISOString() || null,
             arrival: arrivalDateTime?.toISOString() || null,
+            // Pass all personnel lists to the flow
+            operators: transmissionOperators,
+            cinematographicReporters: cinematographicReporters,
+            reporters: reporters,
+            producers: producers,
         });
         
         setSuggestionData(result);
@@ -290,7 +289,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, setReallocationSuggestions]);
+  }, [form, toast, user, setReallocationSuggestions, transmissionOperators, cinematographicReporters, reporters, producers]);
 
 
   React.useEffect(() => {

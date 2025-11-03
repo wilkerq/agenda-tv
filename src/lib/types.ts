@@ -91,6 +91,14 @@ export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutp
 
 // Schemas for suggestion-logic
 
+export const PersonnelSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    turn: z.enum(['Manhã', 'Tarde', 'Noite', 'Geral']),
+});
+export type Personnel = z.infer<typeof PersonnelSchema>;
+
+
 export const ReschedulingSuggestionSchema = z.object({
     conflictingEventId: z.string(),
     conflictingEventTitle: z.string(),
@@ -108,6 +116,10 @@ export const SuggestTeamInputSchema = z.object({
   transmissionTypes: z.array(z.enum(transmissionTypes)).describe("The type of event (e.g., youtube, tv)."),
   departure: z.string().optional().nullable().describe("Data de partida ISO (para viagens)"),
   arrival: z.string().optional().nullable().describe("Data de chegada ISO (para viagens)"),
+  operators: z.array(PersonnelSchema).optional().describe("List of available transmission operators."),
+  cinematographicReporters: z.array(PersonnelSchema).optional().describe("List of available cinematographic reporters."),
+  reporters: z.array(PersonnelSchema).optional().describe("List of available reporters."),
+  producers: z.array(PersonnelSchema).optional().describe("List of available producers."),
 });
 export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
 

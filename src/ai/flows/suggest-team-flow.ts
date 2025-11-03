@@ -13,29 +13,7 @@ import {
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
-import { getAdminDb } from '@/lib/firebase-admin'; // Use o Admin DB no servidor
 import { format, parseISO } from 'date-fns';
-
-// Helper to fetch all available personnel from all collections using Admin SDK
-const fetchAllPersonnel = async () => {
-    const db = getAdminDb();
-    const collections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
-    const personnel: { id: string, name: string, role: string }[] = [];
-    for (const coll of collections) {
-        const snapshot = await db.collection(coll).get();
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            let role = coll.replace(/s$/, ''); // basic singularization
-            if (coll === 'production_personnel') {
-                if (data.isReporter) personnel.push({ id: doc.id, name: data.name, role: 'reporter' });
-                if (data.isProducer) personnel.push({ id: doc.id, name: data.name, role: 'producer' });
-            } else {
-                 personnel.push({ id: doc.id, name: data.name, role: role });
-            }
-        });
-    }
-    return personnel;
-};
 
 // Main exported function
 export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamOutput> {
@@ -51,10 +29,10 @@ const suggestTeamPrompt = ai.definePrompt({
     // Available tools for the AI
     tools: [getScheduleTool],
     // Add date to the input schema for the tool
-    inputSchema: SuggestTeamInputSchema.extend({
-        personnel: z.any(), // Add personnel to the schema
-    }),
-    outputSchema: SuggestTeamOutputSchema,
+    input: {schema: SuggestTeamInputSchema.extend({
+        personnel: z.any(), // The full list of personnel is passed in.
+    })},
+    output: { schema: SuggestTeamOutputSchema },
     // System message to guide the AI's behavior
     system: `You are an expert production manager for a legislative TV station. Your task is to assemble the best possible team for a given event based on the event's details and the daily schedule.
 
@@ -64,7 +42,7 @@ Your primary goals are:
 3.  **Provide a Complete Team:** Try to fill all roles, but it's okay to leave a role empty if no one suitable is available.
 4.  **Use Only Provided Personnel:** You can only assign personnel from the list provided in the prompt. Do not invent names.
 
-You will receive the event details and a list of all available personnel. Use this information and the \`getSchedule\` tool to make your decision and return the suggested team.`,
+You will receive the event details and a list of all available personnel. Use this information and the \`getSchedule\` tool to make your decision and return the structured team.`,
     // Use handlebars to structure the input for the AI
     prompt: `
         Event Details:
@@ -90,20 +68,26 @@ const suggestTeamFlow = ai.defineFlow(
         outputSchema: SuggestTeamOutputSchema,
     },
     async (input) => {
-        // 1. Fetch all available personnel
-        const allPersonnel = await fetchAllPersonnel();
-        
-        // 2. Extract date and time from the input
+        // 1. Extract date and time from the input
         const eventDate = parseISO(input.date);
+        
+        // 2. Combine all personnel into a single list with roles for the prompt
+        const allPersonnelWithRoles = [
+            ...(input.operators || []).map(p => ({...p, role: 'transmissionOperator'})),
+            ...(input.cinematographicReporters || []).map(p => ({...p, role: 'cinematographicReporter'})),
+            ...(input.reporters || []).map(p => ({...p, role: 'reporter'})),
+            ...(input.producers || []).map(p => ({...p, role: 'producer'}))
+        ];
 
         // 3. Call the AI prompt with the necessary context, including the personnel and the date for the tool
         const { output } = await suggestTeamPrompt({
             ...input,
             date: format(eventDate, 'yyyy-MM-dd'), // Format date for the tool
-            personnel: allPersonnel,
+            personnel: allPersonnelWithRoles,
         });
 
         // 4. Return the structured output from the AI
         return output || {};
     }
 );
+
