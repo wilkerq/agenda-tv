@@ -9,6 +9,7 @@ import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { type OperationMode, setOperationMode as setServerOperationMode } from "@/lib/state";
+import { cn } from "@/lib/utils";
 
 // Client-side atom with localStorage persistence
 export const operationModeAtom = atomWithStorage<OperationMode>(
@@ -95,30 +96,42 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-4 rounded-md border p-4">
-            <BrainCircuit className="h-6 w-6 text-muted-foreground" />
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">
-                Usar Lógica Padrão
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Operações rápidas e previsíveis baseadas em regras fixas.
-              </p>
+          <div className="flex items-center space-x-4 rounded-md border p-4 transition-colors">
+            <div className={cn(
+                "flex-1 flex items-center gap-3 transition-opacity",
+                operationMode === 'logic' ? 'opacity-100' : 'opacity-50'
+              )}>
+              <BrainCircuit className={cn("h-6 w-6", operationMode === 'logic' && 'text-primary')} />
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-none">
+                  Lógica Padrão
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Operações rápidas e previsíveis.
+                </p>
+              </div>
             </div>
+
             <Switch
               checked={operationMode === 'ai'}
               onCheckedChange={handleModeChange}
               aria-readonly
             />
-            <div className="flex-1 space-y-1 text-right">
-               <p className="text-sm font-medium leading-none">
-                Usar Inteligência Artificial
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Respostas mais dinâmicas e inteligentes, mas pode ser mais lento.
-              </p>
+
+            <div className={cn(
+                "flex-1 flex items-center justify-end gap-3 text-right transition-opacity",
+                operationMode === 'ai' ? 'opacity-100' : 'opacity-50'
+              )}>
+               <div className="space-y-1">
+                 <p className="text-sm font-medium leading-none">
+                  Inteligência Artificial
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Respostas dinâmicas e inteligentes.
+                </p>
+              </div>
+               <Sparkles className={cn("h-6 w-6", operationMode === 'ai' && 'text-primary')} />
             </div>
-             <Sparkles className="h-6 w-6 text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
