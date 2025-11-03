@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -14,7 +13,7 @@ import { type OperationMode, setOperationMode as setServerOperationMode } from "
 // Client-side atom with localStorage persistence
 export const operationModeAtom = atomWithStorage<OperationMode>(
     'operationMode', // Key for localStorage
-    'logic',         // Default value
+    'ai',         // Default value
     createJSONStorage(() => localStorage)
 );
 
