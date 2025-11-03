@@ -1,65 +1,34 @@
 /**
- * @fileOverview Firestore Security Rules for the Agenda Alego application.
+ * @fileoverview Firestore Security Rules for the Event Management App.
  *
  * Core Philosophy:
- * - Admin privileges are granted based on the existence of a document in the `roles_admin` collection.
- * - Public read access is granted to `events`.
- * - All other collections are restricted to admins only.
- * - `audit_logs` are write-only from the backend (Admin SDK).
+ * This ruleset allows public read access to all events, but restricts write access.
+ * Since there's no authentication implemented, all write operations are disabled.
+ *
+ * Data Structure:
+ * All events are stored in the top-level `/events/{eventId}` collection.
+ *
+ * Key Security Decisions:
+ * - Public read access is granted for `get` and `list` operations on the `/events` collection.
+ * - All write operations (create, update, delete) are explicitly denied because there is no authentication.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- FUNÇÃO AUXILIAR ---
     /**
-     * @description Checks if the user is signed in and has admin privileges.
-     * Admin privileges are determined by the existence of a document in the `/roles_admin/{userId}` collection.
-     * @returns {boolean} True if the user is an admin, false otherwise.
+     * @description Allows public read access to events and denies all write access.
+     * @path /events/{eventId}
+     * @allow (get, list) - Any user can read any event.
+     * @deny (create, update, delete) - No user can create, update, or delete any event due to lack of authentication.
+     * @principle Grants public read access and restricts write access.
      */
-    function isAdmin() {
-      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    // --- COLEÇÃO: events ---
-    // Requisito: Leitura pública (para o site e painel de TV).
-    // Requisito: Escrita restrita a administradores.
     match /events/{eventId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    // --- COLEÇÃO: roles_admin ---
-    // Requisito: Apenas administradores podem gerenciar outros administradores.
-    // NOTA: O primeiro admin DEVE ser criado manualmente no Console do Firebase.
-    match /roles_admin/{userId} {
-      allow read, write: if isAdmin();
-    }
-
-    // --- COLEÇÃO: transmission_operators ---
-    // Requisito: Apenas administradores podem ler ou escrever.
-    match /transmission_operators/{operatorId} {
-      allow read, write: if isAdmin();
-    }
-
-    // --- COLEÇÃO: cinematographic_reporters ---
-    // Requisito: Apenas administradores podem ler ou escrever.
-    match /cinematographic_reporters/{reporterId} {
-      allow read, write: if isAdmin();
-    }
-
-    // --- COLEÇÃO: production_personnel ---
-    // Requisito: Apenas administradores podem ler ou escrever.
-    match /production_personnel/{personnelId} {
-      allow read, write: if isAdmin();
-    }
-
-    // --- COLEÇÃO: audit_logs ---
-    // Requisito: Apenas administradores podem ler.
-    // Requisito: NENHUM cliente pode escrever (apenas o Admin SDK no backend).
-    match /audit_logs/{logId} {
-      allow read: if isAdmin();
-      allow write: if false; // Bloqueia create, update, delete de todos os clientes
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }
