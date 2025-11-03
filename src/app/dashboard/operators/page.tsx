@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, FC } from "react";
-import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, doc } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,7 +21,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUser, useFirestore } from '@/firebase';
-import { revalidatePath } from "next/cache";
+import { addPersonnelAction, updatePersonnelAction, deletePersonnelAction } from "@/lib/personnel-actions";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 
@@ -42,31 +42,6 @@ const productionPersonnelSchema = personnelSchema.extend({
 });
 
 type ProductionPersonnel = z.infer<typeof productionPersonnelSchema> & { id: string };
-
-async function addPersonnel(collectionName: string, data: any, userEmail: string, db: any) {
-    const collectionRef = collection(db, collectionName);
-    addDoc(collectionRef, data).catch(error => {
-        const permissionError = new FirestorePermissionError({ path: collectionRef.path, operation: 'create', requestResourceData: data });
-        errorEmitter.emit('permission-error', permissionError);
-    });
-}
-
-async function updatePersonnel(collectionName: string, id: string, data: any, userEmail: string, db: any) {
-    const docRef = doc(db, collectionName, id);
-     updateDoc(docRef, data).catch(error => {
-        const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: data });
-        errorEmitter.emit('permission-error', permissionError);
-    });
-}
-
-async function deletePersonnel(collectionName: string, id: string, userEmail: string, db: any) {
-    const docRef = doc(db, collectionName, id);
-    deleteDoc(docRef).catch(error => {
-        const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
-        errorEmitter.emit('permission-error', permissionError);
-    });
-}
-
 
 interface PersonnelTabProps {
   collectionName: string;
@@ -112,41 +87,47 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
   }, [collectionName, db]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
-    if (!currentUser?.email) return;
+    if (!currentUser?.email || !db) return;
     setIsSubmitting(true);
     try {
-      await addPersonnel(collectionName, values, currentUser.email, db);
+      await addPersonnelAction(db, collectionName, values, currentUser.email);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} adicionado.` });
       form.reset();
       setAddModalOpen(false);
     } catch (error) {
-       toast({ title: "Erro", description: "Não foi possível adicionar o membro.", variant: "destructive" });
+       const collectionRef = collection(db, collectionName);
+       const permissionError = new FirestorePermissionError({ path: collectionRef.path, operation: 'create', requestResourceData: values });
+       errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof personnelSchema>) => {
-    if (!editingPersonnel || !currentUser?.email) return;
+    if (!editingPersonnel || !currentUser?.email || !db) return;
     setIsSubmitting(true);
     try {
-      await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email, db);
+      await updatePersonnelAction(db, collectionName, editingPersonnel.id, values, currentUser.email);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} atualizado.` });
       setEditingPersonnel(null);
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível atualizar o membro.", variant: "destructive" });
+      const docRef = doc(db, collectionName, editingPersonnel.id);
+      const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: values });
+      errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeletePersonnel = async (id: string) => {
-    if (!currentUser?.email) return;
+    if (!currentUser?.email || !db) return;
     try {
-      await deletePersonnel(collectionName, id, currentUser.email, db);
+      await deletePersonnelAction(db, collectionName, id, currentUser.email);
       toast({ title: "Sucesso!", description: `${title.slice(0, -1)} removido.` });
     } catch (error) {
-       toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });
+       const docRef = doc(db, collectionName, id);
+       const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
+       errorEmitter.emit('permission-error', permissionError);
     }
   };
   
@@ -395,41 +376,47 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
   }, [collectionName, db]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
-    if (!currentUser?.email) return;
+    if (!currentUser?.email || !db) return;
     setIsSubmitting(true);
     try {
-      await addPersonnel(collectionName, values, currentUser.email, db);
+      await addPersonnelAction(db, collectionName, values, currentUser.email);
       toast({ title: "Sucesso!", description: "Novo membro adicionado." });
       form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
       setAddModalOpen(false);
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível adicionar o membro.", variant: "destructive" });
+      const collectionRef = collection(db, collectionName);
+      const permissionError = new FirestorePermissionError({ path: collectionRef.path, operation: 'create', requestResourceData: values });
+      errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleEditPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
-    if (!editingPersonnel || !currentUser?.email) return;
+    if (!editingPersonnel || !currentUser?.email || !db) return;
     setIsSubmitting(true);
     try {
-        await updatePersonnel(collectionName, editingPersonnel.id, values, currentUser.email, db);
+        await updatePersonnelAction(db, collectionName, editingPersonnel.id, values, currentUser.email);
         toast({ title: "Sucesso!", description: "Membro atualizado." });
         setEditingPersonnel(null);
     } catch (error) {
-       toast({ title: "Erro", description: "Não foi possível atualizar o membro.", variant: "destructive" });
+       const docRef = doc(db, collectionName, editingPersonnel.id);
+       const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: values });
+       errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeletePersonnel = async (id: string) => {
-    if (!currentUser?.email) return;
+    if (!currentUser?.email || !db) return;
     try {
-      await deletePersonnel(collectionName, id, currentUser.email, db);
+      await deletePersonnelAction(db, collectionName, id, currentUser.email);
       toast({ title: "Sucesso!", description: "Membro removido." });
     } catch (error) {
-      toast({ title: "Erro", description: "Não foi possível remover o membro.", variant: "destructive" });
+      const docRef = doc(db, collectionName, id);
+      const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
+      errorEmitter.emit('permission-error', permissionError);
     }
   };
 

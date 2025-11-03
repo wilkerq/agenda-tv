@@ -1,12 +1,8 @@
 'use server';
 
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
-import { initializeFirebase } from "@/firebase";
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, Firestore } from "firebase/firestore";
 import { logAction } from "./audit-log";
 import { revalidatePath } from "next/cache";
-
-// This is a client-side firestore instance, not admin
-const { firestore: db } = initializeFirebase();
 
 const serializePersonnelData = (data: any) => {
   const serialized: any = {};
@@ -19,7 +15,7 @@ const serializePersonnelData = (data: any) => {
   return serialized;
 };
 
-export async function addPersonnel(collectionName: string, data: any, userEmail: string) {
+export async function addPersonnelAction(db: Firestore, collectionName: string, data: any, userEmail: string) {
     const collectionRef = collection(db, collectionName);
     const docRef = await addDoc(collectionRef, data);
 
@@ -33,7 +29,7 @@ export async function addPersonnel(collectionName: string, data: any, userEmail:
     revalidatePath('/dashboard/operators');
 }
 
-export async function updatePersonnel(collectionName: string, id: string, data: any, userEmail: string) {
+export async function updatePersonnelAction(db: Firestore, collectionName: string, id: string, data: any, userEmail: string) {
     const docRef = doc(db, collectionName, id);
     const docSnap = await getDoc(docRef);
     const oldData = docSnap.exists() ? docSnap.data() : null;
@@ -51,7 +47,7 @@ export async function updatePersonnel(collectionName: string, id: string, data: 
     revalidatePath('/dashboard/operators');
 }
 
-export async function deletePersonnel(collectionName: string, id: string, userEmail: string) {
+export async function deletePersonnelAction(db: Firestore, collectionName: string, id: string, userEmail: string) {
     const docRef = doc(db, collectionName, id);
     const docSnap = await getDoc(docRef);
     const oldData = docSnap.exists() ? docSnap.data() : null;
