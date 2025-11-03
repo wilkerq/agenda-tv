@@ -2,7 +2,7 @@
 
 import type { ReschedulingSuggestion } from './types';
 import { logAction } from './audit-log';
-import { getAdminDb } from './firebase-admin';
+import { getAdminDb, ensureAdminInitialized } from './firebase-admin';
 
 
 /**
@@ -13,10 +13,8 @@ export async function reallocateConflictingEvents(
     adminUserEmail: string
 ): Promise<{ success: boolean; message: string; updatedIds: string[] }> {
     
+    ensureAdminInitialized();
     const adminDb = getAdminDb();
-    if (!adminDb) {
-        throw new Error("A conexão com o banco de dados do administrador não está disponível.");
-    }
 
     if (!suggestions || suggestions.length === 0) {
         return { success: false, message: "Nenhuma sugestão fornecida.", updatedIds: [] };

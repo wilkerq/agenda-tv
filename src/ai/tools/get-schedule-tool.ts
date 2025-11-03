@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { Timestamp } from 'firebase-admin/firestore';
 import { startOfDay, endOfDay, parseISO, format } from 'date-fns';
 import { DailyScheduleSchema, ScheduleEvent } from '@/lib/types';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { getAdminDb, ensureAdminInitialized } from '@/lib/firebase-admin';
 
 export const getScheduleTool = ai.defineTool(
     {
@@ -23,6 +23,7 @@ export const getScheduleTool = ai.defineTool(
         outputSchema: DailyScheduleSchema,
     },
     async (input) => {
+        ensureAdminInitialized();
         const db = getAdminDb();
         const targetDate = parseISO(input.date);
         const start = startOfDay(targetDate);
