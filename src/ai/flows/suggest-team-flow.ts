@@ -25,7 +25,7 @@ export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamO
 const suggestTeamPrompt = ai.definePrompt({
     name: 'suggestTeamPrompt',
     // Ensure the model is suitable for complex reasoning and tool use
-    model: 'googleai/gemini-1.5-pro-latest', 
+    model: 'googleai/gemini-1.5-pro', 
     // Available tools for the AI
     tools: [getScheduleTool],
     // Add date to the input schema for the tool
@@ -90,4 +90,3 @@ const suggestTeamFlow = ai.defineFlow(
         return output || {};
     }
 );
-
