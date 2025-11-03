@@ -6,9 +6,18 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit } from "lucide-react";
 import { useAtom } from "jotai";
-import { operationModeAtom } from "@/lib/state";
+import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { type OperationMode, setOperationMode as setServerOperationMode } from "@/lib/state";
+
+// Client-side atom with localStorage persistence
+export const operationModeAtom = atomWithStorage<OperationMode>(
+    'operationMode', // Key for localStorage
+    'logic',         // Default value
+    createJSONStorage(() => localStorage)
+);
+
 
 const settingsLinks = [
   {
@@ -58,6 +67,15 @@ const settingsLinks = [
 export default function SettingsPage() {
   const [operationMode, setOperationMode] = useAtom(operationModeAtom);
 
+  const handleModeChange = (checked: boolean) => {
+    const newMode = checked ? 'ai' : 'logic';
+    // Update client-side state
+    setOperationMode(newMode);
+    // Asynchronously update server-side state
+    setServerOperationMode(newMode);
+  };
+
+
   return (
     <div className="space-y-6">
       <CardHeader className="p-0">
@@ -90,7 +108,7 @@ export default function SettingsPage() {
             </div>
             <Switch
               checked={operationMode === 'ai'}
-              onCheckedChange={(checked) => setOperationMode(checked ? 'ai' : 'logic')}
+              onCheckedChange={handleModeChange}
               aria-readonly
             />
             <div className="flex-1 space-y-1 text-right">
