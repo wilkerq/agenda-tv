@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { useUser, useFirestore, useAuth } from "@/firebase";
+import { useUser, useFirestore, useAuth, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { logAction } from "@/lib/audit-log";
@@ -57,11 +57,23 @@ export default function CreateUserPage() {
       
       // 2. Grant admin role in Firestore on the client-side
       const adminRoleRef = doc(db, "roles_admin", newUser.uid);
-      await setDoc(adminRoleRef, {
+      const newAdminData = {
         email: values.email,
         grantedAt: new Date(),
         grantedBy: adminUser.email,
-      });
+      };
+
+      await setDoc(adminRoleRef, newAdminData)
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: adminRoleRef.path,
+                operation: 'create',
+                requestResourceData: newAdminData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            // Re-throw to be caught by the outer try-catch
+            throw serverError;
+        });
 
       // 3. Log the action
       await logAction({
@@ -81,16 +93,18 @@ export default function CreateUserPage() {
       });
       form.reset();
     } catch (error: any) {
-      console.error("Erro ao criar usuário:", error);
-      let errorMessage = "Ocorreu um erro desconhecido.";
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "Este endereço de email já está em uso por outra conta.";
+      // Don't toast if it's a permission error, as it will be handled globally
+      if (!(error instanceof FirestorePermissionError)) {
+          let errorMessage = "Ocorreu um erro desconhecido.";
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "Este endereço de email já está em uso por outra conta.";
+          }
+          toast({
+            title: "Falha ao Criar Usuário",
+            description: errorMessage,
+            variant: "destructive",
+          });
       }
-      toast({
-        title: "Falha ao Criar Usuário",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }

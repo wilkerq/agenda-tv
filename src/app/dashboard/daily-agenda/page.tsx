@@ -271,7 +271,7 @@ export default function DailyAgendaPage() {
                  <Button onClick={handleShare} disabled={!message || isGeneratingMessage}>
                   <Share2 className="mr-2 h-4 w-4" />
                   Compartilhar Pauta no WhatsApp
-                </Button>MESSAGE
+                </Button>
             </CardFooter>
         </Card>
       </div>
