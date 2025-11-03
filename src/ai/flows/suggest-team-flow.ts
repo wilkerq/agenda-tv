@@ -9,11 +9,18 @@ import {
     SuggestTeamInput, 
     SuggestTeamInputSchema, 
     SuggestTeamOutput, 
-    SuggestTeamOutputSchema 
+    SuggestTeamOutputSchema, 
+    Event
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
+import { getOperationMode } from '@/lib/state';
+import { suggestTeam as suggestTeamWithLogic } from '@/lib/suggestion-logic';
+import { getAdminDb } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
+import { startOfDay, endOfDay } from 'date-fns';
+
 
 // Main exported function
 export async function suggestTeam(input: SuggestTeamInput): Promise<SuggestTeamOutput> {
@@ -68,25 +75,56 @@ const suggestTeamFlow = ai.defineFlow(
         outputSchema: SuggestTeamOutputSchema,
     },
     async (input) => {
-        // 1. Extract date and time from the input
+        const mode = await getOperationMode();
         const eventDate = parseISO(input.date);
-        
-        // 2. Combine all personnel into a single list with roles for the prompt
-        const allPersonnelWithRoles = [
-            ...(input.operators || []).map(p => ({...p, role: 'transmissionOperator'})),
-            ...(input.cinematographicReporters || []).map(p => ({...p, role: 'cinematographicReporter'})),
-            ...(input.reporters || []).map(p => ({...p, role: 'reporter'})),
-            ...(input.producers || []).map(p => ({...p, role: 'producer'}))
-        ];
 
-        // 3. Call the AI prompt with the necessary context, including the personnel and the date for the tool
-        const { output } = await suggestTeamPrompt({
-            ...input,
-            date: format(eventDate, 'yyyy-MM-dd'), // Format date for the tool
-            personnel: allPersonnelWithRoles,
-        });
+        if (mode === 'ai') {
+            // --- AI MODE ---
+            // 2. Combine all personnel into a single list with roles for the prompt
+            const allPersonnelWithRoles = [
+                ...(input.operators || []).map(p => ({...p, role: 'transmissionOperator'})),
+                ...(input.cinematographicReporters || []).map(p => ({...p, role: 'cinematographicReporter'})),
+                ...(input.reporters || []).map(p => ({...p, role: 'reporter'})),
+                ...(input.producers || []).map(p => ({...p, role: 'producer'}))
+            ];
 
-        // 4. Return the structured output from the AI
-        return output || {};
+            // 3. Call the AI prompt with the necessary context, including the personnel and the date for the tool
+            const { output } = await suggestTeamPrompt({
+                ...input,
+                date: format(eventDate, 'yyyy-MM-dd'), // Format date for the tool
+                personnel: allPersonnelWithRoles,
+            });
+
+            // 4. Return the structured output from the AI
+            return output || {};
+
+        } else {
+             // --- LOGIC MODE ---
+            const db = getAdminDb();
+            const start = startOfDay(eventDate);
+            const end = endOfDay(eventDate);
+
+            // Fetch events for today to calculate workload
+            const eventsTodaySnapshot = await db.collection('events')
+                .where('date', '>=', Timestamp.fromDate(start))
+                .where('date', '<=', Timestamp.fromDate(end))
+                .get();
+            const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
+
+            // Fetch all future events for trip conflict analysis
+            const allFutureEventsSnapshot = await db.collection('events')
+                .where('date', '>=', Timestamp.fromDate(new Date()))
+                .orderBy('date')
+                .get();
+            const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
+            
+            const result = await suggestTeamWithLogic({
+                ...input,
+                eventsToday,
+                allFutureEvents,
+            });
+            
+            return result;
+        }
     }
 );
