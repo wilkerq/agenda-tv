@@ -11,8 +11,7 @@ let adminAuth: Auth | undefined;
  * This function should be called once at the start of the server.
  */
 function initializeAdminSDK() {
-  if (getApps().length > 0) {
-    // If already initialized, use the existing app instance
+  if (getApps().find(app => app?.name === '[DEFAULT]')) {
     adminApp = getApps()[0];
   } else {
     // Initialize from environment variables
