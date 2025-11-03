@@ -13,8 +13,9 @@ let adminAuth: Auth | undefined;
  * as soon as this module is imported on the server.
  */
 function initializeAdminSDK() {
-  if (getApps().length > 0) {
-    adminApp = getApps()[0];
+  // Check if the SDK has already been initialized.
+  if (getApps().some(app => app.name === '[DEFAULT]')) {
+    adminApp = getApps().find(app => app.name === '[DEFAULT]');
   } else {
     const serviceAccount = {
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -32,12 +33,12 @@ function initializeAdminSDK() {
         credential: cert(serviceAccount),
       });
     } catch (error: any) {
-        console.error("CRITICAL: Failed to initialize Firebase Admin SDK:", error);
-        // This might happen if the private key is malformed.
+        console.error("CRITICAL: Failed to initialize Firebase Admin SDK. Check if the private key is malformed.", error);
         return;
     }
   }
 
+  // Once the app is initialized, get the other services.
   if (adminApp) {
     adminDb = getFirestore(adminApp);
     adminAuth = getAuth(adminApp);
@@ -54,6 +55,7 @@ initializeAdminSDK();
  */
 export function getAdminDb(): Firestore {
   if (!adminDb) {
+    // This will now only throw if the initial setup failed, likely due to missing credentials.
     throw new Error("Admin DB not initialized. Check Firebase Admin credentials and server logs.");
   }
   return adminDb;
