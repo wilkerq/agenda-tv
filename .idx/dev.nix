@@ -8,6 +8,7 @@
     pkgs.nodejs_20
     pkgs.zulu
     pkgs.docker-compose
+    pkgs.openssh
   ];
   # Sets environment variables in the workspace
   env = {};
