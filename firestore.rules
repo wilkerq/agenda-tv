@@ -8,27 +8,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /events/{eventId} {
-      allow read, write: if isAuthenticated();
-    }
-    
-    match /transmission_operators/{docId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /cinematographic_reporters/{docId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /production_personnel/{docId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /audit_logs/{docId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /roles_admin/{docId} {
+    // Regra global: Permite acesso total a qualquer usuário autenticado.
+    match /{document=**} {
       allow read, write: if isAuthenticated();
     }
   }
