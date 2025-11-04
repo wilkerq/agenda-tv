@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FC } from "react";
+import { useState, useEffect, FC, useMemo } from "react";
 import { collection, onSnapshot, query, doc } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { addPersonnelAction, updatePersonnelAction, deletePersonnelAction } from "@/lib/personnel-actions";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
@@ -62,12 +62,20 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     resolver: zodResolver(personnelSchema),
     defaultValues: { name: "", phone: "", turn: "Geral" },
   });
+  
+  const personnelQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, collectionName));
+  }, [db, collectionName]);
 
   useEffect(() => {
-    if (!db) return;
-    const personnelCollectionRef = collection(db, collectionName);
-    const q = query(personnelCollectionRef);
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    if (!personnelQuery) {
+        setLoading(false);
+        return;
+    };
+    
+    setLoading(true);
+    const unsubscribe = onSnapshot(personnelQuery, (querySnapshot) => {
       const fetchedPersonnel: Personnel[] = [];
       querySnapshot.forEach((doc) => {
         fetchedPersonnel.push({ id: doc.id, ...doc.data() } as Personnel);
@@ -76,7 +84,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: personnelCollectionRef.path,
+        path: personnelQuery.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -84,7 +92,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     });
 
     return () => unsubscribe();
-  }, [collectionName, db]);
+  }, [personnelQuery]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     if (!currentUser?.email || !db) return;
@@ -351,12 +359,19 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     resolver: zodResolver(productionPersonnelSchema),
     defaultValues: { name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" },
   });
+  
+  const personnelQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, collectionName));
+  }, [db, collectionName]);
 
   useEffect(() => {
-    if (!db) return;
-    const personnelCollectionRef = collection(db, collectionName);
-    const q = query(personnelCollectionRef);
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    if (!personnelQuery) {
+        setLoading(false);
+        return;
+    }
+    setLoading(true);
+    const unsubscribe = onSnapshot(personnelQuery, (querySnapshot) => {
       const fetchedPersonnel: ProductionPersonnel[] = [];
       querySnapshot.forEach((doc) => {
         fetchedPersonnel.push({ id: doc.id, ...doc.data() } as ProductionPersonnel);
@@ -365,7 +380,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: personnelCollectionRef.path,
+        path: personnelQuery.path,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -373,7 +388,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     });
 
     return () => unsubscribe();
-  }, [collectionName, db]);
+  }, [personnelQuery]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
     if (!currentUser?.email || !db) return;

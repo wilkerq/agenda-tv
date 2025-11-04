@@ -11,7 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useMemoFirebase } from "@/firebase";
 
 interface EventsByPersonnel {
   [personnelName: string]: Event[];
@@ -31,27 +31,31 @@ export default function ShareSchedulePage() {
     setIsClient(true);
   }, []);
 
+  const eventsQuery = useMemoFirebase(() => {
+    if (!selectedDate || !db) return null;
+    
+    const startOfSelectedDay = startOfDay(selectedDate);
+    const endOfSelectedDay = endOfDay(selectedDate);
+    
+    return query(
+      collection(db, "events"),
+      where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
+      where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
+      orderBy("date", "asc")
+    );
+  }, [selectedDate, db]);
+
+
   const fetchEvents = useCallback(async () => {
-    if (!selectedDate || !db) {
+    if (!eventsQuery) {
       setEventsByPersonnel({});
       setIsFetchingEvents(false);
       return;
     }
 
     setIsFetchingEvents(true);
-    const eventsCollectionRef = collection(db, "events");
     try {
-      const startOfSelectedDay = startOfDay(selectedDate);
-      const endOfSelectedDay = endOfDay(selectedDate);
-
-      const q = query(
-        eventsCollectionRef,
-        where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
-        where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
-        orderBy("date", "asc")
-      );
-
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(eventsQuery);
 
       const fetchedEvents = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -85,21 +89,19 @@ export default function ShareSchedulePage() {
 
     } catch (serverError) {
       const permissionError = new FirestorePermissionError({
-        path: (eventsCollectionRef as any).path,
+        path: (eventsQuery.path as any),
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsFetchingEvents(false);
     }
-  }, [selectedDate, toast, db]);
+  }, [eventsQuery, toast]);
 
 
   useEffect(() => {
-    if (selectedDate) {
-      fetchEvents();
-    }
-  }, [selectedDate, fetchEvents]);
+    fetchEvents();
+  }, [fetchEvents]);
   
   const personnelNames = useMemo(() => Object.keys(eventsByPersonnel).sort((a, b) => a.localeCompare(b)), [eventsByPersonnel]);
   const hasEvents = personnelNames.length > 0;
