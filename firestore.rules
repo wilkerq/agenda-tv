@@ -8,13 +8,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Allow any authenticated user to read/write to the events collection.
-    // This is the most direct way to solve the permission issue.
-    match /events/{eventId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    // Regra global: Permite acesso total a qualquer usuário autenticado para outras coleções.
+    // Regra global: Permite que qualquer usuário autenticado leia e escreva em
+    // qualquer documento de qualquer coleção.
     match /{document=**} {
       allow read, write: if isAuthenticated();
     }
