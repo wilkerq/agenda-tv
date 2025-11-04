@@ -561,6 +561,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -579,6 +580,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -597,6 +599,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -615,6 +618,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                             <SelectItem value="">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -862,7 +866,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     </>
   );
 }
-
-    
-
-    

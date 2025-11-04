@@ -125,10 +125,10 @@ export const SuggestTeamInputSchema = z.object({
   arrival: z.string().optional().nullable().describe("Data de chegada ISO (para viagens)"),
   
   // Personnel lists for both modes
-  operators: z.array(PersonnelSchema).optional().describe("List of available transmission operators."),
-  cinematographicReporters: z.array(PersonnelSchema).optional().describe("List of available cinematographic reporters."),
-  reporters: z.array(PersonnelSchema).optional().describe("List of available reporters (filtered from production personnel)."),
-  producers: z.array(PersonnelSchema).optional().describe("List of available producers (filtered from production personnel)."),
+  operators: z.array(PersonnelSchema).describe("List of available transmission operators."),
+  cinematographicReporters: z.array(PersonnelSchema).describe("List of available cinematographic reporters."),
+  reporters: z.array(PersonnelSchema).describe("List of available reporters (filtered from production personnel)."),
+  producers: z.array(PersonnelSchema).describe("List of available producers (filtered from production personnel)."),
   
   // Data for logic mode (fetched on client)
   eventsToday: z.array(z.any()).optional().describe("List of events happening on the same day."),
@@ -204,4 +204,3 @@ export interface AuditLog {
     after?: object;
     details?: object;
 }
-
