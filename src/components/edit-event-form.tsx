@@ -68,10 +68,10 @@ const formSchema = z.object({
     message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
-  transmissionOperator: z.string().optional(),
-  cinematographicReporter: z.string().optional(),
-  reporter: z.string().optional(),
-  producer: z.string().optional(),
+  transmissionOperator: z.string().optional().nullable(),
+  cinematographicReporter: z.string().optional().nullable(),
+  reporter: z.string().optional().nullable(),
+  producer: z.string().optional().nullable(),
   departureDate: z.date().optional(),
   departureTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
   arrivalDate: z.date().optional(),
@@ -177,7 +177,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       return newDate;
   };
   
-  const processValue = (value?: string) => {
+  const processValue = (value?: string | null) => {
     return value === "__NONE__" ? undefined : value;
   };
 
@@ -265,7 +265,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Op. de Transmissão</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                 <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
@@ -284,7 +284,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Rep. Cinematográfico</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                 <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
@@ -303,7 +303,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Repórter</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                 <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
@@ -322,7 +322,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                         render={({ field }) => (
                         <FormItem>
                             <FormLabel>Produtor</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
                                 <FormControl>
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>

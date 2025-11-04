@@ -68,10 +68,10 @@ const baseSchema = z.object({
     message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
-  transmissionOperator: z.string().optional(),
-  cinematographicReporter: z.string().optional(),
-  reporter: z.string().optional(),
-  producer: z.string().optional(),
+  transmissionOperator: z.string().optional().nullable(),
+  cinematographicReporter: z.string().optional().nullable(),
+  reporter: z.string().optional().nullable(),
+  producer: z.string().optional().nullable(),
   repeats: z.boolean().default(false),
   repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repeatCount: z.coerce.number().int().min(1).optional(),
@@ -289,7 +289,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             } else {
                  toast({
                     title: "Nenhuma sugestão disponível",
-                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
+                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
                     variant: "default",
                 });
             }
@@ -386,7 +386,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       return newDate;
   };
 
-  const processValue = (value?: string) => {
+  const processValue = (value?: string | null) => {
     return value === "__NONE__" ? undefined : value;
   };
   
@@ -560,7 +560,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Op. de Transmissão</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
@@ -579,7 +579,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Rep. Cinematográfico</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
@@ -598,7 +598,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Repórter</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
@@ -617,7 +617,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Produtor</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value ?? ''}>
                         <FormControl>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
