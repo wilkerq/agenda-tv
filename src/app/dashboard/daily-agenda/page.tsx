@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
 import type { Event } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -13,14 +14,12 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [events, setEvents] = useState<Event[]>([]);
   const [message, setMessage] = useState("");
-  const [isFetchingEvents, setIsFetchingEvents] = useState(true);
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
@@ -30,61 +29,34 @@ export default function DailyAgendaPage() {
     setSelectedDate(new Date());
   }, []);
 
-  const fetchEvents = useCallback(async () => {
-    if (!selectedDate || !db) {
-      setEvents([]);
-      setIsFetchingEvents(false);
-      return;
-    }
-
-    setIsFetchingEvents(true);
-    setMessage("");
-    const eventsCollectionRef = collection(db, "events");
-    try {
-      const startOfSelectedDay = startOfDay(selectedDate);
-      const endOfSelectedDay = endOfDay(selectedDate);
-      
-      const q = query(
-        eventsCollectionRef,
-        where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
-        where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
-        orderBy("date", "asc")
-      );
-
-      const querySnapshot = await getDocs(q);
-
-      const fetchedEvents = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          date: (data.date as Timestamp).toDate(),
-        } as Event;
-      });
-
-      setEvents(fetchedEvents);
-
-    } catch (serverError) {
-      const permissionError = new FirestorePermissionError({
-        path: (eventsCollectionRef as any).path,
-        operation: 'list',
-      } satisfies SecurityRuleContext);
-      errorEmitter.emit('permission-error', permissionError);
-      setEvents([]);
-    } finally {
-      setIsFetchingEvents(false);
-    }
+  const eventsQuery = useMemoFirebase(() => {
+    if (!selectedDate || !db) return null;
+    
+    const startOfSelectedDay = startOfDay(selectedDate);
+    const endOfSelectedDay = endOfDay(selectedDate);
+    
+    return query(
+      collection(db, "events"),
+      where("date", ">=", Timestamp.fromDate(startOfSelectedDay)),
+      where("date", "<=", Timestamp.fromDate(endOfSelectedDay)),
+      orderBy("date", "asc")
+    );
   }, [selectedDate, db]);
 
+  const { data: events, isLoading: isFetchingEvents, error: fetchError } = useCollection<Event>(eventsQuery);
 
   useEffect(() => {
-    if (selectedDate) {
-        fetchEvents();
-    }
-  }, [fetchEvents, selectedDate]);
-  
+      if(fetchError){
+           const permissionError = new FirestorePermissionError({
+            path: (eventsQuery?.path as any) || 'events',
+            operation: 'list',
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+      }
+  }, [fetchError, eventsQuery]);
+
   const handleGenerateCompleteMessage = useCallback(async () => {
-    if (!selectedDate || events.length === 0) {
+    if (!selectedDate || !events || events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
         setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
         return;
@@ -124,7 +96,7 @@ export default function DailyAgendaPage() {
   }, [events, selectedDate, toast]);
 
   const handleGenerateOperatorsMessage = useCallback(async () => {
-    if (!selectedDate || events.length === 0) {
+    if (!selectedDate || !events || events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
         setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
         return;
@@ -206,7 +178,7 @@ export default function DailyAgendaPage() {
             <CardDescription>
               {isFetchingEvents 
                 ? "Buscando eventos..." 
-                : `${events.length} evento(s) encontrado(s).`
+                : `${events?.length || 0} evento(s) encontrado(s).`
               }
             </CardDescription>
           </CardHeader>
@@ -215,12 +187,12 @@ export default function DailyAgendaPage() {
                 <div className="space-y-4">
                     {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
-            ) : events.length > 0 ? (
+            ) : events && events.length > 0 ? (
                 <ul className="space-y-3">
                     {events.map(event => (
                         <li key={event.id} className="flex items-center gap-4 rounded-md border p-3">
                              <div className="font-mono text-sm bg-muted text-muted-foreground p-2 rounded-md">
-                                {format(event.date, "HH:mm")}
+                                {format((event.date as unknown as Timestamp).toDate(), "HH:mm")}
                             </div>
                             <div>
                                 <p className="font-semibold">{event.name}</p>
@@ -247,11 +219,11 @@ export default function DailyAgendaPage() {
             <CardContent>
                 <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleGenerateCompleteMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} className="w-full sm:w-auto">
+                        <Button onClick={handleGenerateCompleteMessage} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} className="w-full sm:w-auto">
                             {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
                             Gerar Pauta (Completa)
                         </Button>
-                        <Button onClick={handleGenerateOperatorsMessage} disabled={isGeneratingMessage || isFetchingEvents || events.length === 0} variant="outline" className="w-full sm:w-auto">
+                        <Button onClick={handleGenerateOperatorsMessage} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} variant="outline" className="w-full sm:w-auto">
                             {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
                             Gerar Pauta (Operadores)
                         </Button>
@@ -278,3 +250,5 @@ export default function DailyAgendaPage() {
     </div>
   );
 }
+
+    

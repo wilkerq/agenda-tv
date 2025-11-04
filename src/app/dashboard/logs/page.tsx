@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,7 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { History, FilePen, Trash2, FilePlus, User, Send, UserPlus as UserPlusIcon } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate';
 
@@ -37,38 +38,25 @@ const actionDetails: Record<AuditLogAction, { text: string; icon: React.FC<any>;
 };
 
 export default function LogsPage() {
-    const [logs, setLogs] = useState<AuditLog[]>([]);
-    const [loading, setLoading] = useState(true);
     const { theme } = useTheme();
     const db = useFirestore();
 
-    useEffect(() => {
-        if (!db) return;
-        const logsCollectionRef = collection(db, "audit_logs");
-        const q = query(logsCollectionRef, orderBy("timestamp", "desc"));
+    const logsQuery = useMemoFirebase(() => {
+        if (!db) return null;
+        return query(collection(db, "audit_logs"), orderBy("timestamp", "desc"));
+    }, [db]);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const logsData = snapshot.docs.map(doc => {
-                const data = doc.data();
-                return {
-                    id: doc.id,
-                    ...data,
-                    timestamp: (data.timestamp as Timestamp).toDate(),
-                } as AuditLog;
-            });
-            setLogs(logsData);
-            setLoading(false);
-        }, (serverError) => {
+    const { data: logs, isLoading: loading, error: fetchError } = useCollection<AuditLog>(logsQuery);
+
+    useEffect(() => {
+        if(fetchError){
             const permissionError = new FirestorePermissionError({
-                path: logsCollectionRef.path,
+                path: 'audit_logs',
                 operation: 'list',
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, [db]);
+        }
+    }, [fetchError]);
 
     const renderJsonViewer = (data: object) => (
         <div className="p-2 rounded-md bg-slate-50 dark:bg-slate-800 my-2 text-sm text-foreground">
@@ -108,7 +96,7 @@ export default function LogsPage() {
                     <div className="space-y-4">
                         {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
                     </div>
-                ) : logs.length === 0 ? (
+                ) : !logs || logs.length === 0 ? (
                     <div className="text-center py-10">
                         <History className="mx-auto h-12 w-12 text-muted-foreground" />
                         <p className="mt-4 font-medium">Nenhum log encontrado</p>
@@ -137,7 +125,7 @@ export default function LogsPage() {
                                                 </div>
                                             </div>
                                             <span className="text-sm text-muted-foreground pr-4">
-                                                {format(log.timestamp, "dd/MM/yy 'às' HH:mm:ss", { locale: ptBR })}
+                                                {format((log.timestamp as unknown as Timestamp).toDate(), "dd/MM/yy 'às' HH:mm:ss", { locale: ptBR })}
                                             </span>
                                         </div>
                                     </AccordionTrigger>
@@ -183,3 +171,5 @@ export default function LogsPage() {
         </Card>
     );
 }
+
+    
