@@ -202,4 +202,6 @@ export interface AuditLog {
     timestamp: Date;
     before?: object;
     after?: object;
+    details?: object;
 }
+

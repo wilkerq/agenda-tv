@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, parseISO, startOfDay, endOfDay } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
@@ -121,9 +121,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
   
   const [suggestionData, setSuggestionData] = React.useState<SuggestTeamOutput | null>(null);
-
-  const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
-  const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
 
   React.useEffect(() => {
     if (!user || !db) return;
@@ -250,8 +247,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             arrival: arrivalDateTime?.toISOString() || null,
             operators: transmissionOperators,
             cinematographicReporters: cinematographicReporters,
-            reporters: reporters, // Pass filtered list
-            producers: producers, // Pass filtered list
+            reporters: productionPersonnel.filter(p => p.isReporter),
+            producers: productionPersonnel.filter(p => p.isProducer),
             // Pass fetched data for logic mode
             eventsToday: eventsToday,
             allFutureEvents: allFutureEvents,
@@ -307,7 +304,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, db, setReallocationSuggestions, transmissionOperators, cinematographicReporters, reporters, producers]);
+  }, [form, toast, user, db, setReallocationSuggestions, transmissionOperators, cinematographicReporters, productionPersonnel]);
 
 
   React.useEffect(() => {
@@ -448,7 +445,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         setIsSubmitting(false);
     }
   }
-
+  const reporters = React.useMemo(() => productionPersonnel.filter(p => p.isReporter), [productionPersonnel]);
+  const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
   return (
     <>
     <Form {...form}>

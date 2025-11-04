@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getDay, differenceInHours, isWithinInterval, parseISO } from 'date-fns';
+import { getDay, differenceInHours, isWithinInterval, parseISO, isSameDay } from 'date-fns';
 import type { TransmissionType, Event, ReschedulingSuggestion, Personnel, ProductionPersonnel } from "./types";
 
 // ==========================================================================================
@@ -15,13 +15,13 @@ interface SuggestTeamParams {
     location: string;
     transmissionTypes: TransmissionType[];
     
-    operators: Personnel[];
-    cinematographicReporters: Personnel[];
-    reporters: Personnel[];
-    producers: Personnel[];
+    operators?: Personnel[];
+    cinematographicReporters?: Personnel[];
+    reporters?: Personnel[];
+    producers?: Personnel[];
     
-    eventsToday: Event[];
-    allFutureEvents: Event[];
+    eventsToday?: Event[];
+    allFutureEvents?: Event[];
 }
 
 type RoleKey = 'transmissionOperator' | 'cinematographicReporter' | 'reporter' | 'producer';
@@ -195,8 +195,8 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
       cinematographicReporters = [], 
       reporters = [],
       producers = [],
-      eventsToday,
-      allFutureEvents
+      eventsToday = [],
+      allFutureEvents = []
     } = params;
 
     const eventDate = parseISO(date);
@@ -295,4 +295,3 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
     }
 };
 
-    
