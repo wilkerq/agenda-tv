@@ -229,7 +229,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 where('date', '<=', Timestamp.fromDate(end))
             )
         );
-        const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
+        const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()}) as Event);
 
         const allFutureEventsSnapshot = await getDocs(
             query(
@@ -238,8 +238,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                 orderBy('date')
             )
         );
-        const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
-
+        const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()}) as Event);
+        
         const result = await suggestTeam({
             name: name,
             date: eventDate.toISOString(),
@@ -250,8 +250,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             arrival: arrivalDateTime?.toISOString() || null,
             operators: transmissionOperators,
             cinematographicReporters: cinematographicReporters,
-            reporters: reporters,
-            producers: producers,
+            reporters: reporters, // Pass filtered list
+            producers: producers, // Pass filtered list
             // Pass fetched data for logic mode
             eventsToday: eventsToday,
             allFutureEvents: allFutureEvents,

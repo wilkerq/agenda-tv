@@ -17,8 +17,8 @@ interface SuggestTeamParams {
     
     operators: Personnel[];
     cinematographicReporters: Personnel[];
-    reporters: ProductionPersonnel[];
-    producers: ProductionPersonnel[];
+    reporters: Personnel[]; // Changed from ProductionPersonnel[] to Personnel[]
+    producers: Personnel[]; // Changed from ProductionPersonnel[] to Personnel[]
     
     eventsToday: Event[];
     allFutureEvents: Event[];
@@ -118,8 +118,8 @@ const findReschedulingSuggestions = (
     allPersonnel: {
         operators: Personnel[],
         cinematographers: Personnel[],
-        reporters: ProductionPersonnel[],
-        producers: ProductionPersonnel[]
+        reporters: Personnel[],
+        producers: Personnel[]
     }
 ): ReschedulingSuggestion[] => {
     
