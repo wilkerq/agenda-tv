@@ -9,19 +9,20 @@ import type { TransmissionType, Event, ReschedulingSuggestion, Personnel, Produc
 // ==========================================================================================
 
 interface SuggestTeamParams {
+    name: string;
     date: string;
     departure?: string | null; // Can be null
     arrival?: string | null;   // Can be null
     location: string;
     transmissionTypes: TransmissionType[];
     
-    operators?: Personnel[];
-    cinematographicReporters?: Personnel[];
-    reporters?: Personnel[];
-    producers?: Personnel[];
+    operators: Personnel[];
+    cinematographicReporters: Personnel[];
+    reporters: Personnel[];
+    producers: Personnel[];
     
-    eventsToday?: Event[];
-    allFutureEvents?: Event[];
+    eventsToday: Event[];
+    allFutureEvents: Event[];
 }
 
 type RoleKey = 'transmissionOperator' | 'cinematographicReporter' | 'reporter' | 'producer';
@@ -73,35 +74,37 @@ const getSuggestion = (
     personnel: Personnel[],
     workload: Map<string, number>,
     eventTurn: 'Manhã' | 'Tarde' | 'Noite',
-    alreadyAssigned: Set<string>
+    alreadyAssigned: Set<string>,
+    eventDate: Date,
 ): Personnel | undefined => {
     
-    const eventDate = new Date(); // Using current date just to get day of week
     const isWeekend = getDay(eventDate) === 0 || getDay(eventDate) === 6;
 
     // Filter out already assigned people
     const availablePersonnel = personnel.filter(p => !alreadyAssigned.has(p.name));
+    if (availablePersonnel.length === 0) return undefined;
     
+    // Sort by workload (ascending)
+    const sortFn = (a: Personnel, b: Personnel) => (workload.get(a.name) ?? 0) - (workload.get(b.name) ?? 0);
+
     // 1. Prioritize specialists for the specific turn
-    const turnSpecialists = availablePersonnel.filter(p => p.turn === eventTurn);
+    const turnSpecialists = availablePersonnel.filter(p => p.turn === eventTurn).sort(sortFn);
     if (turnSpecialists.length > 0) {
-        // Sort by workload (ascending) and return the first one
-        turnSpecialists.sort((a, b) => (workload.get(a.name) ?? 0) - (workload.get(b.name) ?? 0));
         return turnSpecialists[0];
     }
     
     // 2. If no specialists, use 'Geral' personnel as backup
-    const generalists = availablePersonnel.filter(p => p.turn === 'Geral');
+    const generalists = availablePersonnel.filter(p => p.turn === 'Geral').sort(sortFn);
     if (generalists.length > 0) {
-        // Sort by workload and return the first one
-        generalists.sort((a, b) => (workload.get(a.name) ?? 0) - (workload.get(b.name) ?? 0));
         return generalists[0];
     }
     
     // 3. For weekends, consider anyone available if no specialists or generalists are found
-    if(isWeekend && availablePersonnel.length > 0) {
-        availablePersonnel.sort((a, b) => (workload.get(a.name) ?? 0) - (workload.get(b.name) ?? 0));
-        return availablePersonnel[0];
+    if(isWeekend) {
+        const anyAvailable = availablePersonnel.sort(sortFn);
+        if (anyAvailable.length > 0) {
+            return anyAvailable[0];
+        }
     }
     
     // 4. If no one is found, return undefined
@@ -167,7 +170,7 @@ const findReschedulingSuggestions = (
         }
 
         // Try to find a replacement, excluding the person who is on the trip
-        const replacement = getSuggestion(pool, workload, eventTurn, new Set([personName]));
+        const replacement = getSuggestion(pool, workload, eventTurn, new Set([personName]), conflictDate);
         
         suggestions.push({
             conflictingEventId: conflict.id,
@@ -187,6 +190,7 @@ const findReschedulingSuggestions = (
 
 export const suggestTeam = async (params: SuggestTeamParams) => {
     const { 
+      name,
       date,
       departure,
       arrival,
@@ -259,23 +263,23 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             if (isCCJR) {
                 suggestedOperator = "Rodrigo Sousa";
             } else {
-                const operator = getSuggestion(operators, opWorkload, eventTurn, assignedForThisEvent);
+                const operator = getSuggestion(operators, opWorkload, eventTurn, assignedForThisEvent, eventDate);
                 suggestedOperator = operator?.name;
             }
             if(suggestedOperator) assignedForThisEvent.add(suggestedOperator);
             
             // Suggest Cinematographer
-            const cinematographer = getSuggestion(cinematographicReporters, cineWorkload, eventTurn, assignedForThisEvent);
+            const cinematographer = getSuggestion(cinematographicReporters, cineWorkload, eventTurn, assignedForThisEvent, eventDate);
             suggestedCinematographer = cinematographer?.name;
             if(suggestedCinematographer) assignedForThisEvent.add(suggestedCinematographer);
 
             // Suggest Reporter
-            const reporter = getSuggestion(reporters, reporterWorkload, eventTurn, assignedForThisEvent);
+            const reporter = getSuggestion(reporters, reporterWorkload, eventTurn, assignedForThisEvent, eventDate);
             suggestedReporter = reporter?.name;
             if(suggestedReporter) assignedForThisEvent.add(suggestedReporter);
 
             // Suggest Producer
-            const producer = getSuggestion(producers, producerWorkload, eventTurn, assignedForThisEvent);
+            const producer = getSuggestion(producers, producerWorkload, eventTurn, assignedForThisEvent, eventDate);
             suggestedProducer = producer?.name;
         }
 
@@ -294,4 +298,3 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         throw new Error("Failed to suggest team due to an unexpected logic error.");
     }
 };
-
