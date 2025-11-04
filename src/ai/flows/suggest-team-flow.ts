@@ -9,10 +9,7 @@ import {
     SuggestTeamInput, 
     SuggestTeamInputSchema, 
     SuggestTeamOutput, 
-    SuggestTeamOutputSchema, 
-    Event,
-    Personnel,
-    ProductionPersonnel,
+    SuggestTeamOutputSchema,
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
@@ -34,22 +31,20 @@ const suggestTeamPrompt = ai.definePrompt({
     model: 'googleai/gemini-1.5-pro', 
     // Available tools for the AI
     tools: [getScheduleTool],
-    // Add date to the input schema for the tool
-    input: {schema: SuggestTeamInputSchema.extend({
-        personnel: z.any(), // The full list of personnel is passed in.
-    })},
+    // The input now expects separate, clearly-defined lists for each role.
+    input: {schema: SuggestTeamInputSchema},
     output: { schema: SuggestTeamOutputSchema },
     // System message to guide the AI's behavior
-    system: `You are an expert production manager for a legislative TV station. Your task is to assemble the best possible team for a given event based on the event's details and the daily schedule.
+    system: `You are an expert production manager for a legislative TV station. Your task is to assemble the best possible team for a given event.
 
 Your primary goals are:
 1.  **Avoid Double-Booking:** Use the \`getSchedule\` tool to check which team members are already assigned to other events on the specified 'date'. Pass the 'date' field from the input to this tool.
-2.  **Match Skills to Needs:** Assign a "transmissionOperator", "cinematographicReporter", "reporter", and "producer" as needed based on the event's transmission types.
-3.  **Provide a Complete Team:** Try to fill all roles, but it's okay to leave a role empty if no one suitable is available.
-4.  **Use Only Provided Personnel:** You can only assign personnel from the list provided in the prompt. Do not invent names.
+2.  **Match Skills to Needs:** Assign a "transmissionOperator", "cinematographicReporter", "reporter", and "producer" as needed.
+3.  **Use Only Provided Personnel:** You can only assign personnel from the specific lists provided (operators, cinematographicReporters, reporters, producers). Do not invent names or mix roles.
+4.  **Provide a Complete Team:** Try to fill all roles, but it's okay to leave a role empty if no one suitable is available.
 
-You will receive the event details and a list of all available personnel. Use this information and the \`getSchedule\` tool to make your decision and return the structured team.`,
-    // Use handlebars to structure the input for the AI
+You will receive the event details and lists of available personnel for each role. Use this information and the \`getSchedule\` tool to make your decision and return the structured team.`,
+    // Use handlebars to structure the input for the AI, now with separate loops for each role
     prompt: `
         Event Details:
         - Name: {{{name}}}
@@ -59,8 +54,33 @@ You will receive the event details and a list of all available personnel. Use th
         - Transmission Types: {{#each transmissionTypes}}{{{this}}}{{/each}}
 
         Available Personnel:
-        {{#each personnel}}
-        - Name: {{{this.name}}}, Role: {{{this.role}}}
+        
+        Operators:
+        {{#each operators}}
+        - {{{this.name}}} (Turno: {{{this.turn}}})
+        {{else}}
+        - None available
+        {{/each}}
+
+        Cinematographic Reporters:
+        {{#each cinematographicReporters}}
+        - {{{this.name}}} (Turno: {{{this.turn}}})
+        {{else}}
+        - None available
+        {{/each}}
+
+        Reporters:
+        {{#each reporters}}
+        - {{{this.name}}} (Turno: {{{this.turn}}})
+        {{else}}
+        - None available
+        {{/each}}
+
+        Producers:
+        {{#each producers}}
+        - {{{this.name}}} (Turno: {{{this.turn}}})
+        {{else}}
+        - None available
         {{/each}}
     `,
 });
@@ -79,22 +99,14 @@ const suggestTeamFlow = ai.defineFlow(
 
         if (mode === 'ai') {
             // --- AI MODE ---
-            // 2. Combine all personnel into a single list with roles for the prompt
-            const allPersonnelWithRoles = [
-                ...(input.operators || []).map(p => ({...p, role: 'transmissionOperator'})),
-                ...(input.cinematographicReporters || []).map(p => ({...p, role: 'cinematographicReporter'})),
-                ...(input.reporters || []).map(p => ({...p, role: 'reporter'})),
-                ...(input.producers || []).map(p => ({...p, role: 'producer'}))
-            ];
-
-            // 3. Call the AI prompt with the necessary context, including the personnel and the date for the tool
+            // The input 'input' already contains the separated lists (reporters, producers, etc.)
+            // as defined in the updated SuggestTeamInputSchema. We just need to call the prompt.
             const { output } = await suggestTeamPrompt({
                 ...input,
                 date: format(eventDate, 'yyyy-MM-dd'), // Format date for the tool
-                personnel: allPersonnelWithRoles,
             });
 
-            // 4. Return the structured output from the AI
+            // Return the structured output from the AI
             return output || {};
 
         } else {
@@ -102,8 +114,7 @@ const suggestTeamFlow = ai.defineFlow(
             // Data fetching is now done on the client. We just call the logic function.
             const result = await suggestTeamWithLogic({
                 ...input,
-                eventsToday: input.eventsToday!,
-                allFutureEvents: input.allFutureEvents!,
+                // The input already contains all necessary fields, including eventsToday and allFutureEvents
             });
             
             return result;

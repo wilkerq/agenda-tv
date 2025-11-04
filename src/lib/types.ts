@@ -127,8 +127,8 @@ export const SuggestTeamInputSchema = z.object({
   // Personnel lists for both modes
   operators: z.array(PersonnelSchema).optional().describe("List of available transmission operators."),
   cinematographicReporters: z.array(PersonnelSchema).optional().describe("List of available cinematographic reporters."),
-  reporters: z.array(ProductionPersonnelSchema).optional().describe("List of available reporters."),
-  producers: z.array(ProductionPersonnelSchema).optional().describe("List of available producers."),
+  reporters: z.array(PersonnelSchema).optional().describe("List of available reporters (filtered from production personnel)."),
+  producers: z.array(PersonnelSchema).optional().describe("List of available producers (filtered from production personnel)."),
   
   // Data for logic mode (fetched on client)
   eventsToday: z.array(z.any()).optional().describe("List of events happening on the same day."),
