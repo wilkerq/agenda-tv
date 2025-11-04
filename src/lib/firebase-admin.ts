@@ -13,9 +13,9 @@ let isInitialized = false;
  * Initializes the Firebase Admin SDK if not already initialized.
  * This function is now designed to be called explicitly.
  */
-export function ensureAdminInitialized() {
+function initializeAdminSDK() {
   // If already initialized, do nothing.
-  if (isInitialized) {
+  if (isInitialized && adminApp && adminDb && adminAuth) {
     return;
   }
 
@@ -58,10 +58,12 @@ export function ensureAdminInitialized() {
 
 /**
  * Returns the initialized Firestore admin instance.
+ * It now ensures initialization on every call if not already initialized.
  * @returns {Firestore} The Firestore instance.
- * @throws {Error} If the instance has not been initialized.
+ * @throws {Error} If the instance has not been and cannot be initialized.
  */
 export function getAdminDb(): Firestore {
+  initializeAdminSDK();
   if (!adminDb) {
     // This error now more clearly indicates a logic flow issue (i.e., ensureAdminInitialized was not called or failed).
     throw new Error("Admin DB not initialized. Call ensureAdminInitialized() before using this function.");
@@ -71,10 +73,12 @@ export function getAdminDb(): Firestore {
 
 /**
  * Returns the initialized Auth admin instance.
+ * It now ensures initialization on every call if not already initialized.
  * @returns {Auth} The Auth instance.
- * @throws {Error} If the instance has not been initialized.
+ * @throws {Error} If the instance has not been and cannot be initialized.
  */
 export function getAdminAuth(): Auth {
+  initializeAdminSDK();
   if (!adminAuth) {
     throw new Error("Admin Auth not initialized. Call ensureAdminInitialized() before using this function.");
   }
@@ -83,10 +87,12 @@ export function getAdminAuth(): Auth {
 
 /**
  * Returns the initialized App admin instance.
+ * It now ensures initialization on every call if not already initialized.
  * @returns {App} The App instance.
- * @throws {Error} If the instance has not been initialized.
+ * @throws {Error} If the instance has not been and cannot be initialized.
  */
 export function getAdminApp(): App {
+    initializeAdminSDK();
     if (!adminApp) {
         throw new Error("Admin App not initialized. Call ensureAdminInitialized() before using this function.");
     }

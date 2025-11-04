@@ -1,7 +1,7 @@
 'use server';
 
 import type { AuditLogAction } from './types';
-import { getAdminDb, ensureAdminInitialized } from './firebase-admin';
+import { getAdminDb } from './firebase-admin';
 
 interface LogActionParams {
   action: AuditLogAction;
@@ -25,7 +25,6 @@ export const logAction = async ({
     batchId
 }: LogActionParams) => {
     
-    ensureAdminInitialized();
     const adminDb = getAdminDb();
 
     try {

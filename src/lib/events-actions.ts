@@ -2,7 +2,7 @@
 
 import type { ReschedulingSuggestion } from './types';
 import { logAction } from './audit-log';
-import { getAdminDb, ensureAdminInitialized } from './firebase-admin';
+import { getAdminDb } from './firebase-admin';
 
 
 /**
@@ -13,7 +13,6 @@ export async function reallocateConflictingEvents(
     adminUserEmail: string
 ): Promise<{ success: boolean; message: string; updatedIds: string[] }> {
     
-    ensureAdminInitialized();
     const adminDb = getAdminDb();
 
     if (!suggestions || suggestions.length === 0) {

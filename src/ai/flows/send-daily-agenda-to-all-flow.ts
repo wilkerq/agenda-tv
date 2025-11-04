@@ -13,7 +13,7 @@ import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
 import { logAction } from '@/lib/audit-log';
-import { getAdminDb, ensureAdminInitialized } from '@/lib/firebase-admin';
+import { getAdminDb } from '@/lib/firebase-admin';
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -39,7 +39,6 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     outputSchema: SendDailyAgendaOutputSchema,
   },
   async (input) => {
-    ensureAdminInitialized();
     const adminDb = getAdminDb();
     
     // 1. Fetch all personnel from all relevant collections
