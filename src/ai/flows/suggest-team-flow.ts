@@ -10,16 +10,14 @@ import {
     SuggestTeamInputSchema, 
     SuggestTeamOutput, 
     SuggestTeamOutputSchema, 
-    Event
+    Event,
+    Personnel
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
 import { format, parseISO } from 'date-fns';
 import { getOperationMode } from '@/lib/state';
 import { suggestTeam as suggestTeamWithLogic } from '@/lib/suggestion-logic';
-import { getAdminDb } from '@/lib/firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
-import { startOfDay, endOfDay } from 'date-fns';
 
 
 // Main exported function
@@ -99,29 +97,12 @@ const suggestTeamFlow = ai.defineFlow(
             return output || {};
 
         } else {
-             // --- LOGIC MODE ---
-            const db = getAdminDb(); // Now this should be safe to call
-            const start = startOfDay(eventDate);
-            const end = endOfDay(eventDate);
-
-            // Fetch events for today to calculate workload
-            const eventsTodaySnapshot = await db.collection('events')
-                .where('date', '>=', Timestamp.fromDate(start))
-                .where('date', '<=', Timestamp.fromDate(end))
-                .get();
-            const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
-
-            // Fetch all future events for trip conflict analysis
-            const allFutureEventsSnapshot = await db.collection('events')
-                .where('date', '>=', Timestamp.fromDate(new Date()))
-                .orderBy('date')
-                .get();
-            const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
-            
+            // --- LOGIC MODE ---
+            // Data fetching is now done on the client. We just call the logic function.
             const result = await suggestTeamWithLogic({
                 ...input,
-                eventsToday,
-                allFutureEvents,
+                eventsToday: input.eventsToday!,
+                allFutureEvents: input.allFutureEvents!,
             });
             
             return result;

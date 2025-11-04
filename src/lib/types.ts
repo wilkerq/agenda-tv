@@ -98,6 +98,12 @@ export const PersonnelSchema = z.object({
 });
 export type Personnel = z.infer<typeof PersonnelSchema>;
 
+export const ProductionPersonnelSchema = PersonnelSchema.extend({
+    isReporter: z.boolean(),
+    isProducer: z.boolean(),
+});
+export type ProductionPersonnel = z.infer<typeof ProductionPersonnelSchema>;
+
 
 export const ReschedulingSuggestionSchema = z.object({
     conflictingEventId: z.string(),
@@ -108,6 +114,7 @@ export const ReschedulingSuggestionSchema = z.object({
 });
 export type ReschedulingSuggestion = z.infer<typeof ReschedulingSuggestionSchema>;
 
+// This now includes the data fetched on the client for logic mode
 export const SuggestTeamInputSchema = z.object({
   name: z.string().describe("The name of the event."),
   date: z.string().describe("The date for the event, in ISO 8601 format."),
@@ -116,10 +123,16 @@ export const SuggestTeamInputSchema = z.object({
   transmissionTypes: z.array(z.enum(transmissionTypes)).describe("The type of event (e.g., youtube, tv)."),
   departure: z.string().optional().nullable().describe("Data de partida ISO (para viagens)"),
   arrival: z.string().optional().nullable().describe("Data de chegada ISO (para viagens)"),
+  
+  // Personnel lists for both modes
   operators: z.array(PersonnelSchema).optional().describe("List of available transmission operators."),
   cinematographicReporters: z.array(PersonnelSchema).optional().describe("List of available cinematographic reporters."),
-  reporters: z.array(PersonnelSchema).optional().describe("List of available reporters."),
-  producers: z.array(PersonnelSchema).optional().describe("List of available producers."),
+  reporters: z.array(ProductionPersonnelSchema).optional().describe("List of available reporters."),
+  producers: z.array(ProductionPersonnelSchema).optional().describe("List of available producers."),
+  
+  // Data for logic mode (fetched on client)
+  eventsToday: z.array(z.any()).optional().describe("List of events happening on the same day."),
+  allFutureEvents: z.array(z.any()).optional().describe("List of all future events."),
 });
 export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
 

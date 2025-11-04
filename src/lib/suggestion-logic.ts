@@ -2,24 +2,11 @@
 'use server';
 
 import { getDay, differenceInHours, isWithinInterval, parseISO } from 'date-fns';
-import type { TransmissionType, Event, ReschedulingSuggestion } from "./types";
+import type { TransmissionType, Event, ReschedulingSuggestion, Personnel, ProductionPersonnel } from "./types";
 
 // ==========================================================================================
 // TIPAGENS
 // ==========================================================================================
-
-type Turn = 'Manhã' | 'Tarde' | 'Noite' | 'Geral';
-
-interface Personnel {
-    id: string;
-    name: string;
-    turn: Turn;
-}
-
-interface ProductionPersonnel extends Personnel {
-    isReporter: boolean;
-    isProducer: boolean;
-}
 
 interface SuggestTeamParams {
     date: string;
@@ -28,9 +15,10 @@ interface SuggestTeamParams {
     location: string;
     transmissionTypes: TransmissionType[];
     
-    operators: Personnel[] | undefined;
-    cinematographicReporters: Personnel[] | undefined;
-    productionPersonnel: ProductionPersonnel[] | undefined;
+    operators: Personnel[];
+    cinematographicReporters: Personnel[];
+    reporters: ProductionPersonnel[];
+    producers: ProductionPersonnel[];
     
     eventsToday: Event[];
     allFutureEvents: Event[];
@@ -130,7 +118,8 @@ const findReschedulingSuggestions = (
     allPersonnel: {
         operators: Personnel[],
         cinematographers: Personnel[],
-        production: ProductionPersonnel[]
+        reporters: ProductionPersonnel[],
+        producers: ProductionPersonnel[]
     }
 ): ReschedulingSuggestion[] => {
     
@@ -141,7 +130,7 @@ const findReschedulingSuggestions = (
         const isAssigned = (event[roleKey as keyof Event] as string) === personName;
         if (!isAssigned) return false;
         
-        const eventDate = parseISO(event.date as unknown as string);
+        const eventDate = new Date(event.date); // Date is already a Date object
         const conflicts = isWithinInterval(eventDate, tripInterval);
         
         const isLocalEvent = !event.transmission.includes('viagem');
@@ -150,9 +139,9 @@ const findReschedulingSuggestions = (
     });
 
     for (const conflict of conflictingEvents) {
-        const conflictDate = parseISO(conflict.date as unknown as string);
+        const conflictDate = new Date(conflict.date);
         const eventTurn = getEventTurn(conflictDate);
-        const eventsOnConflictDay = allFutureEvents.filter(e => getDay(parseISO(e.date as unknown as string)) === getDay(conflictDate));
+        const eventsOnConflictDay = allFutureEvents.filter(e => getDay(new Date(e.date)) === getDay(conflictDate));
         
         let pool: Personnel[] = [];
         let workload: Map<string, number>;
@@ -167,11 +156,11 @@ const findReschedulingSuggestions = (
                 workload = getDailyWorkload(pool, eventsOnConflictDay, 'cinematographicReporter');
                 break;
             case 'reporter':
-                pool = allPersonnel.production.filter(p => p.isReporter);
+                pool = allPersonnel.reporters;
                 workload = getDailyWorkload(pool, eventsOnConflictDay, 'reporter');
                 break;
             case 'producer':
-                pool = allPersonnel.production.filter(p => p.isProducer);
+                pool = allPersonnel.producers;
                 workload = getDailyWorkload(pool, eventsOnConflictDay, 'producer');
                 break;
         }
@@ -203,7 +192,8 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
       location, 
       operators = [], 
       cinematographicReporters = [], 
-      productionPersonnel = [], 
+      reporters = [],
+      producers = [],
       eventsToday,
       allFutureEvents
     } = params;
@@ -230,8 +220,8 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             // --- LÓGICA PARA VIAGENS ---
             const opTripWorkload = getTripWorkload(operators, allFutureEvents, 'transmissionOperator');
             const cineTripWorkload = getTripWorkload(cinematographicReporters, allFutureEvents, 'cinematographicReporter');
-            const reporterTripWorkload = getTripWorkload(productionPersonnel.filter(p=>p.isReporter), allFutureEvents, 'reporter');
-            const producerTripWorkload = getTripWorkload(productionPersonnel.filter(p=>p.isProducer), allFutureEvents, 'producer');
+            const reporterTripWorkload = getTripWorkload(reporters, allFutureEvents, 'reporter');
+            const producerTripWorkload = getTripWorkload(producers, allFutureEvents, 'producer');
             
             const sortedOps = operators.sort((a,b) => (opTripWorkload.get(a.name) ?? 0) - (opTripWorkload.get(b.name) ?? 0));
             suggestedOperator = sortedOps[0]?.name;
@@ -241,16 +231,16 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             suggestedCinematographer = sortedCines[0]?.name;
             if(suggestedCinematographer) assignedForThisEvent.add(suggestedCinematographer);
 
-            const sortedReporters = productionPersonnel.filter(p => p.isReporter && !assignedForThisEvent.has(p.name)).sort((a,b) => (reporterTripWorkload.get(a.name) ?? 0) - (reporterTripWorkload.get(b.name) ?? 0));
+            const sortedReporters = reporters.filter(p => !assignedForThisEvent.has(p.name)).sort((a,b) => (reporterTripWorkload.get(a.name) ?? 0) - (reporterTripWorkload.get(b.name) ?? 0));
             suggestedReporter = sortedReporters[0]?.name;
             if(suggestedReporter) assignedForThisEvent.add(suggestedReporter);
 
-            const sortedProducers = productionPersonnel.filter(p => p.isProducer && !assignedForThisEvent.has(p.name)).sort((a,b) => (producerTripWorkload.get(a.name) ?? 0) - (producerTripWorkload.get(b.name) ?? 0));
+            const sortedProducers = producers.filter(p => !assignedForThisEvent.has(p.name)).sort((a,b) => (producerTripWorkload.get(a.name) ?? 0) - (producerTripWorkload.get(b.name) ?? 0));
             suggestedProducer = sortedProducers[0]?.name;
 
             // Find conflicts and suggest reallocations
             if (eventDeparture && eventArrival) {
-                const allPersonnel = { operators, cinematographers: cinematographicReporters, production: productionPersonnel};
+                const allPersonnel = { operators, cinematographers: cinematographicReporters, reporters, producers };
                 if(suggestedOperator) reschedulingSuggestions.push(...findReschedulingSuggestions(suggestedOperator, 'transmissionOperator', eventDeparture, eventArrival, allFutureEvents, allPersonnel));
                 if(suggestedCinematographer) reschedulingSuggestions.push(...findReschedulingSuggestions(suggestedCinematographer, 'cinematographicReporter', eventDeparture, eventArrival, allFutureEvents, allPersonnel));
                 if(suggestedReporter) reschedulingSuggestions.push(...findReschedulingSuggestions(suggestedReporter, 'reporter', eventDeparture, eventArrival, allFutureEvents, allPersonnel));
@@ -261,8 +251,8 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             // --- LÓGICA PARA EVENTOS LOCAIS ---
             const opWorkload = getDailyWorkload(operators, eventsToday, 'transmissionOperator');
             const cineWorkload = getDailyWorkload(cinematographicReporters, eventsToday, 'cinematographicReporter');
-            const reporterWorkload = getDailyWorkload(productionPersonnel, eventsToday, 'reporter');
-            const producerWorkload = getDailyWorkload(productionPersonnel, eventsToday, 'producer');
+            const reporterWorkload = getDailyWorkload(reporters, eventsToday, 'reporter');
+            const producerWorkload = getDailyWorkload(producers, eventsToday, 'producer');
 
             // Suggest Operator
             if (isCCJR) {
@@ -279,12 +269,12 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             if(suggestedCinematographer) assignedForThisEvent.add(suggestedCinematographer);
 
             // Suggest Reporter
-            const reporter = getSuggestion(productionPersonnel.filter(p=>p.isReporter), reporterWorkload, eventTurn, assignedForThisEvent);
+            const reporter = getSuggestion(reporters, reporterWorkload, eventTurn, assignedForThisEvent);
             suggestedReporter = reporter?.name;
             if(suggestedReporter) assignedForThisEvent.add(suggestedReporter);
 
             // Suggest Producer
-            const producer = getSuggestion(productionPersonnel.filter(p=>p.isProducer), producerWorkload, eventTurn, assignedForThisEvent);
+            const producer = getSuggestion(producers, producerWorkload, eventTurn, assignedForThisEvent);
             suggestedProducer = producer?.name;
         }
 

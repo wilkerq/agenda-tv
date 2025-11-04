@@ -4,11 +4,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Plane, LogOut, LogIn, Sparkles } from "lucide-react";
 import * as React from "react";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, getDocs, where, Timestamp, orderBy } from "firebase/firestore";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion, Personnel } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
@@ -107,11 +107,6 @@ type AddEventFormProps = {
   reallocationSuggestions: ReschedulingSuggestion[] | null;
   setReallocationSuggestions: (suggestions: ReschedulingSuggestion[] | null) => void;
   onConfirmReallocation: (suggestions: ReschedulingSuggestion[]) => Promise<void>;
-};
-
-type ProductionPersonnel = Personnel & {
-  isReporter: boolean;
-  isProducer: boolean;
 };
 
 export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocationSuggestions, setReallocationSuggestions, onConfirmReallocation }: AddEventFormProps) {
@@ -187,7 +182,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const handleSuggestion = React.useCallback(async () => {
     const { name, date, time, location, transmission, departureDate, departureTime, arrivalDate, arrivalTime } = form.getValues();
     
-    if (!user) {
+    if (!user || !db) {
        toast({ title: "Autenticação necessária", description: "Você precisa estar logado para usar a sugestão.", variant: "destructive"});
        return;
     }
@@ -224,6 +219,27 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         const departureDateTime = departureDate && departureTime ? new Date(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
         const arrivalDateTime = arrivalDate && arrivalTime ? new Date(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
 
+        // Fetch events for logic mode directly on the client
+        const start = startOfDay(eventDate);
+        const end = endOfDay(eventDate);
+        const eventsTodaySnapshot = await getDocs(
+            query(
+                collection(db, 'events'),
+                where('date', '>=', Timestamp.fromDate(start)),
+                where('date', '<=', Timestamp.fromDate(end))
+            )
+        );
+        const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
+
+        const allFutureEventsSnapshot = await getDocs(
+            query(
+                collection(db, 'events'),
+                where('date', '>=', Timestamp.fromDate(new Date())),
+                orderBy('date')
+            )
+        );
+        const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}) as Event);
+
         const result = await suggestTeam({
             name: name,
             date: eventDate.toISOString(),
@@ -232,11 +248,13 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             transmissionTypes: transmission as TransmissionType[],
             departure: departureDateTime?.toISOString() || null,
             arrival: arrivalDateTime?.toISOString() || null,
-            // Pass all personnel lists to the flow
             operators: transmissionOperators,
             cinematographicReporters: cinematographicReporters,
             reporters: reporters,
             producers: producers,
+            // Pass fetched data for logic mode
+            eventsToday: eventsToday,
+            allFutureEvents: allFutureEvents,
         });
         
         setSuggestionData(result);
@@ -274,7 +292,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             } else {
                  toast({
                     title: "Nenhuma sugestão disponível",
-                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manually.",
+                    description: "Não foi possível sugerir uma equipe completa. Verifique as escalas ou preencha manualmente.",
                     variant: "default",
                 });
             }
@@ -289,7 +307,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, setReallocationSuggestions, transmissionOperators, cinematographicReporters, reporters, producers]);
+  }, [form, toast, user, db, setReallocationSuggestions, transmissionOperators, cinematographicReporters, reporters, producers]);
 
 
   React.useEffect(() => {
@@ -850,7 +868,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             
             </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+    </AlertDialog>
     </>
   );
 }
