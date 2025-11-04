@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,7 +36,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType, EventFormData } from "@/lib/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
@@ -208,7 +209,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
   }
 
   return (
-    <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={true} onOpenChange={(isOpen) => { if(!isOpen) onClose() }}>
         <DialogContent className="p-0 sm:max-w-3xl">
             <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Editar Evento</DialogTitle>
@@ -518,9 +519,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                   />
                 )}
                  <DialogFooter className="pt-4">
-                    <DialogClose asChild>
-                        <Button type="button" variant="outline">Cancelar</Button>
-                    </DialogClose>
+                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
                     <Button
                         type="submit"
                         disabled={isSubmitting}
