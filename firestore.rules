@@ -11,7 +11,7 @@ service cloud.firestore {
     // Regra consolidada para a coleção de eventos
     match /events/{eventId} {
       // Permite que usuários autenticados realizem todas as operações
-      allow read, write, list: if isAuthenticated();
+      allow read, list, create, update, delete: if isAuthenticated();
     }
 
     match /transmission_operators/{opId} {
