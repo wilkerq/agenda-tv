@@ -386,8 +386,11 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       return newDate;
   };
 
-  const processValue = (value?: string | null) => {
-    return value === "__NONE__" ? undefined : value;
+  const processValue = (value?: string | null): string | undefined => {
+    if (value === "__NONE__" || value === null || value === "") {
+        return undefined;
+    }
+    return value;
   };
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -870,3 +873,5 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     </>
   );
 }
+
+    
