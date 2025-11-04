@@ -163,7 +163,7 @@ export default function DashboardPage() {
         if (eventData.departure) newEventData.departure = Timestamp.fromDate(eventData.departure);
         if (eventData.arrival) newEventData.arrival = Timestamp.fromDate(eventData.arrival);
 
-        addDoc(eventsCollectionRef, newEventData)
+        return addDoc(eventsCollectionRef, newEventData)
           .then(async (docRef) => {
             await logAction({
                 action: 'create',
@@ -181,6 +181,7 @@ export default function DashboardPage() {
                 requestResourceData: newEventData,
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
+            throw serverError; // Re-throw to be caught by the calling function
           });
 
     } else {
@@ -207,35 +208,48 @@ export default function DashboardPage() {
             else if (repeatSettings.frequency === 'monthly') currentDate = add(currentDate, { months: 1 });
         }
 
-        batch.commit()
+        return batch.commit()
           .then(() => {
             toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
           })
           .catch((serverError) => {
             const permissionError = new FirestorePermissionError({ path: eventsCollectionRef.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
+            throw serverError;
           });
     }
 }, [user, toast, db]);
 
 const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    // Duplication check
-    if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
-        const conflictingEvent = events.find(existingEvent =>
-            existingEvent.name === eventData.name &&
-            Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
-        );
+    try {
+        // Only check for duplicates if it's not a recurring event being added
+        if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
+            const conflictingEvent = events.find(existingEvent =>
+                existingEvent.name.toLowerCase() === eventData.name.toLowerCase() &&
+                Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
+            );
 
-        if (conflictingEvent) {
-            setPendingEvent({ data: eventData, repeatSettings });
-            setIsConflictDialogOpen(true);
-            return; 
+            if (conflictingEvent) {
+                setPendingEvent({ data: eventData, repeatSettings });
+                setIsConflictDialogOpen(true);
+                return; // Stop execution and wait for user confirmation
+            }
+        }
+        
+        // If no conflict, or if it's a recurring event, add it directly.
+        await confirmAddEvent(eventData, repeatSettings);
+    } catch (error) {
+        // Errors are now thrown by confirmAddEvent and handled by FirestorePermissionError listener
+        // You might want a generic fallback toast here if the error is not a permission error
+        if (!(error instanceof FirestorePermissionError)) {
+             toast({
+                title: "Erro ao Adicionar Evento",
+                description: "Não foi possível salvar o evento. Por favor, tente novamente.",
+                variant: "destructive"
+            });
         }
     }
-
-    await confirmAddEvent(eventData, repeatSettings);
-
-}, [selectedDate, events, confirmAddEvent]);
+}, [selectedDate, events, confirmAddEvent, toast]);
 
 
 const handleDeleteEvent = useCallback(async (eventId: string) => {
@@ -559,5 +573,3 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
-
-    
