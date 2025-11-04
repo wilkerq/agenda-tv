@@ -66,7 +66,7 @@ export function getAdminDb(): Firestore {
   initializeAdminSDK();
   if (!adminDb) {
     // This error now more clearly indicates a logic flow issue (i.e., ensureAdminInitialized was not called or failed).
-    throw new Error("Admin DB not initialized. Call ensureAdminInitialized() before using this function.");
+    throw new Error("Admin DB not initialized. Check your server environment variables and Firebase Admin SDK setup.");
   }
   return adminDb;
 }
@@ -80,7 +80,7 @@ export function getAdminDb(): Firestore {
 export function getAdminAuth(): Auth {
   initializeAdminSDK();
   if (!adminAuth) {
-    throw new Error("Admin Auth not initialized. Call ensureAdminInitialized() before using this function.");
+    throw new Error("Admin Auth not initialized. Check your server environment variables and Firebase Admin SDK setup.");
   }
   return adminAuth;
 }
@@ -94,7 +94,7 @@ export function getAdminAuth(): Auth {
 export function getAdminApp(): App {
     initializeAdminSDK();
     if (!adminApp) {
-        throw new Error("Admin App not initialized. Call ensureAdminInitialized() before using this function.");
+        throw new Error("Admin App not initialized. Check your server environment variables and Firebase Admin SDK setup.");
     }
     return adminApp;
 }
