@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3050:3050"
+    environment:
+      - NODE_ENV=production
+    # Monta o volume para refletir as alterações de código em tempo real no modo de desenvolvimento, se necessário
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    #   - /app/.next
+    command: npm run start
