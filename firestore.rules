@@ -2,55 +2,37 @@
 rules_version = '2';
 
 service cloud.firestore {
-  
   match /databases/{database}/documents {
     
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Regra consolidada para a coleção de eventos
-    match /events/{eventId} {
-      // Permite que usuários autenticados realizem todas as operações
+    // Regra única para permitir todas as operações se o usuário estiver autenticado.
+    // Isso se aplica a CADA coleção abaixo.
+    match /{collection}/{docId} {
       allow read, write: if isAuthenticated();
     }
 
-    match /transmission_operators/{opId} {
-      allow read, write: if isAuthenticated();
+    // A regra acima cobre as coleções individuais, mas o 'list' (para queries em toda a coleção)
+    // precisa ser declarado separadamente.
+    match /events {
+      allow list: if isAuthenticated();
     }
     match /transmission_operators {
       allow list: if isAuthenticated();
     }
-
-    match /cinematographic_reporters/{repId} {
-      allow read, write: if isAuthenticated();
-    }
     match /cinematographic_reporters {
       allow list: if isAuthenticated();
     }
-
-    match /production_personnel/{prodId} {
-      allow read, write: if isAuthenticated();
-    }
-     match /production_personnel {
+    match /production_personnel {
       allow list: if isAuthenticated();
     }
-
-    // Allow authenticated users to write to audit logs
-    match /audit_logs/{logId} {
-      allow read, write: if isAuthenticated();
-    }
-     match /audit_logs {
+    match /audit_logs {
       allow list: if isAuthenticated();
     }
-
-    // A regra para roles_admin ainda precisa ser mais restritiva
-    // para evitar que usuários se tornem administradores.
-    function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-    match /roles_admin/{userId} {
-      allow read, write: if isAdmin();
+    match /roles_admin {
+      allow list: if isAuthenticated();
     }
   }
 }
