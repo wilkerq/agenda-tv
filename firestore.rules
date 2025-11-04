@@ -15,24 +15,28 @@ service cloud.firestore {
     }
 
     // A regra acima cobre as coleções individuais, mas o 'list' (para queries em toda a coleção)
-    // precisa ser declarado separadamente.
+    // e o 'create' (para adicionar documentos) precisam ser declarados separadamente.
+    match /events/{docId} {
+      allow create, update, delete: if isAuthenticated();
+    }
+    
     match /events {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
     match /transmission_operators {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
     match /cinematographic_reporters {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
     match /production_personnel {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
     match /audit_logs {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
     match /roles_admin {
-      allow list: if isAuthenticated();
+      allow list, read: if isAuthenticated();
     }
   }
 }
