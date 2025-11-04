@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getDay, differenceInHours, isWithinInterval, parseISO } from 'date-fns';
@@ -39,7 +38,7 @@ const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
 };
 
 /** Calculates the daily workload for each person based on events of the day */
-const getDailyWorkload = (personnel: Personnel[], events: Event[], role: RoleKey): Map<string, number> => {
+const getDailyWorkload = (personnel: (Personnel | ProductionPersonnel)[], events: Event[], role: RoleKey): Map<string, number> => {
     const workload = new Map<string, number>();
     personnel.forEach(p => workload.set(p.name, 0));
 
