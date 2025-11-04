@@ -8,35 +8,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Regra única para permitir todas as operações se o usuário estiver autenticado.
-    // Isso se aplica a CADA coleção abaixo.
-    match /{collection}/{docId} {
+    match /events/{eventId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /transmission_operators/{docId} {
       allow read, write: if isAuthenticated();
     }
 
-    // A regra acima cobre as coleções individuais, mas o 'list' (para queries em toda a coleção)
-    // e o 'create' (para adicionar documentos) precisam ser declarados separadamente.
-    match /events/{docId} {
-      allow create, update, delete: if isAuthenticated();
+    match /cinematographic_reporters/{docId} {
+      allow read, write: if isAuthenticated();
     }
-    
-    match /events {
-      allow list, read: if isAuthenticated();
+
+    match /production_personnel/{docId} {
+      allow read, write: if isAuthenticated();
     }
-    match /transmission_operators {
-      allow list, read: if isAuthenticated();
+
+    match /audit_logs/{docId} {
+      allow read, write: if isAuthenticated();
     }
-    match /cinematographic_reporters {
-      allow list, read: if isAuthenticated();
-    }
-    match /production_personnel {
-      allow list, read: if isAuthenticated();
-    }
-    match /audit_logs {
-      allow list, read: if isAuthenticated();
-    }
-    match /roles_admin {
-      allow list, read: if isAuthenticated();
+
+    match /roles_admin/{docId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }
