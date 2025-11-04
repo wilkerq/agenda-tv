@@ -44,7 +44,6 @@ const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
     return 'Noite'; // 18:00 em diante
 };
 
-// MODIFICADO (Regra 1): Calcula a carga de eventos no dia
 const getDailyWorkload = (personnel: (Personnel | ProductionPersonnel)[], events: Event[], role: RoleKey): Map<string, number> => {
     const workload = new Map<string, number>();
     personnel.forEach(p => workload.set(p.name, 0));
@@ -58,16 +57,12 @@ const getDailyWorkload = (personnel: (Personnel | ProductionPersonnel)[], events
     return workload;
 };
 
-// NOVO (Regra 3 & 4): Verifica se a pessoa está ocupada em QUALQUER função no horário do evento
-// Assume 1h por evento (Regra 1), mas adiciona 1h antes e 1h depois para segurança
 const isPersonBusy = (personName: string, eventDate: Date, eventsToday: Event[]): boolean => {
-    // Intervalo de segurança para o novo evento (+/- 1 hora)
     const eventStart = subHours(eventDate, 1); 
     const eventEnd = addHours(eventDate, 1);
     const newEventInterval = { start: eventStart, end: eventEnd };
 
     for (const event of eventsToday) {
-        // Verifica se a pessoa está em *qualquer* uma das funções deste evento
         const isAssigned =
             event.transmissionOperator === personName ||
             event.cinematographicReporter === personName ||
@@ -76,22 +71,18 @@ const isPersonBusy = (personName: string, eventDate: Date, eventsToday: Event[])
 
         if (!isAssigned) continue;
 
-        // Intervalo de segurança do evento existente (+/- 1 hora)
         const existingEventDate = new Date(event.date);
         const existingEventStart = subHours(existingEventDate, 1);
         const existingEventEnd = addHours(existingEventDate, 1);
 
-        // Verifica sobreposição
         if (isWithinInterval(newEventInterval.start, { start: existingEventStart, end: existingEventEnd }) ||
             isWithinInterval(newEventInterval.end, { start: existingEventStart, end: existingEventEnd })) {
-            return true; // Há um conflito
+            return true; 
         }
     }
-    return false; // Sem conflitos
+    return false; 
 };
 
-
-// MODIFICADO (Regra 5): Calcula a carga de *dias* de viagem
 const getTripDurationWorkload = (personnel: Personnel[], futureEvents: Event[], role: RoleKey): Map<string, number> => {
     const tripWorkload = new Map<string, number>();
     personnel.forEach(p => tripWorkload.set(p.name, 0));
@@ -100,7 +91,6 @@ const getTripDurationWorkload = (personnel: Personnel[], futureEvents: Event[], 
         if (event.transmission.includes('viagem') && event.departure && event.arrival) {
             const personName = event[role as keyof Event] as string | undefined;
             if (personName && tripWorkload.has(personName)) {
-                // Calcula a duração em dias (arredondando para cima)
                 const duration = differenceInDays(new Date(event.arrival), new Date(event.departure)) + 1;
                 tripWorkload.set(personName, tripWorkload.get(personName)! + (duration > 0 ? duration : 1));
             }
@@ -109,7 +99,6 @@ const getTripDurationWorkload = (personnel: Personnel[], futureEvents: Event[], 
     return tripWorkload;
 };
 
-/** NOVO (Regra 1, 3, 4): Lógica de sugestão genérica com filtros de carga e ocupação */
 const getSuggestion = (
     personnel: Personnel[],
     workload: Map<string, number>,
@@ -121,32 +110,27 @@ const getSuggestion = (
     
     const isWeekend = getDay(eventDate) === 0 || getDay(eventDate) === 6;
 
-    // Filtra pessoal (Regra 1, 3, 4)
     const availablePersonnel = personnel.filter(p => {
         const isAvailable = !alreadyAssigned.has(p.name);
-        const isUnderLimit = (workload.get(p.name) ?? 0) < 6; // Regra 1: Limite de 6h/eventos
-        const isNotBusy = !isPersonBusy(p.name, eventDate, eventsToday); // Regra 3 & 4: Checagem de conflito
+        const isUnderLimit = (workload.get(p.name) ?? 0) < 6; // Regra 1
+        const isNotBusy = !isPersonBusy(p.name, eventDate, eventsToday); // Regra 3 & 4
         return isAvailable && isUnderLimit && isNotBusy;
     });
 
     if (availablePersonnel.length === 0) return undefined;
     
-    // Ordena por carga de trabalho
     const sortFn = (a: Personnel, b: Personnel) => (workload.get(a.name) ?? 0) - (workload.get(b.name) ?? 0);
 
-    // 1. Prioriza especialistas do turno (Regra 2)
     const turnSpecialists = availablePersonnel.filter(p => p.turn === eventTurn).sort(sortFn);
     if (turnSpecialists.length > 0) {
         return turnSpecialists[0];
     }
     
-    // 2. Backup: 'Geral'
     const generalists = availablePersonnel.filter(p => p.turn === 'Geral').sort(sortFn);
     if (generalists.length > 0) {
         return generalists[0];
     }
     
-    // 3. Fim de semana: considera qualquer um
     if(isWeekend) {
         const anyAvailable = availablePersonnel.sort(sortFn);
         if (anyAvailable.length > 0) {
@@ -157,7 +141,7 @@ const getSuggestion = (
     return undefined;
 };
 
-// NOVO (Regra 8): Lógica específica para Operadores de Transmissão
+// Regra 8: Operadores
 const getTransmissionOperatorSuggestion = (
     params: {
         isCCJR: boolean,
@@ -174,51 +158,38 @@ const getTransmissionOperatorSuggestion = (
     
     const { isCCJR, isDeputadosAqui, isWeekend, eventTurn, eventDate, operators, opWorkload, assignedForThisEvent, eventsToday } = params;
 
-    // Regra 6: Deputados Aqui
-    if (isDeputadosAqui) {
+    if (isDeputadosAqui) { // Regra 6
         return operators.find(p => p.name === "Wilker Quirino");
     }
-
-    // Regra 8.b: CCJR
-    if (isCCJR) {
-        // CORREÇÃO: Sua regra diz Mário Augusto, o código anterior dizia Rodrigo Sousa.
+    if (isCCJR) { // Regra 8.b
         return operators.find(p => p.name === "Mário Augusto"); 
     }
-
-    // Regra 8.c: Fim de Semana
-    if (isWeekend) {
+    if (isWeekend) { // Regra 8.c
         const weekendTeam = ["Bruno Almeida", "Mário Augusto", "Ovídio Dias"];
         const weekendPersonnel = operators.filter(p => weekendTeam.includes(p.name));
         return getSuggestion(weekendPersonnel, opWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
     }
-
-    // Regra 8.a: Turno da Noite
-    if (eventTurn === 'Noite') {
-        // Verifica se Bruno já está em outro evento à noite
+    if (eventTurn === 'Noite') { // Regra 8.a
         const brunoIsBusy = eventsToday.some(e => 
             getEventTurn(new Date(e.date)) === 'Noite' && 
             e.transmissionOperator === "Bruno Almeida"
         );
-
         if (!brunoIsBusy) {
             const bruno = operators.find(p => p.name === "Bruno Almeida");
             if(bruno && !isPersonBusy(bruno.name, eventDate, eventsToday) && !assignedForThisEvent.has(bruno.name)) {
                 return bruno;
             }
         }
-        
-        // Se Bruno estiver ocupado, escala Mário
         const mario = operators.find(p => p.name === "Mário Augusto");
         if(mario && !isPersonBusy(mario.name, eventDate, eventsToday) && !assignedForThisEvent.has(mario.name)) {
             return mario;
         }
     }
 
-    // Padrão: Lógica genérica para Manhã/Tarde em dias de semana
     return getSuggestion(operators, opWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
 };
 
-// NOVO (Regra 9): Lógica específica para Repórteres Cinematográficos
+// Regra 9: Cinegrafistas
 const getCinematographerSuggestion = (
     params: {
         eventTurn: 'Manhã' | 'Tarde' | 'Noite',
@@ -232,18 +203,15 @@ const getCinematographerSuggestion = (
     
     const { eventTurn, eventDate, cinematographers, cineWorkload, assignedForThisEvent, eventsToday } = params;
 
-    // Regra 9: Turno da Noite
     if (eventTurn === 'Noite') {
-        // Revezamento entre a equipe da TARDE
         const afternoonTeam = cinematographers.filter(p => p.turn === 'Tarde');
-        return getSuggestion(afternoonTeam, cineWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
+        // "Mente" para getSuggestion, pedindo 'Tarde'
+        return getSuggestion(afternoonTeam, cineWorkload, 'Tarde', assignedForThisEvent, eventDate, eventsToday);
     }
-
-    // Padrão: Lógica genérica
     return getSuggestion(cinematographers, cineWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
 };
 
-// NOVO (Regra 10): Lógica específica para Repórteres
+// Regra 10: Repórteres
 const getReporterSuggestion = (
     params: {
         eventTurn: 'Manhã' | 'Tarde' | 'Noite',
@@ -257,19 +225,46 @@ const getReporterSuggestion = (
     
     const { eventTurn, eventDate, reporters, reporterWorkload, assignedForThisEvent, eventsToday } = params;
 
-    // Regra 10: Turno da Noite
     if (eventTurn === 'Noite') {
-        // Revezamento entre a equipe da TARDE ou GERAL
         const nightPool = reporters.filter(p => p.turn === 'Tarde' || p.turn === 'Geral');
-        return getSuggestion(nightPool, reporterWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
+        // "Mente" para getSuggestion, pedindo 'Tarde' (que fará fallback para 'Geral')
+        return getSuggestion(nightPool, reporterWorkload, 'Tarde', assignedForThisEvent, eventDate, eventsToday);
     }
-
-    // Padrão: Lógica genérica
     return getSuggestion(reporters, reporterWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
 };
 
+// ***************************************************************
+// *** NOVO (Regra inferida pela sua observação) ***
+// Lógica específica para Produtores
+// ***************************************************************
+const getProducerSuggestion = (
+    params: {
+        eventTurn: 'Manhã' | 'Tarde' | 'Noite',
+        eventDate: Date,
+        producers: Personnel[],
+        producerWorkload: Map<string, number>,
+        assignedForThisEvent: Set<string>,
+        eventsToday: Event[],
+    }
+): Personnel | undefined => {
+    
+    const { eventTurn, eventDate, producers, producerWorkload, assignedForThisEvent, eventsToday } = params;
 
-/** (Regra 7) Encontra conflitos de viagem - ESTA FUNÇÃO ESTÁ CORRETA E FOI MANTIDA */
+    // Regra: "não existe equipe que trabalha no turno da noite, quando tem evento automaticamente seleciona equipe da parte da tarde!"
+    if (eventTurn === 'Noite') {
+        // Revezamento entre a equipe da TARDE ou GERAL (espelhando a Regra 10)
+        const nightPool = producers.filter(p => p.turn === 'Tarde' || p.turn === 'Geral');
+        
+        // "Mente" para getSuggestion, pedindo 'Tarde' (que fará fallback para 'Geral')
+        return getSuggestion(nightPool, producerWorkload, 'Tarde', assignedForThisEvent, eventDate, eventsToday);
+    }
+
+    // Padrão: Lógica genérica
+    return getSuggestion(producers, producerWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
+};
+
+
+// Regra 7: Conflitos de Viagem
 const findReschedulingSuggestions = (
     personName: string,
     roleKey: RoleKey,
@@ -288,10 +283,7 @@ const findReschedulingSuggestions = (
         
         const eventDate = new Date(event.date);
         const conflicts = isWithinInterval(eventDate, tripInterval);
-        
-        // Apenas conflita com eventos LOCAIS (não-viagem)
         const isLocalEvent = !event.transmission.includes('viagem');
-
         return conflicts && isLocalEvent;
     });
 
@@ -323,7 +315,29 @@ const findReschedulingSuggestions = (
         }
 
         // Tenta achar um substituto, excluindo a pessoa que viajará
-        const replacement = getSuggestion(pool, workload, eventTurn, new Set([personName]), conflictDate, eventsOnConflictDay);
+        let replacement: Personnel | undefined;
+        if(roleKey === 'transmissionOperator') {
+            replacement = getTransmissionOperatorSuggestion({
+                isCCJR: conflict.location === "Sala Julio da Retifica \"CCJR\"",
+                isDeputadosAqui: conflict.name.toLowerCase().includes("deputados aqui"),
+                isWeekend: getDay(conflictDate) === 0 || getDay(conflictDate) === 6,
+                eventTurn, eventDate: conflictDate, operators: pool, opWorkload: workload, assignedForThisEvent: new Set([personName]), eventsToday: eventsOnConflictDay
+            });
+        } else if (roleKey === 'cinematographicReporter') {
+             replacement = getCinematographerSuggestion({
+                eventTurn, eventDate: conflictDate, cinematographers: pool, cineWorkload: workload, assignedForThisEvent: new Set([personName]), eventsToday: eventsOnConflictDay
+            });
+        } else if (roleKey === 'reporter') {
+             replacement = getReporterSuggestion({
+                eventTurn, eventDate: conflictDate, reporters: pool, reporterWorkload: workload, assignedForThisEvent: new Set([personName]), eventsToday: eventsOnConflictDay
+            });
+        } else if (roleKey === 'producer') {
+             replacement = getProducerSuggestion({
+                eventTurn, eventDate: conflictDate, producers: pool, producerWorkload: workload, assignedForThisEvent: new Set([personName]), eventsToday: eventsOnConflictDay
+            });
+        } else {
+            replacement = getSuggestion(pool, workload, eventTurn, new Set([personName]), conflictDate, eventsOnConflictDay);
+        }
         
         suggestions.push({
             conflictingEventId: conflict.id,
@@ -361,14 +375,11 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
     const eventDeparture = departure ? parseISO(departure) : null;
     const eventArrival = arrival ? parseISO(arrival) : null;
 
-    // Regra 2: Ignorar turnos em viagem
     const isTrip = params.transmissionTypes.includes('viagem') || (eventDeparture && eventArrival && differenceInHours(eventArrival, eventDeparture) > 10);
-    // Regras 6 & 8
     const isCCJR = location === "Sala Julio da Retifica \"CCJR\"";
     const isDeputadosAqui = name.toLowerCase().includes("deputados aqui");
     const isWeekend = getDay(eventDate) === 0 || getDay(eventDate) === 6;
     
-    // Regra 4: Controle de alocação *neste* evento
     const assignedForThisEvent = new Set<string>();
 
     let suggestedOperator: string | undefined;
@@ -385,8 +396,7 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             const reporterTripWorkload = getTripDurationWorkload(reporters, allFutureEvents, 'reporter');
             const producerTripWorkload = getTripDurationWorkload(producers, allFutureEvents, 'producer');
             
-            // Regra 6: Deputados Aqui (Operador Fixo)
-            if(isDeputadosAqui) {
+            if(isDeputadosAqui) { // Regra 6
                 suggestedOperator = "Wilker Quirino";
             } else {
                  const sortedOps = operators.sort((a,b) => (opTripWorkload.get(a.name) ?? 0) - (opTripWorkload.get(b.name) ?? 0));
@@ -394,7 +404,6 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             }
             if(suggestedOperator) assignedForThisEvent.add(suggestedOperator);
             
-            // Regra 6: Deputados Aqui (Rodízio normal para demais)
             const sortedCines = cinematographicReporters.filter(c => !assignedForThisEvent.has(c.name)).sort((a,b) => (cineTripWorkload.get(a.name) ?? 0) - (cineTripWorkload.get(b.name) ?? 0));
             suggestedCinematographer = sortedCines[0]?.name;
             if(suggestedCinematographer) assignedForThisEvent.add(suggestedCinematographer);
@@ -416,7 +425,7 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             }
 
         } else {
-            // --- LÓGICA PARA EVENTOS LOCAIS (Regras 1, 2, 3, 4, 8, 9, 10) ---
+            // --- LÓGICA PARA EVENTOS LOCAIS ---
             const opWorkload = getDailyWorkload(operators, eventsToday, 'transmissionOperator');
             const cineWorkload = getDailyWorkload(cinematographicReporters, eventsToday, 'cinematographicReporter');
             const reporterWorkload = getDailyWorkload(reporters, eventsToday, 'reporter');
@@ -443,8 +452,13 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
             suggestedReporter = reporter?.name;
             if(suggestedReporter) assignedForThisEvent.add(suggestedReporter);
 
-            // Produtor (Lógica Genérica)
-            const producer = getSuggestion(producers, producerWorkload, eventTurn, assignedForThisEvent, eventDate, eventsToday);
+            // ***************************************************************
+            // *** CORREÇÃO APLICADA AQUI ***
+            // Produtor (Agora usando a nova função com lógica de noite)
+            // ***************************************************************
+            const producer = getProducerSuggestion({
+                eventTurn, eventDate, producers, producerWorkload, assignedForThisEvent, eventsToday
+            });
             suggestedProducer = producer?.name;
         }
 

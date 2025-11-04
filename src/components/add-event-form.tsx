@@ -68,10 +68,10 @@ const baseSchema = z.object({
     message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
-  transmissionOperator: z.string().optional(),
-  cinematographicReporter: z.string().optional(),
-  reporter: z.string().optional(),
-  producer: z.string().optional(),
+  transmissionOperator: z.string().optional().nullable(),
+  cinematographicReporter: z.string().optional().nullable(),
+  reporter: z.string().optional().nullable(),
+  producer: z.string().optional().nullable(),
   repeats: z.boolean().default(false),
   repeatFrequency: z.enum(["daily", "weekly", "monthly"]).optional(),
   repeatCount: z.coerce.number().int().min(1).optional(),
@@ -561,6 +561,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -579,6 +580,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -597,6 +599,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -615,6 +618,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>

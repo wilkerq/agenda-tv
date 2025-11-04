@@ -68,10 +68,10 @@ const formSchema = z.object({
     message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
-  transmissionOperator: z.string().optional(),
-  cinematographicReporter: z.string().optional(),
-  reporter: z.string().optional(),
-  producer: z.string().optional(),
+  transmissionOperator: z.string().optional().nullable(),
+  cinematographicReporter: z.string().optional().nullable(),
+  reporter: z.string().optional().nullable(),
+  producer: z.string().optional().nullable(),
   departureDate: z.date().optional(),
   departureTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
   arrivalDate: z.date().optional(),
@@ -266,6 +266,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -284,6 +285,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -302,6 +304,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -320,6 +323,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                    <SelectItem value="">Nenhum</SelectItem>
                                     {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
