@@ -1,3 +1,4 @@
+
 'use server';
 
 import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, Firestore } from "firebase/firestore";
@@ -20,6 +21,7 @@ export async function addPersonnelAction(db: Firestore, collectionName: string, 
     const docRef = await addDoc(collectionRef, data);
 
     await logAction({
+        db, // Pass db instance
         action: 'create',
         collectionName,
         documentId: docRef.id,
@@ -37,6 +39,7 @@ export async function updatePersonnelAction(db: Firestore, collectionName: strin
     await updateDoc(docRef, data);
 
     await logAction({
+        db, // Pass db instance
         action: 'update',
         collectionName,
         documentId: id,
@@ -56,6 +59,7 @@ export async function deletePersonnelAction(db: Firestore, collectionName: strin
 
     if (oldData) {
         await logAction({
+            db, // Pass db instance
             action: 'delete',
             collectionName,
             documentId: id,

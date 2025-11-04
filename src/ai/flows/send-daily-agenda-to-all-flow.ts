@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to automatically send the next day's agenda to all operators.
@@ -7,13 +8,21 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { Timestamp } from 'firebase-admin/firestore';
 import { generateWhatsAppMessage } from './generate-whatsapp-message-flow';
 import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
 import { logAction } from '@/lib/audit-log';
-import { getAdminDb } from '@/lib/firebase-admin';
+// Admin SDK is no longer used for direct DB access in flows
+import { collection, getDocs, query, where, Timestamp, Firestore } from 'firebase/firestore';
+
+
+// This type can be used if we need to pass a DB instance to the flow in the future.
+// For now, we get it from an internal source that has access to the client SDK.
+interface FlowInput {
+    db: Firestore;
+    adminUserEmail: string;
+}
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -22,8 +31,10 @@ const SendDailyAgendaOutputSchema = z.object({
 });
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
+// The input for this flow now requires the Firestore instance and the user email for logging.
 const SendDailyAgendaInputSchema = z.object({
-    // This flow doesn't require any specific input from the client anymore
+    db: z.any().describe("The Firestore client instance."),
+    adminUserEmail: z.string().describe("The email of the user triggering the action for audit purposes."),
 });
 type SendDailyAgendaInput = z.infer<typeof SendDailyAgendaInputSchema>;
 
@@ -38,17 +49,15 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     inputSchema: SendDailyAgendaInputSchema,
     outputSchema: SendDailyAgendaOutputSchema,
   },
-  async (input) => {
-    const adminDb = getAdminDb();
-    
-    // 1. Fetch all personnel from all relevant collections
+  async ({ db, adminUserEmail }) => {
+    // 1. Fetch all personnel from all relevant collections using the client SDK
     const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
     const allPersonnel: { name: string, phone?: string }[] = [];
     
     for (const coll of personnelCollections) {
-        const personnelCollectionRef = adminDb.collection(coll);
+        const personnelCollectionRef = collection(db, coll);
         try {
-            const personnelSnapshot = await personnelCollectionRef.get();
+            const personnelSnapshot = await getDocs(personnelCollectionRef);
             personnelSnapshot.forEach(doc => {
                 const data = doc.data();
                 // Ensure no duplicates by name
@@ -58,7 +67,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
             });
         } catch (serverError) {
              console.error(`Error fetching personnel from ${coll}`, serverError);
-             throw serverError;
+             throw serverError; // Let the caller handle it
         }
     }
 
@@ -76,37 +85,38 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       return { success: true, messagesSent: 0, errors: [] };
     }
 
-    const eventsCollectionRef = adminDb.collection("events");
+    const eventsCollectionRef = collection(db, "events");
     
-    // Firestore Admin SDK does not support 'or' queries directly in this manner.
-    // We will fetch for each field and merge.
     const fieldsToQuery = ["transmissionOperator", "cinematographicReporter", "reporter", "producer"];
     const allEventsForTomorrow: Event[] = [];
     const eventIds = new Set<string>();
 
     try {
       for (const field of fieldsToQuery) {
-          const eventsQuery = eventsCollectionRef
-              .where("date", ">=", Timestamp.fromDate(startOfTomorrow))
-              .where("date", "<=", Timestamp.fromDate(endOfTomorrow))
-              .where(field, "in", personnelNames);
-              
-          const eventsSnapshot = await eventsQuery.get();
-          eventsSnapshot.docs.forEach(doc => {
-              if (!eventIds.has(doc.id)) {
-                  eventIds.add(doc.id);
-                  const data = doc.data();
-                  allEventsForTomorrow.push({
-                      id: doc.id,
-                      ...data,
-                      date: (data.date as Timestamp).toDate(),
-                  } as Event);
-              }
-          });
+          if (personnelNames.length > 0) {
+            const eventsQuery = query(
+                eventsCollectionRef,
+                where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
+                where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
+                where(field, "in", personnelNames)
+            );
+            
+            const eventsSnapshot = await getDocs(eventsQuery);
+            eventsSnapshot.docs.forEach(doc => {
+                if (!eventIds.has(doc.id)) {
+                    eventIds.add(doc.id);
+                    const data = doc.data();
+                    allEventsForTomorrow.push({
+                        id: doc.id,
+                        ...data,
+                        date: (data.date as Timestamp).toDate(),
+                    } as Event);
+                }
+            });
+          }
       }
       
       allEventsForTomorrow.sort((a,b) => a.date.getTime() - b.date.getTime());
-
 
       // 3. Group events by personnel
       allEventsForTomorrow.forEach(event => {
@@ -131,7 +141,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       });
     } catch (serverError) {
         console.error("Error fetching tomorrow's events", serverError);
-        throw serverError;
+        throw serverError; // Let the caller handle
     }
 
 
@@ -173,10 +183,11 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     };
 
     await logAction({
+        db, // Pass the db instance
         action: 'automatic-send',
         collectionName: 'system',
         documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,
-        userEmail: 'System Automation (n8n)',
+        userEmail: adminUserEmail, // Use the provided user email
         details: logDetails
     });
 

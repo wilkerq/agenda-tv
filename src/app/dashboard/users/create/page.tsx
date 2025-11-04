@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -77,6 +78,7 @@ export default function CreateUserPage() {
 
       // 3. Log the action
       await logAction({
+          db,
           action: 'create-user',
           collectionName: 'users',
           documentId: newUser.uid,

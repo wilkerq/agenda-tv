@@ -1,9 +1,11 @@
+
 'use server';
 
+import { addDoc, collection, Firestore } from 'firebase/firestore';
 import type { AuditLogAction } from './types';
-import { getAdminDb } from './firebase-admin';
 
 interface LogActionParams {
+  db: Firestore; // Client-side Firestore instance
   action: AuditLogAction;
   collectionName: string;
   documentId: string;
@@ -15,6 +17,7 @@ interface LogActionParams {
 }
 
 export const logAction = async ({
+    db, // Now expects the client 'db' instance
     action,
     collectionName,
     documentId,
@@ -25,8 +28,7 @@ export const logAction = async ({
     batchId
 }: LogActionParams) => {
     
-    const adminDb = getAdminDb();
-
+    // Uses the passed-in client Firestore instance
     try {
         const logData: any = {
             action,
@@ -49,8 +51,12 @@ export const logAction = async ({
             logData.details = details;
         }
         
-        await adminDb.collection('audit_logs').add(logData);
+        // Writes to Firestore using the client SDK and the logged-in user's permissions
+        await addDoc(collection(db, 'audit_logs'), logData);
+
     } catch (error) {
-        console.error("CRITICAL: Failed to write to audit log using Admin SDK.", error);
+        console.error("Failed to write to audit log using client SDK.", error);
+        // The error will be caught by the global permission error handler if it's a security rule issue.
+        throw error;
     }
 };
