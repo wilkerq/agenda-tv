@@ -35,20 +35,6 @@ const settingsLinks = [
     isInternal: true,
   },
   {
-    href: "/dashboard/logs",
-    title: "Logs de Auditoria",
-    description: "Visualize o histórico de todas as alterações feitas no sistema.",
-    icon: History,
-    isInternal: true,
-  },
-    {
-    href: "/dashboard/debug",
-    title: "Depuração de Ambiente",
-    description: "Verifique as variáveis de ambiente do servidor.",
-    icon: Wrench,
-    isInternal: true,
-  },
-  {
     href: "/",
     title: "Página Pública",
     description: "Acesse a visualização do calendário público de eventos.",
