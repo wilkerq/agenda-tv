@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getDay, differenceInHours, isWithinInterval, parseISO } from 'date-fns';
@@ -16,8 +17,8 @@ interface SuggestTeamParams {
     
     operators: Personnel[];
     cinematographicReporters: Personnel[];
-    reporters: Personnel[]; // Changed from ProductionPersonnel[] to Personnel[]
-    producers: Personnel[]; // Changed from ProductionPersonnel[] to Personnel[]
+    reporters: Personnel[];
+    producers: Personnel[];
     
     eventsToday: Event[];
     allFutureEvents: Event[];
@@ -75,7 +76,8 @@ const getSuggestion = (
     alreadyAssigned: Set<string>
 ): Personnel | undefined => {
     
-    const isWeekend = new Date().getDay() % 6 === 0;
+    const eventDate = new Date(); // Using current date just to get day of week
+    const isWeekend = getDay(eventDate) === 0 || getDay(eventDate) === 6;
 
     // Filter out already assigned people
     const availablePersonnel = personnel.filter(p => !alreadyAssigned.has(p.name));
@@ -140,7 +142,7 @@ const findReschedulingSuggestions = (
     for (const conflict of conflictingEvents) {
         const conflictDate = new Date(conflict.date);
         const eventTurn = getEventTurn(conflictDate);
-        const eventsOnConflictDay = allFutureEvents.filter(e => getDay(new Date(e.date)) === getDay(conflictDate));
+        const eventsOnConflictDay = allFutureEvents.filter(e => isSameDay(new Date(e.date), conflictDate));
         
         let pool: Personnel[] = [];
         let workload: Map<string, number>;
@@ -292,3 +294,5 @@ export const suggestTeam = async (params: SuggestTeamParams) => {
         throw new Error("Failed to suggest team due to an unexpected logic error.");
     }
 };
+
+    
