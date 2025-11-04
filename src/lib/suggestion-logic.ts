@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getDay, differenceInHours, isWithinInterval, parseISO, isSameDay } from 'date-fns';
@@ -99,7 +98,7 @@ const getSuggestion = (
         return generalists[0];
     }
     
-    // 3. For weekends, consider anyone available if no specialists or generalists are found
+    // 3. For weekends, as a last resort, consider anyone available
     if(isWeekend) {
         const anyAvailable = availablePersonnel.sort(sortFn);
         if (anyAvailable.length > 0) {
@@ -107,7 +106,7 @@ const getSuggestion = (
         }
     }
     
-    // 4. If no one is found, return undefined
+    // 4. If no one is found (e.g., weekday and no turn specialists or generalists), return undefined
     return undefined;
 };
 
