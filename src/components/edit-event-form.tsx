@@ -68,10 +68,10 @@ const formSchema = z.object({
     message: "Você precisa selecionar pelo menos um tipo de evento.",
   }),
   pauta: z.string().optional(),
-  transmissionOperator: z.string().optional().nullable(),
-  cinematographicReporter: z.string().optional().nullable(),
-  reporter: z.string().optional().nullable(),
-  producer: z.string().optional().nullable(),
+  transmissionOperator: z.string().optional(),
+  cinematographicReporter: z.string().optional(),
+  reporter: z.string().optional(),
+  producer: z.string().optional(),
   departureDate: z.date().optional(),
   departureTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido.").optional().or(z.literal("")),
   arrivalDate: z.date().optional(),
@@ -177,10 +177,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
       return newDate;
   };
   
-  const processValue = (value?: string | null): string | null => {
-    return (value === null || value === undefined || value.trim() === "" || value === "__NONE__") ? null : value;
-  };
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
@@ -192,10 +188,10 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
             date: eventDate,
             transmission: values.transmission as TransmissionType[],
             pauta: values.pauta,
-            transmissionOperator: processValue(values.transmissionOperator) ?? undefined,
-            cinematographicReporter: processValue(values.cinematographicReporter) ?? undefined,
-            reporter: processValue(values.reporter) ?? undefined,
-            producer: processValue(values.producer) ?? undefined,
+            transmissionOperator: values.transmissionOperator || undefined,
+            cinematographicReporter: values.cinematographicReporter || undefined,
+            reporter: values.reporter || undefined,
+            producer: values.producer || undefined,
             departure: combineDateTime(values.departureDate, values.departureTime) || null,
             arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
         };
@@ -270,7 +266,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="__NONE__">Nenhum</SelectItem>
                                     {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -289,7 +284,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="__NONE__">Nenhum</SelectItem>
                                     {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -308,7 +302,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="__NONE__">Nenhum</SelectItem>
                                     {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -327,7 +320,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    <SelectItem value="__NONE__">Nenhum</SelectItem>
                                     {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -534,5 +526,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    
 
     
