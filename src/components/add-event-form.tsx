@@ -386,11 +386,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       return newDate;
   };
 
-  const processValue = (value?: string | null): string | undefined => {
-    if (value === "__NONE__" || value === null || value === "") {
-        return undefined;
-    }
-    return value;
+  const processValue = (value?: string | null): string | null => {
+    return (value === null || value === undefined || value.trim() === "" || value === "__NONE__") ? null : value;
   };
   
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -404,10 +401,10 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
           date: eventDate,
           transmission: values.transmission as TransmissionType[],
           pauta: values.pauta,
-          transmissionOperator: processValue(values.transmissionOperator),
-          cinematographicReporter: processValue(values.cinematographicReporter),
-          reporter: processValue(values.reporter),
-          producer: processValue(values.producer),
+          transmissionOperator: processValue(values.transmissionOperator) ?? undefined,
+          cinematographicReporter: processValue(values.cinematographicReporter) ?? undefined,
+          reporter: processValue(values.reporter) ?? undefined,
+          producer: processValue(values.producer) ?? undefined,
           departure: combineDateTime(values.departureDate, values.departureTime) || null,
           arrival: combineDateTime(values.arrivalDate, values.arrivalTime) || null,
       };
