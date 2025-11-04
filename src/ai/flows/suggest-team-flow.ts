@@ -11,7 +11,8 @@ import {
     SuggestTeamOutput, 
     SuggestTeamOutputSchema, 
     Event,
-    Personnel
+    Personnel,
+    ProductionPersonnel,
 } from '@/lib/types';
 import { getScheduleTool } from '../tools/get-schedule-tool';
 import { z } from 'zod';
