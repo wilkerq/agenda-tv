@@ -208,7 +208,7 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
   }
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={true} onOpenChange={(isOpen) => !isOpen && onClose()}>
         <DialogContent className="p-0 sm:max-w-3xl">
             <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Editar Evento</DialogTitle>
@@ -517,7 +517,6 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
                     )}
                   />
                 )}
-
                  <DialogFooter className="pt-4">
                     <DialogClose asChild>
                         <Button type="button" variant="outline">Cancelar</Button>
