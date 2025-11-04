@@ -11,7 +11,8 @@ service cloud.firestore {
       allow read, write, delete: if isAuthenticated();
     }
     match /events {
-      allow list: if isAuthenticated();
+      // Adiciona a permissão de "create" para a coleção de eventos
+      allow create, list: if isAuthenticated();
     }
 
     match /transmission_operators/{opId} {
