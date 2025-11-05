@@ -1,36 +1,35 @@
-# Estágio 1: Instalação das dependências
-FROM node:20-alpine AS deps
+# Estágio 1: Build da aplicação Next.js
+FROM node:20-slim AS builder
 WORKDIR /app
 
-# Copia os arquivos de gerenciamento de pacotes
-COPY package.json package-lock.json* ./
-# Instala as dependências
-RUN npm install
+# Copia os arquivos de manifesto de dependências
+COPY package.json ./
+COPY package-lock.json ./
 
-# Estágio 2: Build da aplicação
-FROM node:20-alpine AS builder
-WORKDIR /app
-# Copia as dependências do estágio anterior
-COPY --from=deps /app/node_modules ./node_modules
+# Instala as dependências de produção
+RUN npm install --omit=dev
+
 # Copia o restante do código da aplicação
 COPY . .
 
-# Constrói a aplicação Next.js para produção
+# Constrói a aplicação Next.js
 RUN npm run build
 
-# Estágio 3: Imagem final de produção
-FROM node:20-alpine AS runner
+# Estágio 2: Criação da imagem de produção
+FROM node:20-slim AS runner
 WORKDIR /app
 
+# Define o ambiente como produção
 ENV NODE_ENV=production
 
-# Copia os arquivos de build do estágio anterior
+# Copia o build do Next.js do estágio 'builder'
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Expõe a porta que a aplicação irá rodar
+# Expõe a porta que a aplicação vai rodar
 EXPOSE 3050
 
 # Comando para iniciar a aplicação
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
