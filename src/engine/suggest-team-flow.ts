@@ -8,8 +8,8 @@
 // Nota: esse arquivo substitui a versão que chamava IA; agora constrói um objeto de saída assertivo, válido para preencher o formulário.
 
 
-import { suggestTeamLogic } from './suggestion-logic';
 import type { Event, Personnel, TransmissionType, ProductionPersonnel } from '@/lib/types';
+import { suggestNextRole, type StepSuggestion } from './stepwise-scheduler';
 
 
 export type SuggestTeamFlowInput = {
@@ -26,17 +26,11 @@ export type SuggestTeamFlowInput = {
   producers: ProductionPersonnel[];
   eventsToday: any[]; // raw events from Firestore (convertidos abaixo)
   allFutureEvents: any[];
+  partialAllocations: Partial<Record<"transmissionOperator" | "cinematographicReporter" | "reporter" | "producer", string>>;
 };
 
-
-export type SuggestTeamFlowOutput = {
-  transmissionOperator?: string | null;
-  cinematographicReporter?: string | null;
-  reporter?: string | null;
-  producer?: string | null;
-  reschedulingSuggestions?: any[];
-  reason?: string[];
-};
+// A saída agora é a sugestão do passo
+export type SuggestTeamFlowOutput = StepSuggestion;
 
 
 export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestTeamFlowOutput> {
@@ -65,32 +59,27 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
 
   const eventsToday = parseEvents(input.eventsToday ?? []);
   const allFutureEvents = parseEvents(input.allFutureEvents ?? []);
-
-  const result = await suggestTeamLogic({
+  
+  const eventInput = {
+    id: `evt-${Date.now()}`,
     name: input.name,
-    date: eventDate.toISOString(),
-    departure: input.departure,
-    arrival: input.arrival,
+    date: eventDate,
+    durationHours: 1, // default
     location: input.location,
-    transmissionTypes: input.transmissionTypes as TransmissionType[],
-    operators: input.operators,
-    cinematographicReporters: input.cinematographicReporters,
-    reporters: input.reporters,
-    producers: input.producers,
-    eventsToday,
-    allFutureEvents,
+    transmissionTypes: input.transmissionTypes as TransmissionType[]
+  }
+
+  const result = suggestNextRole({
+    event: eventInput,
+    partialAllocations: input.partialAllocations,
+    pools: {
+      transmissionOps: input.operators,
+      cinematographicReporters: input.cinematographicReporters,
+      reporters: input.reporters,
+      producers: input.producers,
+    },
+    allEvents: [...eventsToday, ...allFutureEvents]
   });
 
-
-  // resposta simples e assertiva
-  const out: SuggestTeamFlowOutput = {
-    transmissionOperator: result.transmissionOperator ?? null,
-    cinematographicReporter: result.cinematographicReporter ?? null,
-    reporter: result.reporter ?? null,
-    producer: result.producer ?? null,
-    reschedulingSuggestions: result.reschedulingSuggestions ?? [],
-  };
-
-
-  return out;
+  return result;
 }

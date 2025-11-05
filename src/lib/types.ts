@@ -95,8 +95,22 @@ export const PersonnelSchema = z.object({
     id: z.string(),
     name: z.string(),
     turn: z.enum(['Manhã', 'Tarde', 'Noite', 'Geral']),
+    shifts: z.array(z.string()).optional(), // For stepwise-scheduler
 });
 export type Personnel = z.infer<typeof PersonnelSchema>;
+
+export interface EventInput {
+    id: string;
+    name: string;
+    date: Date;
+    durationHours: number;
+    location: string;
+    transmissionTypes: TransmissionType[];
+    transmissionOperator?: string | null;
+    cinematographicReporter?: string | null;
+    reporter?: string | null;
+    producer?: string | null;
+}
 
 export const ProductionPersonnelSchema = PersonnelSchema.extend({
     isReporter: z.boolean(),
