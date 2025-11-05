@@ -116,6 +116,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const { user } = useUser();
   const db = useFirestore();
 
+  const [events, setEvents] = React.useState<Event[]>([]);
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
@@ -141,15 +142,36 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
       });
       return unsubscribe;
     };
+
+    const fetchEvents = () => {
+      const eventsCollectionRef = collection(db, 'events');
+      const q = query(eventsCollectionRef, orderBy('date', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const eventsData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { ...data, id: doc.id, date: (data.date as Timestamp).toDate() } as Event
+        });
+        setEvents(eventsData);
+      }, (serverError) => {
+          const permissionError = new FirestorePermissionError({
+              path: (eventsCollectionRef as any).path,
+              operation: 'list',
+          } satisfies SecurityRuleContext);
+          errorEmitter.emit('permission-error', permissionError);
+      });
+      return unsubscribe;
+    }
     
     const unsub1 = fetchPersonnel<Personnel>('transmission_operators', setTransmissionOperators);
     const unsub2 = fetchPersonnel<Personnel>('cinematographic_reporters', setCinematographicReporters);
     const unsub3 = fetchPersonnel<ProductionPersonnel>('production_personnel', setProductionPersonnel);
+    const unsub4 = fetchEvents();
 
     return () => {
       unsub1();
       unsub2();
       unsub3();
+      unsub4();
     }
 
   }, [user, db]);
@@ -216,26 +238,8 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
         const departureDateTime = departureDate && departureTime ? new Date(`${format(departureDate, 'yyyy-MM-dd')}T${departureTime}:00`) : null;
         const arrivalDateTime = arrivalDate && arrivalTime ? new Date(`${format(arrivalDate, 'yyyy-MM-dd')}T${arrivalTime}:00`) : null;
 
-        // Fetch events for logic mode directly on the client
-        const start = startOfDay(eventDate);
-        const end = endOfDay(eventDate);
-        const eventsTodaySnapshot = await getDocs(
-            query(
-                collection(db, 'events'),
-                where('date', '>=', Timestamp.fromDate(start)),
-                where('date', '<=', Timestamp.fromDate(end))
-            )
-        );
-        const eventsToday = eventsTodaySnapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()}) as Event);
-
-        const allFutureEventsSnapshot = await getDocs(
-            query(
-                collection(db, 'events'),
-                where('date', '>=', Timestamp.fromDate(new Date())),
-                orderBy('date')
-            )
-        );
-        const allFutureEvents = allFutureEventsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: (doc.data().date as Timestamp).toDate()}) as Event);
+        const eventsToday = events.filter(e => isSameDay(e.date, eventDate));
+        const allFutureEvents = events.filter(e => e.date >= new Date());
         
         const result = await suggestTeam({
             name: name,
@@ -303,7 +307,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     } finally {
         setIsSuggesting(false);
     }
-  }, [form, toast, user, db, setReallocationSuggestions, transmissionOperators, cinematographicReporters, productionPersonnel]);
+  }, [form, toast, user, db, setReallocationSuggestions, transmissionOperators, cinematographicReporters, productionPersonnel, events]);
 
 
   React.useEffect(() => {

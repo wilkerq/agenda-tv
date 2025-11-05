@@ -63,7 +63,6 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
     turn: r.turn || 'Tarde',
   }));
 
-
   const eventsToday = parseEvents(input.eventsToday ?? []);
   const allFutureEvents = parseEvents(input.allFutureEvents ?? []);
 
