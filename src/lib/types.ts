@@ -1,5 +1,5 @@
-
 import { z } from 'zod';
+import { isSameDay } from 'date-fns';
 
 export const transmissionTypes = ["youtube", "tv", "pauta", "viagem"] as const;
 export type TransmissionType = (typeof transmissionTypes)[number];
@@ -138,10 +138,10 @@ export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
 
 
 export const SuggestTeamOutputSchema = z.object({
-  transmissionOperator: z.string().optional().describe('The suggested transmission operator.'),
-  cinematographicReporter: z.string().optional().describe('The suggested cinematographic reporter.'),
-  reporter: z.string().optional().describe('The suggested reporter.'),
-  producer: z.string().optional().describe('The suggested producer.'),
+  transmissionOperator: z.string().optional().nullable().describe('The suggested transmission operator.'),
+  cinematographicReporter: z.string().optional().nullable().describe('The suggested cinematographic reporter.'),
+  reporter: z.string().optional().nullable().describe('The suggested reporter.'),
+  producer: z.string().optional().nullable().describe('The suggested producer.'),
   transmission: z.array(z.enum(transmissionTypes)).optional().describe('The suggested transmission types for the event.'),
   reschedulingSuggestions: z.array(ReschedulingSuggestionSchema).optional().describe("A list of events that need to be rescheduled due to conflicts."),
 });

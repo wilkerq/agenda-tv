@@ -7,8 +7,8 @@
 // Nota: esse arquivo substitui a versão que chamava IA; agora constrói um objeto de saída assertivo, válido para preencher o formulário.
 
 
-import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
-import type { Event, Personnel } from '@/lib/types';
+import { suggestTeamLogic } from './suggestion-logic';
+import type { Event, Personnel, TransmissionType } from '@/lib/types';
 
 
 export type SuggestTeamFlowInput = {
@@ -44,36 +44,22 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
   const eventDate = new Date(input.date);
   eventDate.setHours(h, m, 0, 0);
 
-
-  const event: Event = {
-    id: '', // Not needed for logic
-    name: input.name,
-    date: eventDate,
-    location: input.location,
-    transmission: input.transmissionTypes as any,
-    departure: input.departure ? new Date(input.departure) : null,
-    arrival: input.arrival ? new Date(input.arrival) : null,
-    color: '',
-    status: 'Agendado',
-    turn: 'Manhã' // Placeholder, will be recalculated
-  };
-
   const parseEvents = (raw: any[]): Event[] => raw.map(r => ({
     id: r.id,
     name: r.name,
     date: r.date instanceof Date ? r.date : new Date(r.date),
     location: r.location,
     transmission: r.transmission || [],
-    departure: r.departure ? (r.departure instanceof Date ? r.departure : new Date(r.departure)) : null,
-    arrival: r.arrival ? (r.arrival instanceof Date ? r.arrival : new Date(r.arrival)) : null,
+    departure: r.departure ? (r.departure instanceof Date ? r.departure : new Date(r.departure)) : undefined,
+    arrival: r.arrival ? (r.arrival instanceof Date ? r.arrival : new Date(r.arrival)) : undefined,
     transmissionOperator: r.transmissionOperator ?? null,
     cinematographicReporter: r.cinematographicReporter ?? null,
     reporter: r.reporter ?? null,
     producer: r.producer ?? null,
-    color: '',
-    status: 'Agendado',
-    turn: 'Manhã'
-  })) as Event[];
+    color: r.color || 'gray',
+    status: r.status || 'Agendado',
+    turn: r.turn || 'Tarde',
+  }));
 
 
   const allFutureEvents = parseEvents(input.allFutureEvents ?? []);
@@ -86,7 +72,7 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
     departure: input.departure,
     arrival: input.arrival,
     location: input.location,
-    transmissionTypes: input.transmissionTypes as any,
+    transmissionTypes: input.transmissionTypes as TransmissionType[],
     operators: input.operators,
     cinematographicReporters: input.cinematographicReporters,
     reporters: input.reporters,

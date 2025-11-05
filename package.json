@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start -p 3050",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",

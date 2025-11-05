@@ -1,16 +1,37 @@
-// src/engine/schedule.audit.ts
+// =============================
+// schedule.audit.ts
+// Responsável por logs e auditoria de decisões da Scheduling Engine
+// =============================
 
-/**
- * Logs the result of a team suggestion for auditing and debugging purposes.
- * In a real application, this could write to a Firestore collection or a dedicated logging service.
- * @param eventName The name of the event for which the suggestion was made.
- * @param result The suggestion result from the logic engine.
- */
-export function logSuggestion(eventName: string, result: any) {
-  // For now, we'll just log to the console if in development mode.
-  // This can be expanded to write to Firestore.
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[AUDIT] Suggestion for event: "${eventName}"`);
-    console.table(result);
+import { ScheduleConfig } from "./schedule.config";
+
+export type AuditEntry = {
+  timestamp: string;
+  eventId?: string;
+  action: string;
+  details?: any;
+};
+
+export function logAudit(entry: AuditEntry) {
+  const logEntry = {
+    ...entry,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (ScheduleConfig.DEBUG) {
+    console.log("[SCHEDULE AUDIT]", logEntry);
   }
+
+  // 🔸 Futuro: integração com Firestore
+  // Exemplo:
+  // const db = getFirestore();
+  // await addDoc(collection(db, "logs_suggestions"), logEntry);
+}
+
+export function logSuggestion(eventId: string, suggestion: any) {
+  logAudit({
+    eventId,
+    action: "suggestTeam",
+    details: suggestion,
+  });
 }

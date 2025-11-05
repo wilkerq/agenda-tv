@@ -1,28 +1,35 @@
-// src/engine/schedule.config.ts
+// =============================
+// schedule.config.ts
+// Configurações centrais da Scheduling Engine determinística
+// =============================
 
-/**
- * Configuration parameters for the scheduling engine.
- * This allows for easy adjustments to business rules without changing the core logic.
- */
 export const ScheduleConfig = {
-  // Maximum number of events a person can be assigned to in a single day.
+  // Tempo máximo diário permitido por operador
   MAX_HOURS_PER_DAY: 6,
 
-  // Default duration in hours for an event if not specified.
+  // Duração padrão de um evento em horas
   DEFAULT_EVENT_DURATION: 1,
 
-  // Margin in minutes before and after an event to consider a person "busy".
+  // Margem (em minutos) para considerar conflito entre eventos
   CONFLICT_MARGIN_MINUTES: 45,
 
-  // Window in days for calculating trip fairness.
+  // Janela usada para calcular fairness (dias antes e depois)
   FAIRNESS_WINDOW_DAYS: 30,
 
-  // Operators designated for weekend rotation.
+  // Revezamento de operadores nos finais de semana
   WEEKEND_ROTATION: ["Bruno Almeida", "Mário Augusto", "Ovídio Dias"],
 
-  // Operators designated for night shifts, in order of preference.
+  // Operadores noturnos padrão
   NIGHT_OPERATORS: ["Bruno Almeida", "Mário Augusto"],
 
-  // Fixed operator for the "Deputados Aqui" event.
+  // Operador fixo em eventos “Deputados Aqui”
   FIXED_OPERATOR_DEPUTADOS_AQUI: "Wilker Quirino",
+
+  // Período mínimo de descanso após viagem (em dias)
+  TRAVEL_REST_DAYS: 1,
+
+  // Liga/desliga logs detalhados
+  DEBUG: true,
 };
+
+export default ScheduleConfig;

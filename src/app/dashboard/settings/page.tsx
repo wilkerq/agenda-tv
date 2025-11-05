@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 // Client-side atom with localStorage persistence
 export const operationModeAtom = atomWithStorage<OperationMode>(
     'operationMode', // Key for localStorage
-    'ai',         // Default value
+    'logic',         // Default value
     createJSONStorage(() => localStorage)
 );
 
@@ -78,7 +78,7 @@ export default function SettingsPage() {
             Modo de Operação
           </CardTitle>
           <CardDescription>
-            Escolha se as operações como sugestão de equipe e resumo de relatórios devem usar Inteligência Artificial ou a lógica programada padrão.
+            Escolha se as operações como sugestão de equipe e resumo de relatórios devem usar Inteligência Artificial ou a lógica programada padrão. O modo "Lógica Padrão" é o recomendado.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,10 +90,10 @@ export default function SettingsPage() {
               <BrainCircuit className={cn("h-6 w-6", operationMode === 'logic' && 'text-primary')} />
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">
-                  Lógica Padrão
+                  Lógica Padrão (Recomendado)
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Operações rápidas e previsíveis.
+                  Operações rápidas e previsíveis baseadas em regras.
                 </p>
               </div>
             </div>
@@ -113,7 +113,7 @@ export default function SettingsPage() {
                   Inteligência Artificial
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Respostas dinâmicas e inteligentes.
+                  Respostas dinâmicas (pode ser mais lento/caro).
                 </p>
               </div>
                <Sparkles className={cn("h-6 w-6", operationMode === 'ai' && 'text-primary')} />
