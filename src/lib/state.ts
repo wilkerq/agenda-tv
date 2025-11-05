@@ -1,5 +1,6 @@
 
 'use server';
+import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 
 // Define the type for operation mode
 export type OperationMode = 'logic' | 'ai';
@@ -25,3 +26,10 @@ export async function setOperationMode(mode: OperationMode): Promise<void> {
     // In a real app, you'd save this to the user's profile in the database.
     serverMode = mode;
 }
+
+// Client-side atom with localStorage persistence
+export const operationModeAtom = atomWithStorage<OperationMode>(
+    'operationMode', // Key for localStorage
+    'logic',         // Default value
+    createJSONStorage(() => localStorage)
+);

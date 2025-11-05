@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,19 +6,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit } from "lucide-react";
 import { useAtom } from "jotai";
-import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { type OperationMode, setOperationMode as setServerOperationMode } from "@/lib/state";
+import { operationModeAtom, setOperationMode as setServerOperationMode, type OperationMode } from "@/lib/state";
 import { cn } from "@/lib/utils";
-
-// Client-side atom with localStorage persistence
-export const operationModeAtom = atomWithStorage<OperationMode>(
-    'operationMode', // Key for localStorage
-    'logic',         // Default value
-    createJSONStorage(() => localStorage)
-);
-
 
 const settingsLinks = [
   {
