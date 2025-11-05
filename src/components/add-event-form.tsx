@@ -116,6 +116,28 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const { user } = useUser();
   const db = useFirestore();
 
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+        name: preloadedData?.name || "",
+        location: preloadedData?.location || undefined,
+        date: preloadedData?.date ? new Date(preloadedData.date) : undefined,
+        time: preloadedData?.date ? format(new Date(preloadedData.date), "HH:mm") : "",
+        transmission: preloadedData?.transmission || ["youtube"],
+        pauta: preloadedData?.pauta || "",
+        transmissionOperator: preloadedData?.transmissionOperator || "",
+        cinematographicReporter: preloadedData?.cinematographicReporter || "",
+        reporter: preloadedData?.reporter || "",
+        producer: preloadedData?.producer || "",
+        repeats: false,
+        repeatCount: 1,
+        departureDate: preloadedData?.departure ? new Date(preloadedData.departure) : undefined,
+        departureTime: preloadedData?.departure ? format(new Date(preloadedData.departure), "HH:mm") : "",
+        arrivalDate: preloadedData?.arrival ? new Date(preloadedData.arrival) : undefined,
+        arrivalTime: preloadedData?.arrival ? format(new Date(preloadedData.arrival), "HH:mm") : "",
+    },
+  });
+
   const [events, setEvents] = React.useState<Event[]>([]);
   const [transmissionOperators, setTransmissionOperators] = React.useState<Personnel[]>([]);
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
@@ -844,5 +866,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     </>
   );
 }
-
-    
