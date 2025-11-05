@@ -15,10 +15,10 @@ export interface Event {
   transmission: TransmissionType[];
   pauta?: string;
   color: string;
-  transmissionOperator?: string;
-  cinematographicReporter?: string;
-  reporter?: string;
-  producer?: string;
+  transmissionOperator?: string | null;
+  cinematographicReporter?: string | null;
+  reporter?: string | null;
+  producer?: string | null;
   status: EventStatus;
   turn: EventTurn;
   departure?: Date | null;
@@ -204,3 +204,4 @@ export interface AuditLog {
     after?: object;
     details?: object;
 }
+    

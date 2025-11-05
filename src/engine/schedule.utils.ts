@@ -69,11 +69,15 @@ export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: E
             start: subHours(existingEventDate, margin / 60),
             end: addHours(existingEventDate, ScheduleConfig.DEFAULT_EVENT_DURATION + margin / 60)
         };
+        
+        // Check for overlap
+        const startsBeforeEnd = newEventInterval.start < existingEventInterval.end;
+        const endsAfterStart = newEventInterval.end > existingEventInterval.start;
 
-        if (isWithinInterval(newEventInterval.start, existingEventInterval) ||
-            isWithinInterval(newEventInterval.end, existingEventInterval)) {
+        if (startsBeforeEnd && endsAfterStart) {
             return true; // Conflict found
         }
     }
     return false; // No conflicts
 };
+    
