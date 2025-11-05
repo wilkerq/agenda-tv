@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { isSameDay } from 'date-fns';
 
 export const transmissionTypes = ["youtube", "tv", "pauta", "viagem"] as const;
 export type TransmissionType = (typeof transmissionTypes)[number];
@@ -27,11 +26,32 @@ export interface Event {
 
 export type EventFormData = Omit<Event, "id" | "color" | "status" | "turn">;
 
-export interface Operator {
+export type Personnel = {
   id: string;
   name: string;
-  phone: string;
-}
+  turn?: 'Manhã' | 'Tarde' | 'Noite' | 'Geral';
+  shifts?: string[]; // ex: ['morning','afternoon','night','all','geral']
+  isReporter?: boolean;
+  isProducer?: boolean;
+};
+
+export type EventInput = {
+  id?: string;
+  name: string;
+  date: Date;
+  durationHours?: number;
+  location: string;
+  transmissionTypes: string[]; // ex ['youtube','viagem']
+  departure?: Date | null;
+  arrival?: Date | null;
+  transmissionOperator?: string | null; // id
+  cinematographicReporter?: string | null; // id
+  reporter?: string | null; // id
+  producer?: string | null; // id
+};
+
+export type RoleKey = "transmissionOperator" | "cinematographicReporter" | "reporter" | "producer";
+
 
 // AI-related Schemas for summarizeReports flow
 const ReportItemSchema = z.object({
@@ -89,34 +109,23 @@ export const CreateEventFromImageOutputSchema = z.object({
 });
 export type CreateEventFromImageOutput = z.infer<typeof CreateEventFromImageOutputSchema>;
 
-// Schemas for suggestion-logic
-
-export const PersonnelSchema = z.object({
+export const ProductionPersonnelSchema = z.object({
     id: z.string(),
     name: z.string(),
     turn: z.enum(['Manhã', 'Tarde', 'Noite', 'Geral']),
-    shifts: z.array(z.string()).optional(), // For stepwise-scheduler
-});
-export type Personnel = z.infer<typeof PersonnelSchema>;
-
-export interface EventInput {
-    id: string;
-    name: string;
-    date: Date;
-    durationHours: number;
-    location: string;
-    transmissionTypes: TransmissionType[];
-    transmissionOperator?: string | null;
-    cinematographicReporter?: string | null;
-    reporter?: string | null;
-    producer?: string | null;
-}
-
-export const ProductionPersonnelSchema = PersonnelSchema.extend({
     isReporter: z.boolean(),
     isProducer: z.boolean(),
 });
 export type ProductionPersonnel = z.infer<typeof ProductionPersonnelSchema>;
+
+const PersonnelSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    turn: z.enum(['Manhã', 'Tarde', 'Noite', 'Geral']).optional(),
+    shifts: z.array(z.string()).optional(),
+    isReporter: z.boolean().optional(),
+    isProducer: z.boolean().optional(),
+});
 
 
 export const ReschedulingSuggestionSchema = z.object({
@@ -151,7 +160,7 @@ export const SuggestTeamInputSchema = z.object({
 export type SuggestTeamInput = z.infer<typeof SuggestTeamInputSchema>;
 
 
-export const SuggestTeamOutputSchema = z.object({
+export const SuggestTeamFlowOutputSchema = z.object({
   transmissionOperator: z.string().optional().nullable().describe('The suggested transmission operator.'),
   cinematographicReporter: z.string().optional().nullable().describe('The suggested cinematographic reporter.'),
   reporter: z.string().optional().nullable().describe('The suggested reporter.'),
@@ -159,7 +168,7 @@ export const SuggestTeamOutputSchema = z.object({
   transmission: z.array(z.enum(transmissionTypes)).optional().describe('The suggested transmission types for the event.'),
   reschedulingSuggestions: z.array(ReschedulingSuggestionSchema).optional().describe("A list of events that need to be rescheduled due to conflicts."),
 });
-export type SuggestTeamOutput = z.infer<typeof SuggestTeamOutputSchema>;
+export type SuggestTeamFlowOutput = z.infer<typeof SuggestTeamFlowOutputSchema>;
 
 
 // AI-related Schemas for generate-whatsapp-message flow
@@ -218,4 +227,3 @@ export interface AuditLog {
     after?: object;
     details?: object;
 }
-    

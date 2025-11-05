@@ -1,29 +1,9 @@
 // src/engine/stepwise-scheduler.ts
-import type { EventInput, Personnel } from "@/lib/types";
-import { sameDay, determineShiftFromDate, diffHours } from "./schedule.utils";
+import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion } from "@/lib/types";
+import { sameDay, determineShiftFromDate } from "./schedule.utils";
 import { ScheduleConfig } from "./schedule.config";
-import { logAudit, logSuggestion } from "./schedule.audit";
+import { logSuggestion } from "./schedule.audit";
 
-/**
- * Tipos retornados
- */
-export type RoleKey = "transmissionOperator" | "cinematographicReporter" | "reporter" | "producer";
-
-export type Candidate = {
-  id: string;
-  name: string;
-  reason: string[];
-  conflictWarnings?: string[];
-  reschedulingSuggestions?: any[]; // estrutura simples para UI (ver abaixo)
-  requiresReschedulePermission?: boolean;
-};
-
-export type StepSuggestion = {
-  nextRole?: RoleKey | null;
-  candidate?: Candidate | null;
-  allRolesDone?: boolean;
-  debug?: any;
-};
 
 /**
  * Ordem padrão de sugestão - você pode mudar aqui.
@@ -104,7 +84,7 @@ export function suggestNextRole(params: {
         ev.reporter === personId ||
         ev.producer === personId
       ) {
-        if (Math.abs(ev.date.getTime() - event.date.getTime()) < marginMs) return true;
+        if (Math.abs(new Date(ev.date).getTime() - new Date(event.date).getTime()) < marginMs) return true;
       }
     }
     return false;
@@ -114,17 +94,16 @@ export function suggestNextRole(params: {
   function rankCandidates(list: Personnel[]) {
     const scored = list.map(p => {
       const scoreObj: any = { p, score: 0, reasons: [] };
+      const personTurn = p.turn;
 
-      // 1) turno compatível (se houver shifts cadastrados)
-      if (p.shifts && p.shifts.length > 0) {
-        const mapped = p.shifts.map(s => s.toLowerCase());
-        if (!mapped.includes(shift) && !mapped.includes("all") && !mapped.includes("geral")) {
+      // 1) turno compatível
+      if (personTurn && personTurn !== 'Geral' && personTurn !== shift) {
           scoreObj.score += 50; // penalidade alta
-          scoreObj.reasons.push(`Turno mismatch: ${p.id}`);
-        } else {
+          scoreObj.reasons.push(`Turno mismatch: ${p.name}`);
+      } else {
           scoreObj.reasons.push("Turno ok");
-        }
       }
+
 
       // 2) carga diária
       const assigned = personAssignedHours(p.id);
@@ -171,7 +150,7 @@ export function suggestNextRole(params: {
     // varrer eventos conflitantes e propor substitutos
     const conflictingEvents = allEvents.filter(ev =>
       (ev.transmissionOperator === top.p.id || ev.cinematographicReporter === top.p.id || ev.reporter === top.p.id || ev.producer === top.p.id)
-      && Math.abs(ev.date.getTime() - event.date.getTime()) < ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000
+      && Math.abs(new Date(ev.date).getTime() - new Date(event.date).getTime()) < ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000
     );
 
     for (const ce of conflictingEvents) {
@@ -182,8 +161,9 @@ export function suggestNextRole(params: {
         conflictingEventId: ce.id,
         conflictingEventTitle: ce.name,
         personToMove: top.p.id,
-        suggestedReplacement: replacement ? { id: replacement.id, name: replacement.name } : null,
+        suggestedReplacement: replacement ? replacement.name : null,
         conflictingEventIsTravel: ce.transmissionTypes?.includes("viagem") ?? false,
+        role: Object.keys(ce).find(k => (ce as any)[k] === top.p.id)
       });
       if (ce.transmissionTypes?.includes("viagem")) {
         // se outro evento é viagem, marque que precisa de permissão especial antes de alterar
@@ -210,7 +190,7 @@ function countAssignments(p: Personnel, allEvents: EventInput[]) {
 
   let c = 0;
   for (const e of allEvents) {
-    if (e.date < start || e.date > end) continue;
+    if (new Date(e.date) < start || new Date(e.date) > end) continue;
     if (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id) c++;
   }
   return c;
@@ -232,7 +212,7 @@ function findReplacement(pool: Personnel[], ev: EventInput, allEvents: EventInpu
     // não fazemos ranking complexo aqui (UI pode pedir próximos 3 substitutos)
     const assignedHours = allEvents.reduce((acc, e) => {
       if (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id) {
-        if (sameDay(e.date, ev.date)) acc += e.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION;
+        if (sameDay(new Date(e.date), new Date(ev.date))) acc += e.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION;
       }
       return acc;
     }, 0);
@@ -241,7 +221,7 @@ function findReplacement(pool: Personnel[], ev: EventInput, allEvents: EventInpu
     const margin = ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000;
     const hasConflict = allEvents.some(e => (
       (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id)
-      && Math.abs(e.date.getTime() - ev.date.getTime()) < margin
+      && Math.abs(new Date(e.date).getTime() - new Date(ev.date).getTime()) < margin
     ));
     if (hasConflict) continue;
     // passou nos filtros
