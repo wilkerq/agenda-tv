@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getDay, differenceInHours, isWithinInterval, parseISO, isSameDay, differenceInDays, addHours, subHours } from 'date-fns';
@@ -69,13 +70,14 @@ const getTripDurationWorkload = (personnel: Personnel[], futureEvents: Event[], 
 };
 
 const getSuggestion = (
-    personnel: Personnel[],
+    personnel: Personnel[] | undefined,
     workload: Map<string, number>,
     eventTurn: 'Manhã' | 'Tarde' | 'Noite',
     alreadyAssigned: Set<string>,
     eventDate: Date,
     eventsToday: Event[],
 ): Personnel | undefined => {
+    if (!personnel || personnel.length === 0) return undefined;
     
     const isWeekend = getDay(eventDate) === 0 || getDay(eventDate) === 6;
 
@@ -100,6 +102,7 @@ const getSuggestion = (
         return generalists[0];
     }
     
+    // For weekends, be more flexible if no specialist/generalist is found
     if(isWeekend) {
         const anyAvailable = availablePersonnel.sort(sortFn);
         if (anyAvailable.length > 0) {
@@ -381,5 +384,3 @@ export const suggestTeamLogic = async (params: SuggestTeamParams) => {
         throw new Error("Failed to suggest team due to an unexpected logic error.");
     }
 };
-
-    

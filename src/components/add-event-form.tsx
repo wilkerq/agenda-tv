@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -248,7 +249,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
             cinematographicReporters: cinematographicReporters,
             reporters: productionPersonnel.filter(p => p.isReporter),
             producers: productionPersonnel.filter(p => p.isProducer),
-            // Pass fetched data for logic mode
             eventsToday: eventsToday,
             allFutureEvents: allFutureEvents,
         });
@@ -861,4 +861,3 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     </>
   );
 }
-    

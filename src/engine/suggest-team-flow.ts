@@ -1,3 +1,4 @@
+
 // =========================
 // suggest-team-flow.ts (Revisado)
 // Função que integra a lógica pura com o fluxo que antes era pensado para IA.
@@ -8,7 +9,7 @@
 
 
 import { suggestTeamLogic } from './suggestion-logic';
-import type { Event, Personnel, TransmissionType } from '@/lib/types';
+import type { Event, Personnel, TransmissionType, ProductionPersonnel } from '@/lib/types';
 
 
 export type SuggestTeamFlowInput = {
@@ -21,8 +22,8 @@ export type SuggestTeamFlowInput = {
   arrival?: string | null;
   operators: Personnel[];
   cinematographicReporters: Personnel[];
-  reporters: Personnel[];
-  producers: Personnel[];
+  reporters: ProductionPersonnel[];
+  producers: ProductionPersonnel[];
   eventsToday: any[]; // raw events from Firestore (convertidos abaixo)
   allFutureEvents: any[];
 };
@@ -94,5 +95,3 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
 
   return out;
 }
-
-    
