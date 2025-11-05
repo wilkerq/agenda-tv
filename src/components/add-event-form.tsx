@@ -38,7 +38,7 @@ import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSugge
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
-import { suggestTeam, type SuggestTeamOutput } from "@/engine/suggest-team-flow";
+import { suggestTeam, type SuggestTeamFlowOutput } from "@/engine/suggest-team-flow";
 import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 

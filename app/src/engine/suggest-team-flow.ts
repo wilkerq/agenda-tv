@@ -7,7 +7,7 @@
 // Nota: esse arquivo substitui a versão que chamava IA; agora constrói um objeto de saída assertivo, válido para preencher o formulário.
 
 
-import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
+import { suggestTeamLogic as suggestTeamLogic } from './suggestion-logic';
 import type { Event, Personnel } from '@/lib/types';
 
 
