@@ -14,6 +14,7 @@ import {
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
 import { getOperationMode } from '@/lib/state';
+import { z } from 'zod';
 
 
 const whatsAppPrompt = ai.definePrompt({
