@@ -44,6 +44,7 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
   const eventDate = new Date(input.date);
   eventDate.setHours(h, m, 0, 0);
 
+
   const parseEvents = (raw: any[]): Event[] => raw.map(r => ({
     id: r.id,
     name: r.name,
@@ -62,13 +63,12 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
   }));
 
 
-  const allFutureEvents = parseEvents(input.allFutureEvents ?? []);
   const eventsToday = parseEvents(input.eventsToday ?? []);
-
+  const allFutureEvents = parseEvents(input.allFutureEvents ?? []);
 
   const result = await suggestTeamLogic({
     name: input.name,
-    date: input.date,
+    date: eventDate.toISOString(),
     departure: input.departure,
     arrival: input.arrival,
     location: input.location,
@@ -94,3 +94,5 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
 
   return out;
 }
+
+    
