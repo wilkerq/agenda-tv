@@ -24,7 +24,7 @@ ENV NODE_ENV=production
 
 # Copia o build do Next.js do estágio 'builder'
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
+#COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
 
