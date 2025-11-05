@@ -177,27 +177,6 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   }, [user, db]);
 
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      location: undefined,
-      time: "",
-      transmission: ["youtube"],
-      pauta: "",
-      transmissionOperator: "",
-      cinematographicReporter: "",
-      reporter: "",
-      producer: "",
-      repeats: false,
-      repeatCount: 1,
-      departureDate: undefined,
-      departureTime: "",
-      arrivalDate: undefined,
-      arrivalTime: "",
-    },
-  });
-
   const handleSuggestion = React.useCallback(async () => {
     const { name, date, time, location, transmission, departureDate, departureTime, arrivalDate, arrivalTime } = form.getValues();
     
@@ -865,3 +844,5 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     </>
   );
 }
+
+    
