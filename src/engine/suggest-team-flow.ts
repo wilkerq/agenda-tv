@@ -1,15 +1,8 @@
-// =========================
-// suggest-team-flow.ts (Revisado)
-// Função que integra a lógica pura com o fluxo que antes era pensado para IA.
-// -------------------------
+'use server';
 
-
-// Nota: esse arquivo substitui a versão que chamava IA; agora constrói um objeto de saída assertivo, válido para preencher o formulário.
-
-
-import { suggestTeam as suggestTeamLogic } from '@/lib/suggestion-logic';
 import type { Event, Personnel } from '@/lib/types';
-
+import { suggestTeamLogic } from './suggestion-logic';
+import { logSuggestion } from './schedule.audit';
 
 export type SuggestTeamFlowInput = {
   name: string;
@@ -43,20 +36,6 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
   const [h, m] = input.time.split(':').map(Number);
   const eventDate = new Date(input.date);
   eventDate.setHours(h, m, 0, 0);
-
-
-  const event: Event = {
-    id: '', // Not needed for logic
-    name: input.name,
-    date: eventDate,
-    location: input.location,
-    transmission: input.transmissionTypes as any,
-    departure: input.departure ? new Date(input.departure) : null,
-    arrival: input.arrival ? new Date(input.arrival) : null,
-    color: '',
-    status: 'Agendado',
-    turn: 'Manhã' // Placeholder, will be recalculated
-  };
 
   const parseEvents = (raw: any[]): Event[] => raw.map(r => ({
     id: r.id,
@@ -95,8 +74,9 @@ export async function suggestTeam(input: SuggestTeamFlowInput): Promise<SuggestT
     allFutureEvents,
   });
 
+  // Log the suggestion result for auditing
+  logSuggestion(input.name, result);
 
-  // resposta simples e assertiva
   const out: SuggestTeamFlowOutput = {
     transmissionOperator: result.transmissionOperator ?? null,
     cinematographicReporter: result.cinematographicReporter ?? null,

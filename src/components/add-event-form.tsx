@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,11 +34,11 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, SuggestTeamOutput, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
-import { suggestTeam } from "@/ai/flows/suggest-team-flow";
+import { suggestTeam, type SuggestTeamOutput } from "@/engine/suggest-team-flow";
 import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -120,7 +119,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const [cinematographicReporters, setCinematographicReporters] = React.useState<Personnel[]>([]);
   const [productionPersonnel, setProductionPersonnel] = React.useState<ProductionPersonnel[]>([]);
   
-  const [suggestionData, setSuggestionData] = React.useState<SuggestTeamOutput | null>(null);
+  const [suggestionData, setSuggestionData] = React.useState<SuggestTeamFlowOutput | null>(null);
 
   React.useEffect(() => {
     if (!user || !db) return;
@@ -561,6 +560,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {transmissionOperators.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -579,6 +579,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {cinematographicReporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -597,6 +598,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {reporters.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
@@ -615,6 +617,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                            <SelectItem value="">Nenhum</SelectItem>
                             {producers.map((op) => <SelectItem key={op.id} value={op.name}>{op.name}</SelectItem>)}
                         </SelectContent>
                     </Select>

@@ -2,5 +2,5 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  // Seus arquivos de teste estão na raiz, então não precisa de roots
+  roots: ['<rootDir>/src/engine/__tests__'],
 };
