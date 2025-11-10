@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -28,10 +29,11 @@ service cloud.firestore {
     // 🔹 Coleção de Usuários (/users)
     // ======================================================
     match /users/{userId} {
-      // O próprio usuário pode ler seu perfil. Admins também podem ler qualquer perfil.
+      // O próprio usuário pode ler e criar seu perfil. Admins também podem ler qualquer perfil.
       allow read: if (request.auth.uid == userId) || isAdmin();
-      // Apenas admins podem criar, atualizar ou deletar usuários.
-      allow write: if isAdmin();
+      allow create: if isAuthenticated();
+      // Apenas admins podem atualizar ou deletar outros usuários.
+      allow update, delete: if isAdmin();
     }
 
 
