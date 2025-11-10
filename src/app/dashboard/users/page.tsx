@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { collection, onSnapshot, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Edit } from "lucide-react";
+import { Loader2, Trash2, Edit, PlusCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -150,7 +151,16 @@ export default function ManageUsersPage() {
   }
 
   // Simple role check on client, Firestore rules are the source of truth
-  if (currentUser && !users.find(u => u.uid === currentUser.uid)?.role.includes('admin')) {
+  const userIsAdmin = users.find(u => u.uid === currentUser.uid)?.role === 'admin';
+  if (loading) {
+      return (
+          <div className="flex justify-center items-center h-48">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+      );
+  }
+
+  if (!userIsAdmin) {
       return (
           <Card>
               <CardHeader>
@@ -166,9 +176,17 @@ export default function ManageUsersPage() {
 
   return (
     <Card>
-      <CardHeader>
-          <CardTitle>Gerenciar Usuários</CardTitle>
-          <CardDescription>Visualize, edite ou remova usuários do sistema.</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Gerenciar Usuários</CardTitle>
+            <CardDescription>Visualize, edite ou remova usuários do sistema.</CardDescription>
+          </div>
+          <Link href="/dashboard/users/create">
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Usuário
+            </Button>
+          </Link>
       </CardHeader>
       <CardContent>
         {loading ? (
