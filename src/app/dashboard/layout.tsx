@@ -36,6 +36,8 @@ import { getAuth, signOut, type User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useUser } from "@/firebase";
+import { PushNotificationManager } from '@/components/PushNotificationManager';
+
 
 export default function DashboardLayout({
   children,
@@ -93,6 +95,7 @@ export default function DashboardLayout({
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <PushNotificationManager />
       <div className="hidden border-r bg-slate-900 text-white md:block">
         <div className="flex h-full max-h-screen flex-col">
           <div className="flex h-14 items-center border-b border-slate-700 px-4 lg:h-[60px] lg:px-6">

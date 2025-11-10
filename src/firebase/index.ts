@@ -3,7 +3,8 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore';
+import { getMessaging } from 'firebase/messaging';
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -38,7 +39,8 @@ export function getSdks(firebaseApp: FirebaseApp) {
     auth: initializeAuth(firebaseApp, {
       persistence: indexedDBLocalPersistence
     }),
-    firestore: getFirestore(firebaseApp)
+    firestore: getFirestore(firebaseApp),
+    messaging: typeof window !== 'undefined' ? getMessaging(firebaseApp) : undefined,
   };
 }
 
@@ -47,6 +49,7 @@ export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './auth/use-user';
+export * from './auth/use-fcm-token';
 export * from './errors';
 export * from './error-emitter';
 export type { SecurityRuleContext } from '@/lib/types';
