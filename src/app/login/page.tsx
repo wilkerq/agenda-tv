@@ -52,26 +52,8 @@ export default function LoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            let role = 'viewer'; 
-
-            // Check if the user's email exists in any of the personnel collections
-            const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
-            let isTeamMember = false;
-
-            for (const coll of personnelCollections) {
-                const q = query(collection(db, coll), where("email", "==", user.email), limit(1));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    isTeamMember = true;
-                    break;
-                }
-            }
-
-            // If they are a team member, assign 'editor' role
-            if (isTeamMember) {
-                role = 'editor';
-            }
-
+            const role = 'viewer'; // Todos os novos usuários são 'viewer' por padrão.
+            
             await setDoc(userDocRef, {
                 uid: user.uid,
                 displayName: user.displayName,
