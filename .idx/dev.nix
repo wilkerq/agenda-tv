@@ -9,8 +9,7 @@
     pkgs.zulu
     pkgs.docker-compose
     pkgs.openssh
-    Sessão solene extraordinária de entrega de Título de Cidadania Goiana.
-
+    pkgs.docker
   ];
   # Sets environment variables in the workspace
   env = {};
