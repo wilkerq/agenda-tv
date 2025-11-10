@@ -20,18 +20,18 @@ const settingsLinks = [
     icon: Users,
     isInternal: true,
   },
+   {
+    href: "/dashboard/users",
+    title: "Gerenciar Usuários",
+    description: "Adicione, edite ou remova usuários do painel administrativo.",
+    icon: UserPlus,
+    isInternal: true,
+  },
   {
     href: "/dashboard/logs",
     title: "Logs de Auditoria",
     description: "Visualize todas as ações realizadas no sistema.",
     icon: History,
-    isInternal: true,
-  },
-  {
-    href: "/dashboard/users/create",
-    title: "Criar Usuários",
-    description: "Adicione novos usuários com permissão para acessar o painel administrativo.",
-    icon: UserPlus,
     isInternal: true,
   },
   {
