@@ -69,15 +69,18 @@ service cloud.firestore {
     // 🔹 Coleções internas de pessoal (acesso restrito)
     // ======================================================
     match /transmission_operators/{operatorId} {
-      allow read, write: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /cinematographic_reporters/{reporterId} {
-      allow read, write: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     match /production_personnel/{personnelId} {
-      allow read, write: if isAdmin();
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
 
