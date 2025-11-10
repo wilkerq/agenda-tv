@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, useFirebase } from "@/firebase";
 import { Loader2 } from "lucide-react";
 
 const GoogleIcon = () => (
@@ -32,8 +32,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
-  const db = useFirestore();
+  const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -52,7 +51,7 @@ export default function LoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            const role = 'viewer'; // Todos os novos usuários são 'viewer' por padrão.
+             const role = 'viewer'; 
             
             await setDoc(userDocRef, {
                 uid: user.uid,
@@ -76,7 +75,7 @@ export default function LoginPage() {
         router.push("/dashboard");
 
     } catch (error: any) {
-        console.error("Erro no login com Google:", error);
+        console.error("Erro no login com Google:", error.message);
         toast({
             title: "Falha no Login com Google",
             description: error.message || "Não foi possível fazer login com o Google. Tente novamente.",
@@ -148,9 +147,9 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading || !auth || !db}
+              disabled={isLoading || isUserLoading || !auth || !db}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
             </Button>
 
@@ -175,7 +174,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isUserLoading}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -187,16 +186,16 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isUserLoading}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
-              disabled={isLoading || !auth}
+              disabled={isLoading || isUserLoading || !auth}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
+              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
             </Button>
           </form>
         </CardContent>
@@ -204,5 +203,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
