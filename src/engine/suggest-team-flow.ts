@@ -79,18 +79,22 @@ export async function suggestTeam(input: any): Promise<SuggestTeamFlowOutput> {
   const rolesToSuggest: RoleKey[] = ["transmissionOperator", "cinematographicReporter", "reporter", "producer"];
 
   for (const role of rolesToSuggest) {
-      if ((partialAllocations as any)[role]) continue; // Skip if already allocated
+      if (partialAllocations[role]) continue; // Skip if already allocated in a previous step
 
       const stepResult = suggestNextRole({
           event,
-          partialAllocations,
+          partialAllocations, // Pass the current state of allocations
           pools,
           allEvents
       });
 
       if (stepResult.candidate && stepResult.nextRole) {
           const roleKey = stepResult.nextRole as RoleKey;
-          (partialAllocations as any)[roleKey] = stepResult.candidate.id;
+          
+          // Update partialAllocations for the *next* iteration
+          partialAllocations[roleKey] = stepResult.candidate.id;
+          
+          // Populate the final suggestion object
           (finalSuggestion as any)[roleKey] = stepResult.candidate.name;
 
           if (stepResult.candidate.reschedulingSuggestions && stepResult.candidate.reschedulingSuggestions.length > 0) {
