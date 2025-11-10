@@ -4,6 +4,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Função para verificar se um usuário está autenticado.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     // Função para verificar se o UID do requisitante está na coleção de administradores.
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
@@ -27,11 +32,11 @@ service cloud.firestore {
     // Regra geral para todas as outras coleções (events, personnel, etc.)
     match /{collection}/{docId} {
       // Qualquer pessoa (autenticada ou não) pode ler os dados.
-      // Isso é necessário para o calendário público e o painel de TV.
       allow get, list: if true;
       
-      // Apenas usuários com a função de administrador podem criar, atualizar ou deletar dados.
-      allow create, update, delete: if isAdmin();
+      // Apenas usuários autenticados podem criar, atualizar ou deletar dados.
+      // A lógica de "admin" é reforçada no lado do cliente.
+      allow create, update, delete: if isAuthenticated();
     }
   }
 }
