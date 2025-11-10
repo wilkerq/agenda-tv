@@ -12,39 +12,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Verifica se o usuário está registrado como administrador.
+    // Verifica se o usuário tem a role 'admin' em seu documento na coleção /users.
     function isAdmin() {
-      return isAuthenticated() &&
-             exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-
-    // Caso queira definir futuramente coleções públicas genéricas.
-    function isPublicRead() {
-      return true; // Pode personalizar depois.
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
 
     // ======================================================
-    // 🔹 Logs de auditoria (/audit_logs)
+    // 🔹 Coleção de Usuários (/users)
     // ======================================================
-    match /audit_logs/{logId} {
-      // Protege contra leitura, edição e exclusão diretas.
-      allow read, update, delete: if false;
-
-      // Somente administradores autenticados podem criar logs.
-      allow create: if isAuthenticated() && isAdmin();
-    }
-
-
-    // ======================================================
-    // 🔹 Administração de permissões (/roles_admin)
-    // ======================================================
-    match /roles_admin/{userId} {
-      // Apenas administradores podem listar ou adicionar novos administradores.
-      allow read, create: if isAdmin();
-
-      // Nenhum usuário pode alterar ou remover administradores existentes.
-      allow update, delete: if false;
+    match /users/{userId} {
+      // O próprio usuário pode ler e atualizar seu perfil. Admins também podem.
+      allow read, update: if request.auth.uid == userId || isAdmin();
+      // Apenas admins podem criar ou deletar usuários diretamente aqui (a criação principal é no app).
+      allow create, delete: if isAdmin();
     }
 
 

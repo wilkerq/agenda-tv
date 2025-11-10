@@ -15,9 +15,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { doc, getDoc, setDoc, getDocs, collection, query, limit } from "firebase/firestore";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const db = useFirestore();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,10 +78,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    if (!auth) {
+    if (!auth || !db) {
       toast({
         title: "Erro de Inicialização",
-        description: "O serviço de autenticação não está pronto.",
+        description: "Os serviços de autenticação ou banco de dados não estão prontos.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -88,12 +90,34 @@ export default function LoginPage() {
 
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        const usersCollectionRef = collection(db, "users");
+        const q = query(usersCollectionRef, limit(1));
+        const existingUsersSnapshot = await getDocs(q);
+        const isFirstUser = existingUsersSnapshot.empty;
+        
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: isFirstUser ? "admin" : "viewer",
+          createdAt: new Date(),
+        });
+      }
+
       toast({
         title: "Login bem-sucedido!",
         description: "Redirecionando para o painel...",
       });
       router.push("/dashboard");
+
     } catch (error: any) {
       console.error("Error signing in with Google: ", error.message);
       let errorMessage = "Ocorreu um erro ao tentar fazer login com o Google.";
