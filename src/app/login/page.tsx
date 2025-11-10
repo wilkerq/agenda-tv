@@ -32,8 +32,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
-  const db = useFirestore();
+  const { auth, db } = useFirebase();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -52,16 +51,22 @@ export default function LoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-             const role = 'viewer'; 
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("email", "==", user.email));
+            const querySnapshot = await getDocs(q);
             
-            await setDoc(userDocRef, {
-                uid: user.uid,
-                displayName: user.displayName,
-                email: user.email,
-                role: role,
-                createdAt: new Date(),
-            });
+            const role = 'viewer'; 
             
+            // If no user with that email exists in 'users' collection
+            if (querySnapshot.empty) {
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    email: user.email,
+                    role: role,
+                    createdAt: new Date(),
+                });
+            }
              toast({
                 title: "Bem-vindo(a)!",
                 description: `Sua conta foi criada com a permissão de ${role}.`,
