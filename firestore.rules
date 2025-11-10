@@ -1,42 +1,72 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Função para verificar se um usuário está autenticado.
+
+    // ======================================================
+    // 🔹 Funções auxiliares
+    // ======================================================
+
+    // Verifica se o usuário está autenticado.
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Função para verificar se o UID do requisitante está na coleção de administradores.
+    // Verifica se o usuário está registrado como administrador.
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isAuthenticated() &&
+             exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    // Acesso à coleção de logs de auditoria.
-    // Apenas administradores podem criar logs.
-    // Ninguém pode ler, atualizar ou deletar logs diretamente para garantir a integridade.
+
+    // ======================================================
+    // 🔹 Coleção de logs de auditoria (/audit_logs)
+    // ======================================================
     match /audit_logs/{logId} {
-      allow read, update, delete: if false; // Protege os logs contra leitura e modificação
-      allow create: if isAdmin();
+      // Protege totalmente os logs: ninguém lê, altera ou deleta.
+      allow read, update, delete: if false;
+
+      // Apenas administradores autenticados podem criar novos logs.
+      allow create: if isAuthenticated() && isAdmin();
     }
 
-    // Acesso à coleção de administradores
-    // Apenas outros administradores podem ler ou criar novos administradores.
+
+    // ======================================================
+    // 🔹 Coleção de administradores (/roles_admin)
+    // ======================================================
     match /roles_admin/{userId} {
-        allow read, create: if isAdmin();
-        allow update, delete: if false; // Ninguém pode alterar ou remover um admin
+      // Apenas outros admins podem visualizar ou adicionar novos administradores.
+      allow read, create: if isAdmin();
+
+      // Ninguém pode alterar ou remover um administrador existente.
+      allow update, delete: if false;
     }
 
-    // Regra geral para todas as outras coleções (events, personnel, etc.)
+
+    // ======================================================
+    // 🔹 Coleções públicas seguras (exemplo: events, gallery, etc.)
+    // ======================================================
+    // Se você tiver coleções que realmente podem ser lidas publicamente,
+    // especifique-as explicitamente aqui:
+    match /events/{eventId} {
+      allow read: if true;            // Público pode ver eventos.
+      allow write: if isAdmin();      // Apenas admin pode gerenciar.
+    }
+
+    match /public_pages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+
+    // ======================================================
+    // 🔹 Regra padrão para outras coleções (privadas)
+    // ======================================================
+    // Captura todas as coleções não definidas acima.
     match /{collection}/{docId} {
-      // Qualquer pessoa (autenticada ou não) pode ler os dados.
-      allow get, list: if true;
-      
-      // Apenas usuários autenticados podem criar, atualizar ou deletar dados.
-      // A lógica de "admin" é reforçada no lado do cliente.
-      allow create, update, delete: if isAuthenticated();
+      // Apenas administradores podem ler ou escrever dados.
+      // Isso evita exposição acidental de dados sensíveis.
+      allow read, write: if isAdmin();
     }
   }
 }

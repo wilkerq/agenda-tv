@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +41,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 import { suggestTeam, type SuggestTeamFlowOutput } from "@/engine/suggest-team-flow";
 import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent } from "@/components/ui/alert-dialog";
+import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const locations = [
   "Auditório Francisco Gedda",
@@ -448,6 +450,12 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
   const producers = React.useMemo(() => productionPersonnel.filter(p => p.isProducer), [productionPersonnel]);
   return (
     <>
+    <DialogHeader className="p-6 pb-0">
+        <DialogTitle>Adicionar Novo Evento</DialogTitle>
+        <DialogDescription>
+            Preencha os detalhes abaixo para adicionar um novo evento à agenda.
+        </DialogDescription>
+    </DialogHeader>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
         <div className="grid md:grid-cols-2 gap-8">
@@ -838,7 +846,7 @@ export function AddEventForm({ onAddEvent, preloadedData, onSuccess, reallocatio
     <AlertDialog open={!!reallocationSuggestions} onOpenChange={(isOpen) => !isOpen && setReallocationSuggestions(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Conflito de Agendamento Detectado</AlertDialogTitle>
+            <AlertDialogTitleComponent>Conflito de Agendamento Detectado</AlertDialogTitleComponent>
             <AlertDialogDescription>
                 A equipe sugerida para esta viagem já está alocada em outros eventos. Deseja confirmar o reagendamento automático?
                 <ul className="mt-4 list-disc list-inside space-y-2 text-sm text-foreground">
