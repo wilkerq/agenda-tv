@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -67,8 +68,8 @@ export default function DashboardLayout({
         description: "Você será redirecionado para a página de login.",
       });
       router.push("/login");
-    } catch (error) {
-      console.error("Erro ao fazer logout: ", error);
+    } catch (error: any) {
+      console.error("Erro ao fazer logout: ", error.message);
       toast({
         title: "Erro!",
         description: "Não foi possível fazer o logout.",
