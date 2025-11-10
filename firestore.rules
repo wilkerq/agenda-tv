@@ -18,39 +18,45 @@ service cloud.firestore {
              exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
+    // Caso queira definir futuramente coleções públicas genéricas.
+    function isPublicRead() {
+      return true; // Pode personalizar depois.
+    }
+
 
     // ======================================================
-    // 🔹 Coleção de logs de auditoria (/audit_logs)
+    // 🔹 Logs de auditoria (/audit_logs)
     // ======================================================
     match /audit_logs/{logId} {
-      // Protege totalmente os logs: ninguém lê, altera ou deleta.
+      // Protege contra leitura, edição e exclusão diretas.
       allow read, update, delete: if false;
 
-      // Apenas administradores autenticados podem criar novos logs.
+      // Somente administradores autenticados podem criar logs.
       allow create: if isAuthenticated() && isAdmin();
     }
 
 
     // ======================================================
-    // 🔹 Coleção de administradores (/roles_admin)
+    // 🔹 Administração de permissões (/roles_admin)
     // ======================================================
     match /roles_admin/{userId} {
-      // Apenas outros admins podem visualizar ou adicionar novos administradores.
+      // Apenas administradores podem listar ou adicionar novos administradores.
       allow read, create: if isAdmin();
 
-      // Ninguém pode alterar ou remover um administrador existente.
+      // Nenhum usuário pode alterar ou remover administradores existentes.
       allow update, delete: if false;
     }
 
 
     // ======================================================
-    // 🔹 Coleções públicas seguras (exemplo: events, gallery, etc.)
+    // 🔹 Coleções públicas seguras
     // ======================================================
-    // Se você tiver coleções que realmente podem ser lidas publicamente,
-    // especifique-as explicitamente aqui:
     match /events/{eventId} {
-      allow read: if true;            // Público pode ver eventos.
-      allow write: if isAdmin();      // Apenas admin pode gerenciar.
+      // Qualquer usuário (inclusive não autenticado) pode ler.
+      allow read: if true;
+
+      // Somente administradores podem criar, atualizar ou excluir.
+      allow write: if isAdmin();
     }
 
     match /public_pages/{pageId} {
@@ -58,28 +64,30 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+
     // ======================================================
-    // 🔹 Coleções de Pessoal (restritas a administradores)
+    // 🔹 Coleções internas de pessoal (acesso restrito)
     // ======================================================
     match /transmission_operators/{operatorId} {
-        allow read, write: if isAdmin();
+      allow read, write: if isAdmin();
     }
-    
+
     match /cinematographic_reporters/{reporterId} {
-        allow read, write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
     match /production_personnel/{personnelId} {
-        allow read, write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
+
     // ======================================================
-    // 🔹 Regra padrão para outras coleções (privadas)
+    // 🔹 Regra padrão (catch-all)
     // ======================================================
-    // Captura todas as coleções não definidas acima.
+    // Esta regra se aplica a qualquer coleção não explicitamente listada acima.
+    // Garante segurança máxima bloqueando acesso de usuários comuns.
     match /{collection}/{docId} {
-      // Apenas administradores podem ler ou escrever dados.
-      // Isso evita exposição acidental de dados sensíveis.
+      // Apenas administradores podem ler ou escrever.
       allow read, write: if isAdmin();
     }
   }
