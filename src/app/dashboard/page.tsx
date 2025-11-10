@@ -462,12 +462,6 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
               </Button>
           </DialogTrigger>
           <DialogContent className="p-0 sm:max-w-3xl">
-            <DialogHeader className="p-6 pb-0">
-              <DialogTitle>Adicionar Novo Evento</DialogTitle>
-              <DialogDescription>
-                Preencha os campos de data, hora e local, depois use o botão "Sugerir Equipe" para preencher a equipe.
-              </DialogDescription>
-            </DialogHeader>
             <AddEventForm 
                 onAddEvent={handleAddEvent} 
                 preloadedData={preloadedEventData} 
@@ -576,5 +570,3 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
-
-    

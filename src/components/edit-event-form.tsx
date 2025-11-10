@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,11 +34,11 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { Event, TransmissionType, EventFormData } from "@/lib/types";
+import type { Event, TransmissionType, EventFormData, SecurityRuleContext } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 
 
 const locations = [
@@ -122,21 +121,21 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
         setTransmissionOperators(data.sort((a,b) => a.name.localeCompare(b.name)));
     }, (serverError) => {
-      const permissionError = new FirestorePermissionError({ path: 'transmission_operators', operation: 'list' });
+      const permissionError = new FirestorePermissionError({ path: 'transmission_operators', operation: 'list' } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
     const unsub2 = onSnapshot(query(collection(db, 'cinematographic_reporters')), (snapshot) => {
         const data: Personnel[] = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
         setCinematographicReporters(data.sort((a,b) => a.name.localeCompare(b.name)));
     }, (serverError) => {
-      const permissionError = new FirestorePermissionError({ path: 'cinematographic_reporters', operation: 'list' });
+      const permissionError = new FirestorePermissionError({ path: 'cinematographic_reporters', operation: 'list' } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
     const unsub3 = onSnapshot(query(collection(db, 'production_personnel')), (snapshot) => {
         const data: ProductionPersonnel[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProductionPersonnel));
         setProductionPersonnel(data.sort((a,b) => a.name.localeCompare(b.name)));
     }, (serverError) => {
-      const permissionError = new FirestorePermissionError({ path: 'production_personnel', operation: 'list' });
+      const permissionError = new FirestorePermissionError({ path: 'production_personnel', operation: 'list' } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
     });
 
@@ -529,5 +528,3 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
-
-    

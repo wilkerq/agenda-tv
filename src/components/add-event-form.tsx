@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,12 +34,12 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel, SecurityRuleContext } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
 import { suggestTeam, type SuggestTeamFlowOutput } from "@/engine/suggest-team-flow";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const locations = [
