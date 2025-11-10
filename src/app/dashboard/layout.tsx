@@ -84,7 +84,6 @@ export default function DashboardLayout({
     { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
-    { href: "/dashboard/users", label: "Gerenciar Usuários", icon: Users },
     { href: "/dashboard/settings", label: "Configurações", icon: Settings },
   ];
 
