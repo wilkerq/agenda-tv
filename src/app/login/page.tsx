@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -48,22 +48,41 @@ export default function LoginPage() {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
 
-        // Check if user document exists
         const userDocRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            // New user, create a document with 'viewer' role
+            let role = 'viewer'; 
+
+            // Check if the user's email exists in any of the personnel collections
+            const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
+            let isTeamMember = false;
+
+            for (const coll of personnelCollections) {
+                const q = query(collection(db, coll), where("email", "==", user.email), limit(1));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    isTeamMember = true;
+                    break;
+                }
+            }
+
+            // If they are a team member, assign 'editor' role
+            if (isTeamMember) {
+                role = 'editor';
+            }
+
             await setDoc(userDocRef, {
                 uid: user.uid,
                 displayName: user.displayName,
                 email: user.email,
-                role: 'viewer', // Default role for Google sign-in
+                role: role,
                 createdAt: new Date(),
             });
+            
              toast({
                 title: "Bem-vindo(a)!",
-                description: "Sua conta foi criada com sucesso.",
+                description: `Sua conta foi criada com a permissão de ${role}.`,
             });
         } else {
              toast({
@@ -75,10 +94,10 @@ export default function LoginPage() {
         router.push("/dashboard");
 
     } catch (error: any) {
-        console.error("Erro no login com Google:", error.message);
+        console.error("Erro no login com Google:", error);
         toast({
             title: "Falha no Login com Google",
-            description: "Não foi possível fazer login com o Google. Tente novamente.",
+            description: error.message || "Não foi possível fazer login com o Google. Tente novamente.",
             variant: "destructive",
         });
     } finally {
@@ -203,3 +222,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

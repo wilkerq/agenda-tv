@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, FC, useMemo } from "react";
@@ -29,6 +30,7 @@ const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 const personnelSchema = z.object({
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   phone: z.string().min(10, "O telefone deve ser válido.").optional().or(z.literal("")),
+  email: z.string().email("O e-mail deve ser válido.").optional().or(z.literal("")),
   turn: z.enum(turns).default("Geral"),
 });
 
@@ -61,7 +63,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
 
   const form = useForm<z.infer<typeof personnelSchema>>({
     resolver: zodResolver(personnelSchema),
-    defaultValues: { name: "", phone: "", turn: "Geral" },
+    defaultValues: { name: "", phone: "", email: "", turn: "Geral" },
   });
   
   const personnelQuery = useMemoFirebase(() => {
@@ -177,6 +179,17 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
                                 </FormItem>
                             )}
                         />
+                         <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl><Input type="email" placeholder="email@exemplo.com" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="phone"
@@ -230,7 +243,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Turno</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -239,7 +252,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
             {personnel.length > 0 ? personnel.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell>{p.phone || "N/A"}</TableCell>
+                <TableCell>{p.email || "N/A"}</TableCell>
                 <TableCell><Badge variant="outline">{p.turn || "Geral"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
@@ -262,6 +275,17 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
                                           <FormItem>
                                               <FormLabel>Nome</FormLabel>
                                               <FormControl><Input {...field} /></FormControl>
+                                              <FormMessage />
+                                          </FormItem>
+                                      )}
+                                  />
+                                   <FormField
+                                      control={form.control}
+                                      name="email"
+                                      render={({ field }) => (
+                                          <FormItem>
+                                              <FormLabel>Email</FormLabel>
+                                              <FormControl><Input type="email" {...field} /></FormControl>
                                               <FormMessage />
                                           </FormItem>
                                       )}
@@ -332,7 +356,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
               </TableRow>
             )) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">
+                    <TableCell colSpan={5} className="text-center h-24">
                         Nenhum membro encontrado. Comece adicionando um.
                     </TableCell>
                 </TableRow>
@@ -362,7 +386,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
 
   const form = useForm<z.infer<typeof productionPersonnelSchema>>({
     resolver: zodResolver(productionPersonnelSchema),
-    defaultValues: { name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" },
+    defaultValues: { name: "", phone: "", email: "", isReporter: false, isProducer: false, turn: "Geral" },
   });
   
   const personnelQuery = useMemoFirebase(() => {
@@ -401,7 +425,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     try {
       await addPersonnelAction(db, collectionName, values, currentUser.email);
       toast({ title: "Sucesso!", description: "Novo membro adicionado." });
-      form.reset({ name: "", phone: "", isReporter: false, isProducer: false, turn: "Geral" });
+      form.reset({ name: "", phone: "", email: "", isReporter: false, isProducer: false, turn: "Geral" });
       setAddModalOpen(false);
     } catch (error) {
       const collectionRef = collection(db, collectionName);
@@ -473,6 +497,17 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
                                 <FormItem>
                                     <FormLabel>Nome</FormLabel>
                                     <FormControl><Input placeholder="Nome do membro" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl><Input type="email" placeholder="email@exemplo.com" {...field} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -593,6 +628,17 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
                                           <FormItem>
                                               <FormLabel>Nome</FormLabel>
                                               <FormControl><Input {...field} /></FormControl>
+                                              <FormMessage />
+                                          </FormItem>
+                                      )}
+                                  />
+                                  <FormField
+                                      control={form.control}
+                                      name="email"
+                                      render={({ field }) => (
+                                          <FormItem>
+                                              <FormLabel>Email</FormLabel>
+                                              <FormControl><Input type="email" {...field} /></FormControl>
                                               <FormMessage />
                                           </FormItem>
                                       )}
@@ -730,3 +776,5 @@ export default function OperatorsPage() {
     </div>
   );
 }
+
+    
