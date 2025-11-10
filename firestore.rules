@@ -58,6 +58,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ======================================================
+    // 🔹 Coleções de Pessoal (restritas a administradores)
+    // ======================================================
+    match /transmission_operators/{operatorId} {
+        allow read, write: if isAdmin();
+    }
+    
+    match /cinematographic_reporters/{reporterId} {
+        allow read, write: if isAdmin();
+    }
+
+    match /production_personnel/{personnelId} {
+        allow read, write: if isAdmin();
+    }
 
     // ======================================================
     // 🔹 Regra padrão para outras coleções (privadas)
