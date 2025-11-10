@@ -1,9 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { collection, onSnapshot, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
-import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,15 +24,25 @@ import { Loader2, Trash2, Edit, PlusCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useAuth } from '@/firebase';
 import { logAction } from "@/lib/audit-log";
-import type { SecurityRuleContext } from "@/lib/types";
+import type { SecurityRuleContext, AuditLog } from "@/lib/types";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 const userRoles = ["admin", "editor", "viewer"] as const;
 
-const userSchema = z.object({
+// Schema for editing an existing user
+const editUserSchema = z.object({
   displayName: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   role: z.enum(userRoles),
+});
+
+// Schema for creating a new user (includes password)
+const createUserSchema = z.object({
+  email: z.string().email("Por favor, insira um email válido."),
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
+  displayName: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  role: z.enum(userRoles).default("editor"),
 });
 
 type UserData = {
@@ -44,17 +53,190 @@ type UserData = {
   role: "admin" | "editor" | "viewer";
 };
 
+type CreateUserFormValues = z.infer<typeof createUserSchema>;
+
+// Component for the Create User Form
+function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { user: adminUser } = useUser();
+  const db = useFirestore();
+  const auth = useAuth();
+
+  const form = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { email: "", password: "", displayName: "", role: "editor" },
+  });
+
+  const onSubmit = async (values: CreateUserFormValues) => {
+    if (!adminUser?.email || !db || !auth) {
+      toast({
+        title: "Erro de Autenticação",
+        description: "Não foi possível identificar o administrador logado. Faça login novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+
+    try {
+      // 1. Create the user in Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const newUser = userCredential.user;
+
+      // 2. Set the user's display name
+      await updateProfile(newUser, { displayName: values.displayName });
+
+      // 3. Create the user document in Firestore with the selected role
+      const userDocRef = doc(db, "users", newUser.uid);
+      const newUserData = {
+        uid: newUser.uid,
+        email: values.email,
+        displayName: values.displayName,
+        role: values.role,
+        createdAt: new Date(),
+      };
+      
+      await doc(userDocRef).set(newUserData)
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'create',
+                requestResourceData: newUserData,
+            } satisfies SecurityRuleContext);
+            errorEmitter.emit('permission-error', permissionError);
+        });
+
+      // 4. Log the action
+      await logAction({
+          db,
+          action: 'create-user',
+          collectionName: 'users',
+          documentId: newUser.uid,
+          userEmail: adminUser.email,
+          newData: {
+              createdUserEmail: values.email,
+              uid: newUser.uid,
+              role: values.role,
+          },
+      });
+
+      toast({
+        title: "Usuário Criado com Sucesso!",
+        description: `O usuário ${values.email} foi adicionado com a função de ${values.role}.`,
+      });
+      form.reset();
+      onSuccess(); // Close the dialog
+
+    } catch (error: any) {
+      if (!(error instanceof FirestorePermissionError)) {
+          let errorMessage = "Ocorreu um erro desconhecido.";
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage = "Este endereço de email já está em uso por outra conta.";
+          }
+          console.error("Falha ao criar usuário:", error.message);
+          toast({
+            title: "Falha ao Criar Usuário",
+            description: errorMessage,
+            variant: "destructive",
+          });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="displayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome Completo</FormLabel>
+              <FormControl>
+                <Input type="text" placeholder="Nome Sobrenome" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email do Novo Usuário</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="email@exemplo.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Senha</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Função</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma função" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {userRoles.map(role => (
+                    <SelectItem key={role} value={role} className="capitalize">
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+          <Button type="submit" disabled={isSubmitting || !adminUser || !db}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Criando..." : "Criar Usuário"}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  )
+}
+
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
   const { user: currentUser } = useUser();
 
-  const form = useForm<z.infer<typeof userSchema>>({
-    resolver: zodResolver(userSchema),
+  const form = useForm<z.infer<typeof editUserSchema>>({
+    resolver: zodResolver(editUserSchema),
     defaultValues: { displayName: "", role: "viewer" },
   });
 
@@ -90,7 +272,7 @@ export default function ManageUsersPage() {
     return () => unsubscribe();
   }, [usersQuery]);
 
-  const handleEditUser = async (values: z.infer<typeof userSchema>) => {
+  const handleEditUser = async (values: z.infer<typeof editUserSchema>) => {
     if (!editingUser || !currentUser?.email || !db) return;
     setIsSubmitting(true);
     try {
@@ -152,6 +334,7 @@ export default function ManageUsersPage() {
 
   // Simple role check on client, Firestore rules are the source of truth
   const userIsAdmin = users.find(u => u.uid === currentUser.uid)?.role === 'admin';
+  
   if (loading) {
       return (
           <div className="flex justify-center items-center h-48">
@@ -173,7 +356,6 @@ export default function ManageUsersPage() {
       );
   }
 
-
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -181,12 +363,23 @@ export default function ManageUsersPage() {
             <CardTitle>Gerenciar Usuários</CardTitle>
             <CardDescription>Visualize, edite ou remova usuários do sistema.</CardDescription>
           </div>
-          <Link href="/dashboard/users/create">
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Usuário
-            </Button>
-          </Link>
+          <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Usuário
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Criar Novo Usuário</DialogTitle>
+                    <DialogDescription>
+                        Insira os dados e defina a função do novo usuário.
+                    </DialogDescription>
+                </DialogHeader>
+                <CreateUserForm onSuccess={() => setIsCreateUserOpen(false)} />
+            </DialogContent>
+          </Dialog>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -278,7 +471,7 @@ export default function ManageUsersPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo. A conta de autenticação precisará ser removida manualmente no Console do Firebase. Esta ação não pode ser desfeita.
+                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo. A conta de autenticação precisará ser removida manually no Console do Firebase. Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
