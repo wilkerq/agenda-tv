@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -6,6 +7,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -193,42 +202,48 @@ export default function ManageUsersPage() {
                               <DialogTitle>Editar Usuário</DialogTitle>
                               <DialogDescription>Atualize o nome e a função do usuário.</DialogDescription>
                           </DialogHeader>
-                          <form onSubmit={form.handleSubmit(handleEditUser)} className="space-y-4">
-                              <FormField
-                                  control={form.control}
-                                  name="displayName"
-                                  render={({ field }) => (
-                                    <div className="space-y-2">
-                                      <label htmlFor="displayName">Nome</label>
-                                      <input id="displayName" {...field} className="w-full p-2 border rounded-md" />
-                                    </div>
-                                  )}
-                               />
-                               <FormField
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(handleEditUser)} className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="displayName"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nome</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
                                     control={form.control}
                                     name="role"
                                     render={({ field }) => (
-                                        <div className="space-y-2">
-                                            <label htmlFor="role">Função</label>
+                                        <FormItem>
+                                            <FormLabel>Função</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
-                                                <SelectTrigger id="role">
-                                                    <SelectValue placeholder="Selecione uma função" />
-                                                </SelectTrigger>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione uma função" />
+                                                    </SelectTrigger>
+                                                </FormControl>
                                                 <SelectContent>
                                                     {userRoles.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                        </div>
+                                        </FormItem>
                                     )}
                                 />
-                              <DialogFooter>
-                                  <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                                  <Button type="submit" disabled={isSubmitting}>
-                                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                      Salvar
-                                  </Button>
-                              </DialogFooter>
-                          </form>
+                                <DialogFooter>
+                                    <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Salvar
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                          </Form>
                       </DialogContent>
                   </Dialog>
                   
@@ -267,3 +282,5 @@ export default function ManageUsersPage() {
     </Card>
   );
 }
+
+    
