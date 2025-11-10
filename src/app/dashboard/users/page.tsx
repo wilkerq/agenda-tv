@@ -28,7 +28,6 @@ import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissi
 import { logAction } from "@/lib/audit-log";
 import type { SecurityRuleContext } from "@/lib/types";
 import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
-import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available or can be added
 
 // Helper to generate random password
 const generateTempPassword = () => {
@@ -40,6 +39,7 @@ const userRoles = ["admin", "editor", "viewer"] as const;
 // Schema for editing an existing user
 const editUserSchema = z.object({
   displayName: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  email: z.string().email(), // Add email for readonly display
   role: z.enum(userRoles),
 });
 
@@ -235,7 +235,7 @@ export default function ManageUsersPage() {
 
   const form = useForm<z.infer<typeof editUserSchema>>({
     resolver: zodResolver(editUserSchema),
-    defaultValues: { displayName: "", role: "viewer" },
+    defaultValues: { displayName: "", email: "", role: "viewer" },
   });
 
   const usersQuery = useMemoFirebase(() => {
@@ -275,7 +275,9 @@ export default function ManageUsersPage() {
     setIsSubmitting(true);
     try {
       const userDocRef = doc(db, "users", editingUser.id);
-      await updateDoc(userDocRef, values);
+      // We don't update email here
+      const { email, ...updateData } = values; 
+      await updateDoc(userDocRef, updateData);
 
       await logAction({
         db,
@@ -283,7 +285,7 @@ export default function ManageUsersPage() {
         collectionName: 'users',
         documentId: editingUser.id,
         userEmail: currentUser.email,
-        newData: values,
+        newData: updateData,
         oldData: { displayName: editingUser.displayName, role: editingUser.role }
       });
       toast({ title: "Sucesso!", description: "Usuário atualizado." });
@@ -319,7 +321,7 @@ export default function ManageUsersPage() {
   
   const openEditModal = (user: UserData) => {
     setEditingUser(user);
-    form.reset({ displayName: user.displayName, role: user.role });
+    form.reset({ displayName: user.displayName, email: user.email, role: user.role });
   };
 
   if (!currentUser) {
@@ -380,11 +382,6 @@ export default function ManageUsersPage() {
           </Dialog>
       </CardHeader>
       <CardContent>
-        {loading ? (
-            <div className="flex justify-center items-center h-48">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        ) : (
         <Table>
           <TableHeader>
             <TableRow>
@@ -422,6 +419,19 @@ export default function ManageUsersPage() {
                                             <FormLabel>Nome</FormLabel>
                                             <FormControl>
                                                 <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} readOnly disabled />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -489,7 +499,6 @@ export default function ManageUsersPage() {
             )}
           </TableBody>
         </Table>
-        )}
       </CardContent>
     </Card>
   );
