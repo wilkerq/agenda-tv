@@ -38,7 +38,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     if (!auth || !db) {
-        toast({ title: "Erro de Inicialização", variant: "destructive" });
+        toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
@@ -147,7 +147,7 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading}
+              disabled={isLoading || !auth || !db}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
@@ -193,7 +193,7 @@ export default function LoginPage() {
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
-              disabled={isLoading}
+              disabled={isLoading || !auth}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
             </Button>
