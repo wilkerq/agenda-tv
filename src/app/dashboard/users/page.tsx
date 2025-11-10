@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, doc, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,8 +26,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useAuth } from '@/firebase';
 import { logAction } from "@/lib/audit-log";
-import type { SecurityRuleContext, AuditLog } from "@/lib/types";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import type { SecurityRuleContext } from "@/lib/types";
+import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
+import { v4 as uuidv4 } from 'uuid'; // Assuming uuid is available or can be added
+
+// Helper to generate random password
+const generateTempPassword = () => {
+    return Math.random().toString(36).slice(-8) + 'A1!';
+}
 
 const userRoles = ["admin", "editor", "viewer"] as const;
 
@@ -37,10 +43,9 @@ const editUserSchema = z.object({
   role: z.enum(userRoles),
 });
 
-// Schema for creating a new user (includes password)
+// Schema for creating a new user (password is now handled server-side)
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
   displayName: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
   role: z.enum(userRoles).default("editor"),
 });
@@ -65,7 +70,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
-    defaultValues: { email: "", password: "", displayName: "", role: "editor" },
+    defaultValues: { email: "", displayName: "", role: "editor" },
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
@@ -81,14 +86,17 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
     setIsSubmitting(true);
 
     try {
-      // 1. Create the user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      // 1. Generate a temporary password
+      const tempPassword = generateTempPassword();
+
+      // 2. Create the user in Firebase Auth with the temp password
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
       const newUser = userCredential.user;
 
-      // 2. Set the user's display name
+      // 3. Set the user's display name
       await updateProfile(newUser, { displayName: values.displayName });
 
-      // 3. Create the user document in Firestore with the selected role
+      // 4. Create the user document in Firestore with the selected role
       const userDocRef = doc(db, "users", newUser.uid);
       const newUserData = {
         uid: newUser.uid,
@@ -98,7 +106,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
         createdAt: new Date(),
       };
       
-      await doc(userDocRef).set(newUserData)
+      await setDoc(userDocRef, newUserData)
         .catch((serverError) => {
             const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
@@ -106,9 +114,13 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
                 requestResourceData: newUserData,
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
+            throw serverError; // Propagate to be caught by the outer try-catch
         });
 
-      // 4. Log the action
+      // 5. Send password reset email, which acts as a "set your password" link
+      await sendPasswordResetEmail(auth, values.email);
+
+      // 6. Log the action
       await logAction({
           db,
           action: 'create-user',
@@ -124,24 +136,23 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
 
       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `O usuário ${values.email} foi adicionado com a função de ${values.role}.`,
+        description: `Um e-mail foi enviado para ${values.email} para que o usuário defina sua própria senha.`,
+        duration: 8000,
       });
       form.reset();
       onSuccess(); // Close the dialog
 
     } catch (error: any) {
-      if (!(error instanceof FirestorePermissionError)) {
-          let errorMessage = "Ocorreu um erro desconhecido.";
-          if (error.code === 'auth/email-already-in-use') {
-            errorMessage = "Este endereço de email já está em uso por outra conta.";
-          }
-          console.error("Falha ao criar usuário:", error.message);
-          toast({
-            title: "Falha ao Criar Usuário",
-            description: errorMessage,
-            variant: "destructive",
-          });
+      let errorMessage = "Ocorreu um erro desconhecido.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "Este endereço de email já está em uso por outra conta.";
       }
+      console.error("Falha ao criar usuário:", error.message);
+      toast({
+        title: "Falha ao Criar Usuário",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -171,19 +182,6 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
               <FormLabel>Email do Novo Usuário</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="email@exemplo.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Senha</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -374,7 +372,7 @@ export default function ManageUsersPage() {
                 <DialogHeader>
                     <DialogTitle>Criar Novo Usuário</DialogTitle>
                     <DialogDescription>
-                        Insira os dados e defina a função do novo usuário.
+                        O novo usuário receberá um e-mail para definir sua própria senha.
                     </DialogDescription>
                 </DialogHeader>
                 <CreateUserForm onSuccess={() => setIsCreateUserOpen(false)} />
@@ -471,7 +469,7 @@ export default function ManageUsersPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo. A conta de autenticação precisará ser removida manually no Console do Firebase. Esta ação não pode ser desfeita.
+                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo. A conta de autenticação precisará ser removida manualmente no Console do Firebase. Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
