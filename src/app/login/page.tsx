@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useFirebase } from "@/firebase";
+import { useFirebase } from "@/firebase";
 import { Loader2 } from "lucide-react";
 
 const GoogleIcon = () => (
@@ -37,7 +37,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     if (!auth || !db) {
-        toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis.", variant: "destructive" });
+        toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis. Tente novamente em alguns segundos.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
@@ -51,22 +51,16 @@ export default function LoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            const usersRef = collection(db, "users");
-            const q = query(usersRef, where("email", "==", user.email));
-            const querySnapshot = await getDocs(q);
+            const role = 'viewer';
             
-            const role = 'viewer'; 
+            await setDoc(userDocRef, {
+                uid: user.uid,
+                displayName: user.displayName,
+                email: user.email,
+                role: role,
+                createdAt: new Date(),
+            });
             
-            // If no user with that email exists in 'users' collection
-            if (querySnapshot.empty) {
-                await setDoc(userDocRef, {
-                    uid: user.uid,
-                    displayName: user.displayName,
-                    email: user.email,
-                    role: role,
-                    createdAt: new Date(),
-                });
-            }
              toast({
                 title: "Bem-vindo(a)!",
                 description: `Sua conta foi criada com a permissão de ${role}.`,
@@ -153,7 +147,7 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading || !auth || !db}
+              disabled={isLoading}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
@@ -199,7 +193,7 @@ export default function LoginPage() {
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
-              disabled={isLoading || !auth}
+              disabled={isLoading}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
             </Button>
