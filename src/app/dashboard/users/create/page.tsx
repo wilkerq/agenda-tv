@@ -85,7 +85,7 @@ export default function CreateUserPage() {
                 requestResourceData: newUserData,
             } satisfies SecurityRuleContext);
             errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
+            // Do not re-throw here to avoid call stack overflow. The emitter handles it.
         });
 
       // 4. Log the action (optional but good practice)
