@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -100,6 +101,7 @@ export default function CreateUserPage() {
           if (error.code === 'auth/email-already-in-use') {
             errorMessage = "Este endereço de email já está em uso por outra conta.";
           }
+          console.error("Falha ao criar usuário:", error.message);
           toast({
             title: "Falha ao Criar Usuário",
             description: errorMessage,

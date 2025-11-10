@@ -49,7 +49,7 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("Erro de autenticação:", error);
+      console.error("Erro de autenticação:", error.message);
       let errorMessage = "Ocorreu um erro ao tentar fazer o login.";
       switch (error.code) {
         case "auth/user-not-found":
@@ -95,7 +95,7 @@ export default function LoginPage() {
       });
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("Error signing in with Google: ", error);
+      console.error("Error signing in with Google: ", error.message);
       let errorMessage = "Ocorreu um erro ao tentar fazer login com o Google.";
       if (error.code === 'auth/popup-blocked') {
         errorMessage = "O pop-up de login foi bloqueado pelo seu navegador. Por favor, habilite os pop-ups para este site.";
