@@ -1,22 +1,31 @@
-# Dependências do host
+# Dependências
 node_modules
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Artefatos de build local
-.next
+# Build do Next.js
+.next/
+out/
 
-# Arquivos do Git
-.git
-.gitignore
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
 
-# Arquivos de ambiente (NUNCA inclua em uma imagem)
+# Ambiente
 .env
 .env.local
-.env.development
-.env.production
-
-# Arquivos do Docker
-Dockerfile
-docker-compose.yml
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Outros
 README.md
+*.md
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.git
