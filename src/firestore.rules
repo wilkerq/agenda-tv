@@ -1,0 +1,42 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função para verificar se um usuário está autenticado.
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Função para verificar se o UID do requisitante está na coleção de administradores.
+    function isAdmin() {
+      // Garante que request.auth e request.auth.uid não sejam nulos antes de usar.
+      return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // Acesso à coleção de logs de auditoria.
+    // Apenas administradores podem criar logs.
+    // Ninguém pode ler, atualizar ou deletar logs diretamente para garantir a integridade.
+    match /audit_logs/{logId} {
+      allow read, update, delete: if false; // Protege os logs contra leitura e modificação
+      allow create: if isAdmin();
+    }
+
+    // Acesso à coleção de administradores
+    // Apenas outros administradores podem ler ou criar novos administradores.
+    match /roles_admin/{userId} {
+        allow read, create: if isAdmin();
+        allow update, delete: if false; // Ninguém pode alterar ou remover um admin
+    }
+
+    // Regra geral para todas as outras coleções (events, personnel, etc.)
+    match /{collection}/{docId} {
+      // Qualquer pessoa (autenticada ou não) pode ler os dados.
+      allow get, list: if true;
+      
+      // Apenas administradores podem criar, atualizar ou deletar dados.
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
