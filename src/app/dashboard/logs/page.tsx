@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,7 +11,8 @@ import { ptBR } from "date-fns/locale";
 import { History, FilePen, Trash2, FilePlus, User, Send, UserPlus as UserPlusIcon } from "lucide-react";
 import { JsonViewer } from '@textea/json-viewer';
 import { useTheme } from 'next-themes';
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import type { SecurityRuleContext } from "@/lib/types";
 
 type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate';
 

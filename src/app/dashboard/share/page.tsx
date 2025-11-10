@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
-import type { Event } from "@/lib/types";
+import type { Event, SecurityRuleContext } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useMemoFirebase } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useMemoFirebase } from "@/firebase";
 
 interface EventsByPersonnel {
   [personnelName: string]: Event[];
@@ -89,7 +89,7 @@ export default function ShareSchedulePage() {
 
     } catch (serverError) {
       const permissionError = new FirestorePermissionError({
-        path: (eventsQuery.path as any),
+        path: 'events',
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);

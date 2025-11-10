@@ -1,11 +1,6 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
-
-type SecurityRuleContext = {
-  path: string;
-  operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
-  requestResourceData?: any;
-};
+import type { SecurityRuleContext } from '@/lib/types';
 
 interface FirebaseAuthToken {
   name: string | null;

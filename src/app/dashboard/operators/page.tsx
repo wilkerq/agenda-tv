@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, FC, useMemo } from "react";
@@ -19,10 +18,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError, type SecurityRuleContext } from "@/firebase/errors";
+import { FirestorePermissionError } from "@/firebase/errors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
 import { addPersonnelAction, updatePersonnelAction, deletePersonnelAction } from "@/lib/personnel-actions";
+import type { SecurityRuleContext } from "@/lib/types";
 
 const turns = ["Manhã", "Tarde", "Noite", "Geral"] as const;
 

@@ -227,3 +227,9 @@ export interface AuditLog {
     after?: object;
     details?: object;
 }
+
+export type SecurityRuleContext = {
+  path: string;
+  operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
+  requestResourceData?: any;
+};

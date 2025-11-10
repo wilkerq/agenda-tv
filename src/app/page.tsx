@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, Timestamp, orderBy, query } from "firebase/firestore";
-import { Event, EventStatus, EventTurn } from "@/lib/types";
+import { Event, EventStatus, EventTurn, SecurityRuleContext } from "@/lib/types";
 import { PublicCalendar } from "@/components/public-calendar";
 import { EventDetailCard } from "@/components/event-detail-card";
 import { isSameDay, getHours } from "date-fns";
@@ -11,7 +11,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 import { ptBR } from 'date-fns/locale';
 
 const getEventTurn = (date: Date): EventTurn => {
@@ -70,7 +70,7 @@ export default function HomePage() {
       setLoading(false);
     }, (serverError) => {
        const permissionError = new FirestorePermissionError({
-        path: (eventsCollectionRef as any).path,
+        path: 'events',
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);

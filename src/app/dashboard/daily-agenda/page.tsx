@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
-import type { Event } from "@/lib/types";
+import type { Event, SecurityRuleContext } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,7 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
@@ -47,7 +47,7 @@ export default function DailyAgendaPage() {
   useEffect(() => {
       if(fetchError){
            const permissionError = new FirestorePermissionError({
-            path: (eventsQuery?.path as any) || 'events',
+            path: 'events',
             operation: 'list',
           } satisfies SecurityRuleContext);
           errorEmitter.emit('permission-error', permissionError);

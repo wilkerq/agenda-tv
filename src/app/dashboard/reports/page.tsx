@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { collection, onSnapshot, orderBy, query, Timestamp, where } from "firebase/firestore";
-import type { Event, ReportDataInput, ReportSummaryOutput } from "@/lib/types";
+import type { Event, ReportDataInput, ReportSummaryOutput, SecurityRuleContext } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -13,7 +13,7 @@ import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import 'jspdf-autotable';
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 
 type OperatorReport = {
   count: number;
@@ -132,7 +132,7 @@ export default function ReportsPage() {
       setSummary(null); // Reset summary when filters change
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-          path: (eventsCollectionRef as any).path,
+          path: 'events',
           operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);

@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs, getDoc } from "firebase/firestore";
-import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn, ReschedulingSuggestion } from "@/lib/types";
+import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn, ReschedulingSuggestion, SecurityRuleContext } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
 import { EventList } from "@/components/event-list";
@@ -20,7 +19,7 @@ import { PlusCircle, Sparkles, Users, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
-import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { reallocateConflictingEvents } from "@/lib/events-actions";
 
@@ -132,7 +131,7 @@ export default function DashboardPage() {
       setLoading(false);
     }, (serverError) => {
         const permissionError = new FirestorePermissionError({
-            path: (q as any)._query.path.canonicalString(), // path might not be public on query type
+            path: 'events',
             operation: 'list',
         } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
