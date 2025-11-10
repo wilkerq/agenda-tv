@@ -32,7 +32,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { auth, db, isUserLoading } = useFirebase();
+  const auth = useAuth();
+  const db = useFirestore();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
