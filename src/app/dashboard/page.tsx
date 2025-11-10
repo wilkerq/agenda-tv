@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -16,7 +17,7 @@ import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSam
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { PlusCircle, Sparkles, Users, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { logAction } from "@/lib/audit-log";
 import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore, useUser } from "@/firebase";
@@ -464,9 +465,9 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
           <DialogContent className="p-0 sm:max-w-3xl">
             <DialogHeader className="p-6 pb-0">
               <DialogTitle>Adicionar Novo Evento</DialogTitle>
-               <CardDescription>
+              <DialogDescription>
                 Preencha os campos de data, hora e local, depois use o botão "Sugerir Equipe" para preencher a equipe.
-              </CardDescription>
+              </DialogDescription>
             </DialogHeader>
             <AddEventForm 
                 onAddEvent={handleAddEvent} 
@@ -489,9 +490,9 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
             <DialogContent className="sm:max-w-[525px]">
                 <DialogHeader>
                     <DialogTitle>Adicionar Evento com Imagem</DialogTitle>
-                    <CardDescription>
+                    <DialogDescription>
                        Envie uma imagem (flyer, post, etc.) e nossa IA tentará extrair os detalhes do evento para preencher o formulário para você.
-                    </CardDescription>
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     <AddEventFromImageForm onSuccess={handleAiSuccess} />
@@ -576,3 +577,5 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
+
+    

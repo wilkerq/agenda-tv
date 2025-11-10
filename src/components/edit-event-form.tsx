@@ -36,7 +36,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { Event, TransmissionType, EventFormData } from "@/lib/types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { errorEmitter, FirestorePermissionError, type SecurityRuleContext, useFirestore } from "@/firebase";
@@ -209,6 +209,9 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
         <DialogContent className="p-0 sm:max-w-3xl">
             <DialogHeader className="p-6 pb-0">
                 <DialogTitle>Editar Evento</DialogTitle>
+                <DialogDescription>
+                    Atualize as informações do evento abaixo. Todas as alterações serão salvas e registradas.
+                </DialogDescription>
             </DialogHeader>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="overflow-y-auto max-h-[85vh] p-6 space-y-8">
@@ -526,3 +529,5 @@ export function EditEventForm({ event, onEditEvent, onClose }: EditEventFormProp
     </Dialog>
   );
 }
+
+    

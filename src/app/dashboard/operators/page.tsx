@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, FC, useMemo } from "react";
@@ -8,7 +9,7 @@ import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,7 +85,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: personnelQuery.path,
+        path: collectionName,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -92,7 +93,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
     });
 
     return () => unsubscribe();
-  }, [personnelQuery]);
+  }, [personnelQuery, collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof personnelSchema>) => {
     if (!currentUser?.email || !db) return;
@@ -161,6 +162,7 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Adicionar Novo Membro</DialogTitle>
+                    <DialogDescription>Preencha as informações abaixo para adicionar um novo membro à equipe.</DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleAddPersonnel)} className="space-y-4">
@@ -241,12 +243,15 @@ const PersonnelTab: FC<PersonnelTabProps> = ({ collectionName, title }) => {
                 <TableCell><Badge variant="outline">{p.turn || "Geral"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
-                          <Edit className="h-4 w-4" />
-                      </Button>
+                      <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
+                              <Edit className="h-4 w-4" />
+                          </Button>
+                      </DialogTrigger>
                        <DialogContent>
                           <DialogHeader>
                               <DialogTitle>Editar Membro</DialogTitle>
+                              <DialogDescription>Atualize as informações do membro da equipe.</DialogDescription>
                           </DialogHeader>
                           <Form {...form}>
                               <form onSubmit={form.handleSubmit(handleEditPersonnel)} className="space-y-4">
@@ -380,7 +385,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
-        path: personnelQuery.path,
+        path: collectionName,
         operation: 'list',
       } satisfies SecurityRuleContext);
       errorEmitter.emit('permission-error', permissionError);
@@ -388,7 +393,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
     });
 
     return () => unsubscribe();
-  }, [personnelQuery]);
+  }, [personnelQuery, collectionName]);
 
   const handleAddPersonnel = async (values: z.infer<typeof productionPersonnelSchema>) => {
     if (!currentUser?.email || !db) return;
@@ -457,6 +462,7 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Adicionar Pessoal de Produção</DialogTitle>
+                    <DialogDescription>Preencha os campos para adicionar um novo repórter ou produtor.</DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(handleAddPersonnel)} className="space-y-4">
@@ -568,12 +574,15 @@ const ProductionPersonnelTab: FC<ProductionPersonnelTabProps> = ({ collectionNam
                 <TableCell><Badge variant="outline">{p.turn || "Geral"}</Badge></TableCell>
                 <TableCell className="text-right">
                   <Dialog open={editingPersonnel?.id === p.id} onOpenChange={(isOpen) => !isOpen && setEditingPersonnel(null)}>
-                      <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
-                          <Edit className="h-4 w-4" />
-                      </Button>
+                      <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" onClick={() => openEditModal(p)}>
+                              <Edit className="h-4 w-4" />
+                          </Button>
+                      </DialogTrigger>
                        <DialogContent>
                           <DialogHeader>
                               <DialogTitle>Editar Membro</DialogTitle>
+                              <DialogDescription>Atualize as informações e funções do membro da equipe.</DialogDescription>
                           </DialogHeader>
                           <Form {...form}>
                               <form onSubmit={form.handleSubmit(handleEditPersonnel)} className="space-y-4">
@@ -721,3 +730,5 @@ export default function OperatorsPage() {
     </div>
   );
 }
+
+    
