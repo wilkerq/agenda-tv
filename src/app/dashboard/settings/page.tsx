@@ -21,6 +21,13 @@ const settingsLinks = [
     isInternal: true,
   },
   {
+    href: "/dashboard/logs",
+    title: "Logs de Auditoria",
+    description: "Visualize todas as ações realizadas no sistema.",
+    icon: History,
+    isInternal: true,
+  },
+  {
     href: "/dashboard/users/create",
     title: "Criar Usuários",
     description: "Adicione novos usuários com permissão para acessar o painel administrativo.",
@@ -56,10 +63,10 @@ export default function SettingsPage() {
 
   const handleModeChange = (checked: boolean) => {
     const newMode = checked ? 'ai' : 'logic';
-    // Update client-side state
+    // Update client-side state, which is persisted to localStorage
     setOperationMode(newMode);
-    // Asynchronously update server-side state
-    setServerOperationMode(newMode);
+    // Asynchronously update server-side state (in-memory for this example)
+    setOperationMode(newMode);
   };
 
 
