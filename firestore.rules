@@ -7,14 +7,20 @@ service cloud.firestore {
     // 🔹 Funções auxiliares
     // ======================================================
 
-    // Verifica se o usuário está autenticado.
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Verifica se o usuário tem a role 'admin' em seu documento na coleção /users.
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
     function isAdmin() {
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    function isEditor() {
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'editor');
     }
 
 
@@ -22,10 +28,10 @@ service cloud.firestore {
     // 🔹 Coleção de Usuários (/users)
     // ======================================================
     match /users/{userId} {
-      // O próprio usuário pode ler e atualizar seu perfil. Admins também podem.
-      allow read, update: if request.auth.uid == userId || isAdmin();
-      // Apenas admins podem criar ou deletar usuários diretamente aqui (a criação principal é no app).
-      allow create, delete: if isAdmin();
+      // O próprio usuário pode ler seu perfil. Admins também podem ler qualquer perfil.
+      allow read: if (request.auth.uid == userId) || isAdmin();
+      // Apenas admins podem criar, atualizar ou deletar usuários.
+      allow write: if isAdmin();
     }
 
 
@@ -35,9 +41,8 @@ service cloud.firestore {
     match /events/{eventId} {
       // Qualquer usuário (inclusive não autenticado) pode ler.
       allow read: if true;
-
-      // Somente administradores podem criar, atualizar ou excluir.
-      allow write: if isAdmin();
+      // Admins e Editores podem criar, atualizar ou excluir.
+      allow write: if isEditor();
     }
 
     match /public_pages/{pageId} {
@@ -61,6 +66,11 @@ service cloud.firestore {
 
     match /production_personnel/{personnelId} {
       allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
       allow write: if isAdmin();
     }
 

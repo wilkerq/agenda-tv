@@ -119,7 +119,7 @@ export default function LoginPage() {
       router.push("/dashboard");
 
     } catch (error: any) {
-      console.error("Error signing in with Google: ", error.message);
+      console.error("Error signing in with Google: ", error);
       let errorMessage = "Ocorreu um erro ao tentar fazer login com o Google.";
       if (error.code === 'auth/popup-blocked') {
         errorMessage = "O pop-up de login foi bloqueado pelo seu navegador. Por favor, habilite os pop-ups para este site.";

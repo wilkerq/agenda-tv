@@ -16,12 +16,16 @@ import { doc, setDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { logAction } from "@/lib/audit-log";
 import type { SecurityRuleContext } from "@/lib/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+
+const userRoles = ["admin", "editor", "viewer"] as const;
 
 const createUserSchema = z.object({
   email: z.string().email("Por favor, insira um email válido."),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
   name: z.string().min(3, "O nome deve ter pelo menos 3 caracteres."),
+  role: z.enum(userRoles).default("editor"),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
@@ -39,6 +43,7 @@ export default function CreateUserPage() {
       email: "",
       password: "",
       name: "",
+      role: "editor",
     },
   });
 
@@ -62,13 +67,13 @@ export default function CreateUserPage() {
       // 2. Set the user's display name
       await updateProfile(newUser, { displayName: values.name });
 
-      // 3. Create the user document in Firestore with the 'admin' role
+      // 3. Create the user document in Firestore with the selected role
       const userDocRef = doc(db, "users", newUser.uid);
       const newUserData = {
         uid: newUser.uid,
         email: values.email,
         displayName: values.name,
-        role: 'admin', // New users created here are admins
+        role: values.role,
         createdAt: new Date(),
       };
       
@@ -93,13 +98,13 @@ export default function CreateUserPage() {
           newData: {
               createdUserEmail: values.email,
               uid: newUser.uid,
-              role: 'admin',
+              role: values.role,
           },
       });
 
       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `O usuário ${values.email} foi adicionado como administrador.`,
+        description: `O usuário ${values.email} foi adicionado com a função de ${values.role}.`,
       });
       form.reset();
 
@@ -125,9 +130,9 @@ export default function CreateUserPage() {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Criar Novo Usuário Administrador</CardTitle>
+        <CardTitle>Criar Novo Usuário</CardTitle>
         <CardDescription>
-          Insira o nome, e-mail e uma senha para o novo usuário. Ele terá permissões de administrador.
+          Insira os dados e defina a função do novo usuário.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -168,6 +173,30 @@ export default function CreateUserPage() {
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Função</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma função" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {userRoles.map(role => (
+                        <SelectItem key={role} value={role} className="capitalize">
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
