@@ -51,7 +51,20 @@ export default function LoginPage() {
         const userDoc = await getDoc(userDocRef);
 
         if (!userDoc.exists()) {
-            const role = 'viewer';
+            let role = 'viewer';
+             
+             // Check if user email exists in any personnel collection
+            if(user.email) {
+                const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
+                for (const coll of personnelCollections) {
+                    const q = query(collection(db, coll), where("email", "==", user.email), limit(1));
+                    const snapshot = await getDocs(q);
+                    if (!snapshot.empty) {
+                        role = 'editor';
+                        break; 
+                    }
+                }
+            }
             
             await setDoc(userDocRef, {
                 uid: user.uid,
@@ -147,7 +160,7 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading}
+              disabled={isLoading || !auth || !db}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
