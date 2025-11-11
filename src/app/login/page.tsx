@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, limit, type Firestore } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
