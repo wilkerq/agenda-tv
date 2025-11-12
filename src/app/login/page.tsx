@@ -160,7 +160,7 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading || !auth || !db}
+              disabled={isLoading}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
