@@ -3,15 +3,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
 import type { Event, SecurityRuleContext } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Send, Calendar as CalendarIcon, User } from "lucide-react";
+import { Loader2, Send, Calendar as CalendarIcon, User, Rocket } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { errorEmitter, FirestorePermissionError, useFirestore, useMemoFirebase } from "@/firebase";
+import { errorEmitter, FirestorePermissionError, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { sendDailyAgendaToAll } from "@/ai/flows/send-daily-agenda-to-all-flow";
 
 interface EventsByPersonnel {
   [personnelName: string]: Event[];
@@ -21,9 +23,11 @@ export default function ShareSchedulePage() {
   const [eventsByPersonnel, setEventsByPersonnel] = useState<EventsByPersonnel>({});
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isFetchingEvents, setIsFetchingEvents] = useState(true);
+  const [isSendingAll, setIsSendingAll] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
+  const { user } = useUser();
 
   useEffect(() => {
     // Set the initial date on the client side to avoid hydration mismatch
@@ -103,6 +107,50 @@ export default function ShareSchedulePage() {
     fetchEvents();
   }, [fetchEvents]);
   
+  const handleSendToAll = async () => {
+    if (!db || !user?.email) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para executar esta ação.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingAll(true);
+    try {
+      const result = await sendDailyAgendaToAll({ db, adminUserEmail: user.email });
+      if (result.success && result.messagesSent > 0) {
+        toast({
+          title: "Envio em Massa Concluído!",
+          description: `${result.messagesSent} pauta(s) foram enviadas com sucesso para o dia seguinte.`,
+        });
+      } else if (result.messagesSent === 0) {
+        toast({
+          title: "Nenhuma Pauta para Enviar",
+          description: "Não foram encontrados eventos para o dia de amanhã ou os colaboradores envolvidos não possuem eventos.",
+          variant: "default",
+        });
+      } else {
+         toast({
+          title: "Alguns Envios Falharam",
+          description: `Houve erro ao enviar para: ${result.errors.join(', ')}. Verifique os logs para mais detalhes.`,
+          variant: "destructive",
+          duration: 8000,
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to send daily agenda to all:", error);
+      toast({
+        title: "Erro Crítico no Envio",
+        description: error.message || "Não foi possível iniciar o fluxo de envio em massa. Verifique os logs e as permissões.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingAll(false);
+    }
+  };
+
   const personnelNames = useMemo(() => Object.keys(eventsByPersonnel).sort((a, b) => a.localeCompare(b)), [eventsByPersonnel]);
   const hasEvents = personnelNames.length > 0;
   
@@ -120,7 +168,7 @@ export default function ShareSchedulePage() {
         <Card>
           <CardHeader>
             <CardTitle>Painel de Visualização</CardTitle>
-            <CardDescription>Use esta tela para visualizar a agenda de um dia específico para toda a equipe.</CardDescription>
+            <CardDescription>Use esta tela para visualizar a agenda de um dia específico e disparar o envio da pauta de amanhã.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
              <div className="space-y-2">
@@ -141,10 +189,20 @@ export default function ShareSchedulePage() {
                 <Send className="h-4 w-4" />
                 <AlertTitle>Envio Automatizado</AlertTitle>
                 <AlertDescription>
-                  O envio da agenda do dia seguinte para os operadores é feito automaticamente todos os dias às 20h.
+                  O envio da agenda do dia seguinte para os operadores também ocorre automaticamente todos os dias às 20h.
                 </AlertDescription>
             </Alert>
           </CardContent>
+           <CardFooter>
+             <Button 
+                className="w-full" 
+                onClick={handleSendToAll} 
+                disabled={isSendingAll}
+              >
+                {isSendingAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rocket className="mr-2 h-4 w-4" />}
+                {isSendingAll ? "Enviando Pautas..." : "Disparar Pautas de Amanhã"}
+              </Button>
+          </CardFooter>
         </Card>
       </div>
 
