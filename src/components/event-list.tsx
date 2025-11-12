@@ -1,6 +1,6 @@
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
-import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn } from "lucide-react";
+import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -14,6 +14,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 type EventListProps = {
   events: Event[];
@@ -21,38 +23,63 @@ type EventListProps = {
   onEditEvent: (event: Event) => void;
 };
 
-// =================================================================
-// CORREÇÃO DE TIPO (BUILD) APLICADA AQUI
-// Os ícones Lucide não aceitam a prop 'title'.
-// Deve-se aninhar o elemento SVG <title> dentro do componente.
-// =================================================================
 const renderTransmission = (transmission: Event['transmission']) => {
   return (
     <div className="flex items-center gap-2">
       {transmission.includes('tv') && (
-        <Tv className="h-4 w-4 text-blue-600">
-          <title>TV Aberta</title>
-        </Tv>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger><Tv className="h-4 w-4 text-blue-600" /></TooltipTrigger>
+            <TooltipContent>TV Aberta</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       {transmission.includes('youtube') && (
-        <Youtube className="h-4 w-4 text-red-600">
-          <title>YouTube</title>
-        </Youtube>
+         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger><Youtube className="h-4 w-4 text-red-600" /></TooltipTrigger>
+            <TooltipContent>YouTube</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       {transmission.includes('pauta') && (
-        <Newspaper className="h-4 w-4 text-gray-600">
-          <title>Pauta</title>
-        </Newspaper>
+         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger><Newspaper className="h-4 w-4 text-gray-600" /></TooltipTrigger>
+            <TooltipContent>Pauta</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
       {transmission.includes('viagem') && (
-        <Plane className="h-4 w-4 text-purple-600">
-          <title>Viagem</title>
-        </Plane>
+         <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger><Plane className="h-4 w-4 text-purple-600" /></TooltipTrigger>
+            <TooltipContent>Viagem</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       )}
     </div>
   );
 };
-// =================================================================
+
+const handleAddToGoogleCalendar = (event: Event) => {
+  const startTime = format(event.date, "yyyyMMdd'T'HHmmss");
+  // Assume event duration is 1 hour if not specified
+  const endTime = format(new Date(event.date.getTime() + 60 * 60 * 1000), "yyyyMMdd'T'HHmmss");
+
+  const details = `
+Equipe:
+- Op. Transmissão: ${event.transmissionOperator || 'N/A'}
+- Rep. Cinematográfico: ${event.cinematographicReporter || 'N/A'}
+- Repórter: ${event.reporter || 'N/A'}
+- Produtor: ${event.producer || 'N/A'}
+  `.trim();
+
+  const googleCalendarUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.name)}&dates=${startTime}/${endTime}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(event.location)}`;
+  
+  window.open(googleCalendarUrl, '_blank');
+};
+
 
 export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps) {
   if (events.length === 0) {
@@ -96,26 +123,58 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
             </div>
           </div>
           
-          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 bg-background/80 hover:bg-background"
-              onClick={() => onEditEvent(event)}
-            >
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Editar Evento</span>
-            </Button>
+          <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                   <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 bg-background/80 hover:bg-background"
+                    onClick={() => handleAddToGoogleCalendar(event)}
+                  >
+                    <CalendarPlus className="h-4 w-4" />
+                    <span className="sr-only">Adicionar ao Google Agenda</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Adicionar ao Google Agenda</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <TooltipProvider>
+              <Tooltip>
+                 <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 bg-background/80 hover:bg-background"
+                      onClick={() => onEditEvent(event)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span className="sr-only">Editar Evento</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>Editar Evento</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="h-8 w-8"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Excluir Evento</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                     <TooltipTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir Evento</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Excluir Evento</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
