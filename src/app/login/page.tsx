@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { auth, db } = useFirebase();
+  const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -160,9 +160,9 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading}
+              disabled={isLoading || isUserLoading}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
             </Button>
 
@@ -187,7 +187,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isUserLoading}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -199,16 +199,16 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isUserLoading}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
-              disabled={isLoading}
+              disabled={isLoading || isUserLoading}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
+              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
             </Button>
           </form>
         </CardContent>

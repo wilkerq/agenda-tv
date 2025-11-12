@@ -72,16 +72,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
-  const onAuthStateChangedCallback = useCallback((firebaseUser: User | null) => {
-    setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-  }, []);
-
-  const onAuthErrorCallback = useCallback((error: Error) => {
-    console.error("FirebaseProvider: onAuthStateChanged error:", error);
-    setUserAuthState({ user: null, isUserLoading: false, userError: error });
-  }, []);
-
-
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) { // If no Auth service instance, cannot determine user state
@@ -91,11 +81,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     const unsubscribe = onAuthStateChanged(
       auth,
-      onAuthStateChangedCallback,
-      onAuthErrorCallback
+      (firebaseUser) => {
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+      },
+      (error) => {
+        console.error("FirebaseProvider: onAuthStateChanged error:", error);
+        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+      }
     );
-    return () => unsubscribe(); // Cleanup
-  }, [auth, onAuthStateChangedCallback, onAuthErrorCallback]); // Depends on the auth instance
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, [auth]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
