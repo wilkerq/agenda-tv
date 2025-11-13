@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from 'react';
@@ -128,6 +129,8 @@ export const useFirebase = (): FirebaseServicesAndUser => {
   }
 
   if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth) {
+    // This error is more likely to be hit during development if the provider is not set up correctly.
+    // In the login page scenario, we'll rely on the isUserLoading state.
     throw new Error('Firebase core services not available. Check FirebaseProvider props.');
   }
 

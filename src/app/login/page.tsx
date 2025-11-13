@@ -32,14 +32,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  // Use o hook principal para obter tudo o que precisamos
+  // Use o hook principal para obter tudo o que precisamos, incluindo o estado de carregamento do usuário
   const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    // Verificação de robustez: garanta que auth e db estejam prontos
+    // A verificação de isUserLoading no botão já garante que auth e db estão prontos
     if (!auth || !db) {
-        toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis. Tente novamente em alguns segundos.", variant: "destructive" });
+        toast({ title: "Erro Inesperado", description: "Os serviços do Firebase não foram carregados corretamente. Recarregue a página.", variant: "destructive" });
         setIsLoading(false);
         return;
     }
@@ -148,7 +148,7 @@ export default function LoginPage() {
     }
   };
 
-  // Desabilita todos os formulários enquanto o Firebase verifica o estado inicial do usuário
+  // Desabilita todos os formulários enquanto o Firebase verifica o estado inicial do usuário ou uma ação está em andamento.
   const isFormDisabled = isUserLoading || isLoading;
 
   return (
