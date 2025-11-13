@@ -49,10 +49,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   // Use o hook principal para obter tudo o que precisamos, incluindo o estado de carregamento do usuário
-  const { auth, db, isUserLoading } = useFirebase();
+  const { auth, firestore, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
-    if (!auth || !db) {
+    if (!auth || !firestore) {
         toast({
             title: "Serviço indisponível",
             description: "A autenticação não está pronta. Por favor, aguarde um momento e tente novamente.",
@@ -67,7 +67,7 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const userDocRef = doc(db, "users", user.uid);
+      const userDocRef = doc(firestore, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (!userDoc.exists()) {
@@ -75,7 +75,7 @@ export default function LoginPage() {
         let userExistsInPersonnel = false;
         
         for (const collectionName of personnelCollections) {
-            const q = query(collection(db, collectionName), where("email", "==", user.email), limit(1));
+            const q = query(collection(firestore, collectionName), where("email", "==", user.email), limit(1));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
                 userExistsInPersonnel = true;
@@ -116,6 +116,16 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    if (!auth) {
+      toast({
+        title: "Serviço indisponível",
+        description: "A autenticação não está pronta. Por favor, aguarde.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
@@ -153,18 +163,18 @@ export default function LoginPage() {
   const isFormDisabled = isUserLoading || isLoading;
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
-      <Card className="mx-auto max-w-sm w-full p-6 sm:p-8 rounded-xl shadow-lg">
+    <div className="flex items-center justify-center min-h-screen bg-slate-900">
+      <Card className="mx-auto max-w-sm w-full p-6 sm:p-8 rounded-xl shadow-lg bg-slate-800 border-slate-700 text-white">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-gray-800">Login Administrativo</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-3xl font-bold text-white">Login Administrativo</CardTitle>
+          <CardDescription className="text-slate-400">
             Acesse o painel com sua conta.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button 
             variant="outline" 
-            className="w-full"
+            className="w-full bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
             onClick={handleGoogleLogin}
             disabled={isFormDisabled}
           >
@@ -174,10 +184,10 @@ export default function LoginPage() {
 
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-slate-600" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
+                <span className="bg-slate-800 px-2 text-slate-400">
                     Ou continue com
                 </span>
             </div>
@@ -185,7 +195,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleEmailLogin} className="grid gap-4">
             <div className="grid gap-2 text-left">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-slate-300">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -194,11 +204,11 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isFormDisabled}
-                className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-3 bg-slate-700 border-slate-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="grid gap-2 text-left">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-slate-300">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -206,7 +216,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isFormDisabled}
-                className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-3 bg-slate-700 border-slate-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <Button 
@@ -221,5 +231,4 @@ export default function LoginPage() {
       </Card>
     </div>
   );
-
-    
+}
