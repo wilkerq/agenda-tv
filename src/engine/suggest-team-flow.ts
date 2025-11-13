@@ -1,4 +1,6 @@
 // src/engine/suggest-team-flow.ts
+'use server';
+
 import { suggestNextRole } from "./stepwise-scheduler";
 import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
 import { isAdminSDKInitialized } from "@/lib/firebase-admin";
