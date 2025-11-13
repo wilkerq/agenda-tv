@@ -53,16 +53,6 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    if (!auth || !db) {
-        toast({
-            title: "Erro de Inicialização",
-            description: "Os serviços do Firebase não estão disponíveis. Tente novamente em alguns segundos.",
-            variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-    }
-
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -117,16 +107,6 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!auth) {
-        toast({
-            title: "Erro de Inicialização",
-            description: "O serviço de autenticação não está pronto. Tente novamente em alguns segundos.",
-            variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-    }
-
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
@@ -179,7 +159,7 @@ export default function LoginPage() {
             onClick={handleGoogleLogin}
             disabled={isFormDisabled}
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
+            {isFormDisabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-4 w-4" />}
             Entrar com Google
           </Button>
 
@@ -234,4 +214,3 @@ export default function LoginPage() {
   );
 }
 
-    
