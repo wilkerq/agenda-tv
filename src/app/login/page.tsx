@@ -52,6 +52,15 @@ export default function LoginPage() {
   const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
+    if (!auth || !db) {
+        toast({
+            title: "Serviço indisponível",
+            description: "A autenticação não está pronta. Por favor, aguarde um momento e tente novamente.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
     try {
@@ -212,5 +221,5 @@ export default function LoginPage() {
       </Card>
     </div>
   );
-}
 
+    
