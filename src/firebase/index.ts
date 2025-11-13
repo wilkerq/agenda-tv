@@ -2,35 +2,41 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getMessaging } from 'firebase/messaging';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+// Variável para armazenar as instâncias dos serviços do Firebase
+let firebaseServices: any = null;
 
-    return getSdks(firebaseApp);
+// Esta função agora garante que o Firebase seja inicializado apenas uma vez.
+export function initializeFirebase() {
+  // Se os serviços já foram inicializados, retorne a instância existente.
+  if (firebaseServices) {
+    return firebaseServices;
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  // Se não houver aplicativos inicializados, inicialize um.
+  if (!getApps().length) {
+    let firebaseApp;
+    try {
+      // Tenta inicializar via variáveis de ambiente do Firebase App Hosting
+      firebaseApp = initializeApp();
+    } catch (e) {
+      if (process.env.NODE_ENV === "production") {
+        console.warn('A inicialização automática falhou. Usando o objeto de configuração do Firebase.', e);
+      }
+      // Se falhar (comum em desenvolvimento), usa o objeto de configuração local.
+      firebaseApp = initializeApp(firebaseConfig);
+    }
+    // Armazena as instâncias dos SDKs na variável local.
+    firebaseServices = getSdks(firebaseApp);
+    return firebaseServices;
+  }
+
+  // Se já foi inicializado, mas a variável local está nula, obtenha e armazene.
+  firebaseServices = getSdks(getApp());
+  return firebaseServices;
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

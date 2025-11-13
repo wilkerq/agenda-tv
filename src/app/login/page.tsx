@@ -29,18 +29,18 @@ const GoogleIcon = () => (
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   // Use o hook principal para obter tudo o que precisamos
   const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
-    setIsLoginLoading(true);
+    setIsLoading(true);
     // Verificação de robustez: garanta que auth e db estejam prontos
     if (!auth || !db) {
         toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis. Tente novamente em alguns segundos.", variant: "destructive" });
-        setIsLoginLoading(false);
+        setIsLoading(false);
         return;
     }
     const provider = new GoogleAuthProvider();
@@ -90,20 +90,20 @@ export default function LoginPage() {
         router.push("/dashboard");
 
     } catch (error: any) {
-        console.error("Erro no login com Google:", error.message);
+        console.error("Erro no login com Google:", error);
         toast({
             title: "Falha no Login com Google",
             description: error.message || "Não foi possível fazer login com o Google. Tente novamente.",
             variant: "destructive",
         });
     } finally {
-        setIsLoginLoading(false);
+        setIsLoading(false);
     }
   };
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoginLoading(true);
+    setIsLoading(true);
 
     if (!auth) {
         toast({
@@ -111,7 +111,7 @@ export default function LoginPage() {
             description: "O serviço de autenticação não está pronto. Tente novamente em alguns segundos.",
             variant: "destructive",
         });
-        setIsLoginLoading(false);
+        setIsLoading(false);
         return;
     }
 
@@ -144,12 +144,12 @@ export default function LoginPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoginLoading(false);
+      setIsLoading(false);
     }
   };
 
   // Desabilita todos os formulários enquanto o Firebase verifica o estado inicial do usuário
-  const isFormDisabled = isUserLoading || isLoginLoading;
+  const isFormDisabled = isUserLoading || isLoading;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
