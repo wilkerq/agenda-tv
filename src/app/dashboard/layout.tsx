@@ -18,7 +18,8 @@ import {
   Tv,
   History,
   Settings,
-  UserPlus
+  UserPlus,
+  Bug
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,7 @@ export default function DashboardLayout({
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },
     { href: "/dashboard/settings", label: "Configurações", icon: Settings },
+    { href: "/dashboard/debug", label: "Debug", icon: Bug },
   ];
 
   const handleLinkClick = () => {
