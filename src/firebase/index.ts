@@ -2,53 +2,55 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getMessaging } from 'firebase/messaging';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getMessaging, Messaging } from 'firebase/messaging';
 
-// Variável para armazenar as instâncias dos serviços do Firebase
-let firebaseServices: any = null;
+interface FirebaseServices {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+  messaging?: Messaging;
+}
 
-// Esta função agora garante que o Firebase seja inicializado apenas uma vez.
-export function initializeFirebase() {
-  // Se os serviços já foram inicializados, retorne a instância existente.
+let firebaseServices: FirebaseServices | null = null;
+
+function getSdks(firebaseApp: FirebaseApp): FirebaseServices {
+  const isClient = typeof window !== 'undefined';
+  return {
+    firebaseApp,
+    auth: getAuth(firebaseApp),
+    firestore: getFirestore(firebaseApp),
+    messaging: isClient ? getMessaging(firebaseApp) : undefined,
+  };
+}
+
+export function initializeFirebase(): FirebaseServices {
   if (firebaseServices) {
     return firebaseServices;
   }
 
-  // Se não houver aplicativos inicializados, inicialize um.
-  if (!getApps().length) {
-    let firebaseApp;
+  if (getApps().length === 0) {
+    // A inicialização automática do App Hosting pode falhar em dev
+    // então temos um fallback para o firebaseConfig local.
     try {
-      // Tenta inicializar via variáveis de ambiente do Firebase App Hosting
-      firebaseApp = initializeApp();
+      const app = initializeApp();
+      firebaseServices = getSdks(app);
     } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('A inicialização automática falhou. Usando o objeto de configuração do Firebase.', e);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Firebase auto-init failed, falling back to local config. This is normal in dev mode.', e);
       }
-      // Se falhar (comum em desenvolvimento), usa o objeto de configuração local.
-      firebaseApp = initializeApp(firebaseConfig);
+      const app = initializeApp(firebaseConfig);
+      firebaseServices = getSdks(app);
     }
-    // Armazena as instâncias dos SDKs na variável local.
-    firebaseServices = getSdks(firebaseApp);
-    return firebaseServices;
+  } else {
+    // Se já houver um app, apenas obtemos a instância.
+    firebaseServices = getSdks(getApp());
   }
 
-  // Se já foi inicializado, mas a variável local está nula, obtenha e armazene.
-  firebaseServices = getSdks(getApp());
   return firebaseServices;
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  return {
-    firebaseApp,
-    auth: initializeAuth(firebaseApp, {
-      persistence: indexedDBLocalPersistence
-    }),
-    firestore: getFirestore(firebaseApp),
-    messaging: typeof window !== 'undefined' ? getMessaging(firebaseApp) : undefined,
-  };
-}
 
 export * from './provider';
 export * from './client-provider';

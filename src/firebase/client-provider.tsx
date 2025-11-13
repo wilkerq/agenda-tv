@@ -11,14 +11,14 @@ interface FirebaseClientProviderProps {
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   // A inicialização agora é tratada de forma idempotente dentro de initializeFirebase.
   // Isso garante que, mesmo que o provedor seja renderizado novamente, o Firebase não será reinicializado.
-  const firebaseServices = initializeFirebase();
+  const { firebaseApp, auth, firestore, messaging } = initializeFirebase();
 
   return (
     <FirebaseProvider
-      firebaseApp={firebaseServices.firebaseApp}
-      auth={firebaseServices.auth}
-      firestore={firebaseServices.firestore}
-      messaging={firebaseServices.messaging}
+      firebaseApp={firebaseApp}
+      auth={auth}
+      firestore={firestore}
+      messaging={messaging}
     >
       {children}
     </FirebaseProvider>
