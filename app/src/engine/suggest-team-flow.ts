@@ -2,7 +2,8 @@
 'use server';
 
 import { suggestNextRole } from "./stepwise-scheduler";
-import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
+import type { RoleKey, EventInput, Personnel } from "@/lib/types";
+export type { SuggestTeamFlowOutput } from "@/lib/types";
 import { isAdminSDKInitialized } from "@/lib/firebase-admin";
 
 
