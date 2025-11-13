@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, type Auth } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, query, where, getDocs, limit, type Firestore } from "firebase/firestore";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,16 +29,18 @@ const GoogleIcon = () => (
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  // Use o hook principal para obter tudo o que precisamos
   const { auth, db, isUserLoading } = useFirebase();
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
+    setIsLoginLoading(true);
+    // Verificação de robustez: garanta que auth e db estejam prontos
     if (!auth || !db) {
         toast({ title: "Erro de Inicialização", description: "Serviços do Firebase não estão disponíveis. Tente novamente em alguns segundos.", variant: "destructive" });
-        setIsLoading(false);
+        setIsLoginLoading(false);
         return;
     }
     const provider = new GoogleAuthProvider();
@@ -53,7 +55,7 @@ export default function LoginPage() {
         if (!userDoc.exists()) {
             let role = 'viewer';
              
-             // Check if user email exists in any personnel collection
+             // Verifica se o e-mail do usuário existe em qualquer coleção de pessoal
             if(user.email) {
                 const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
                 for (const coll of personnelCollections) {
@@ -95,13 +97,13 @@ export default function LoginPage() {
             variant: "destructive",
         });
     } finally {
-        setIsLoading(false);
+        setIsLoginLoading(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setIsLoginLoading(true);
 
     if (!auth) {
         toast({
@@ -109,7 +111,7 @@ export default function LoginPage() {
             description: "O serviço de autenticação não está pronto. Tente novamente em alguns segundos.",
             variant: "destructive",
         });
-        setIsLoading(false);
+        setIsLoginLoading(false);
         return;
     }
 
@@ -142,9 +144,12 @@ export default function LoginPage() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoginLoading(false);
     }
   };
+
+  // Desabilita todos os formulários enquanto o Firebase verifica o estado inicial do usuário
+  const isFormDisabled = isUserLoading || isLoginLoading;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-500 to-purple-600">
@@ -160,9 +165,9 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full"
               onClick={handleGoogleLogin} 
-              disabled={isLoading || isUserLoading}
+              disabled={isFormDisabled}
             >
-              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              {isFormDisabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Entrar com Google
             </Button>
 
@@ -177,7 +182,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-          <form onSubmit={handleLogin} className="grid gap-4">
+          <form onSubmit={handleEmailLogin} className="grid gap-4">
             <div className="grid gap-2 text-left">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -187,7 +192,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading || isUserLoading}
+                disabled={isFormDisabled}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -199,16 +204,16 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading || isUserLoading}
+                disabled={isFormDisabled}
                 className="p-3 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-300 shadow-md"
-              disabled={isLoading || isUserLoading}
+              disabled={isFormDisabled}
             >
-              {isLoading || isUserLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
+              {isFormDisabled ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Entrar com Email'}
             </Button>
           </form>
         </CardContent>
