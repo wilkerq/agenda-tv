@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
+import { getAdminDb } from './firebase-admin';
 import type { AuditLogAction } from './types';
 
 interface LogActionParams {
@@ -26,11 +26,6 @@ export const logAction = async ({
     batchId
 }: LogActionParams) => {
     
-    if (!isAdminSDKInitialized()) {
-        console.warn("Audit log skipped: Firebase Admin SDK not initialized.");
-        return;
-    }
-    
     try {
         const db = getAdminDb();
         const logData: any = {
@@ -54,7 +49,6 @@ export const logAction = async ({
             logData.details = details;
         }
         
-        // Use a sintaxe do Admin SDK para adicionar o documento
         await db.collection('audit_logs').add(logData);
 
     } catch (error) {

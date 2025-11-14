@@ -9,55 +9,43 @@ let auth: Auth | null = null;
 let isInitialized = false;
 
 function initializeAdminSDK() {
-  // Se já estiver inicializado, não faz nada.
-  if (isInitialized && adminApp) {
-    return true;
-  }
-
-  // Se já houver apps (inicializados por outro meio), usa a instância existente.
   if (getApps().length > 0) {
     adminApp = getAdminAppInstance();
-    firestore = getFirestore(adminApp);
-    auth = getAuth(adminApp);
-    isInitialized = true;
-    return true;
-  }
-
-  try {
-    const serviceAccountString = process.env.FIREBASE_CREDENTIALS;
-    if (!serviceAccountString) {
-      console.warn("[Firebase Admin] Variável de ambiente FIREBASE_CREDENTIALS não está definida. Funções do servidor podem falhar.");
-      return false;
+  } else {
+    try {
+      const serviceAccountString = process.env.FIREBASE_CREDENTIALS;
+      if (!serviceAccountString) {
+        throw new Error("[Firebase Admin] Variável de ambiente FIREBASE_CREDENTIALS não está definida.");
+      }
+      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountString);
+      adminApp = initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (error: any) {
+      console.error("[Firebase Admin] Falha ao inicializar o Admin SDK:", error.message);
+      // Lançar o erro para que a operação que depende do SDK falhe claramente
+      throw new Error("Falha na inicialização do Firebase Admin. Verifique os logs do servidor e as credenciais.");
     }
-
-    const serviceAccount: ServiceAccount = JSON.parse(serviceAccountString);
-
-    adminApp = initializeApp({
-      credential: cert(serviceAccount),
-    });
-
-    firestore = getFirestore(adminApp);
-    auth = getAuth(adminApp);
-    isInitialized = true; // Marca como inicializado com sucesso.
-    return true;
-
-  } catch (error: any) {
-    console.error("[Firebase Admin] Falha ao inicializar o Admin SDK:", error.message);
-    isInitialized = false; // Garante que o estado seja de não inicializado em caso de erro.
-    return false;
   }
-}
 
+  firestore = getFirestore(adminApp);
+  auth = getAuth(adminApp);
+  isInitialized = true;
+}
 
 /**
  * Verifica se o SDK Admin foi inicializado com sucesso.
- * Tenta inicializar se ainda não o fez.
  * @returns {boolean} `true` se o SDK está pronto.
  */
 export function isAdminSDKInitialized(): boolean {
-    if (isInitialized) return true;
-    // Tenta inicializar sob demanda
-    return initializeAdminSDK();
+    if (!isInitialized) {
+        try {
+            initializeAdminSDK();
+        } catch (e) {
+            return false;
+        }
+    }
+    return isInitialized;
 }
 
 /**
@@ -66,10 +54,10 @@ export function isAdminSDKInitialized(): boolean {
  * Lança um erro se a inicialização falhar.
  */
 export function getAdminDb(): Firestore {
-  if (!isAdminSDKInitialized() || !firestore) {
-    throw new Error("O SDK de Admin do Firebase não foi inicializado. Verifique as variáveis de ambiente do servidor.");
+  if (!isInitialized) {
+    initializeAdminSDK();
   }
-  return firestore;
+  return firestore!;
 }
 
 /**
@@ -78,10 +66,10 @@ export function getAdminDb(): Firestore {
  * Lança um erro se a inicialização falhar.
  */
 export function getAdminAuth(): Auth {
-  if (!isAdminSDKInitialized() || !auth) {
-    throw new Error("O SDK de Admin do Firebase não foi inicializado. Verifique as variáveis de ambiente do servidor.");
+  if (!isInitialized) {
+    initializeAdminSDK();
   }
-  return auth;
+  return auth!;
 }
 
 /**
@@ -90,8 +78,8 @@ export function getAdminAuth(): Auth {
  * Lança um erro se a inicialização falhar.
  */
 export function getAdminApp(): App {
-  if (!isAdminSDKInitialized() || !adminApp) {
-    throw new Error("O SDK de Admin do Firebase não foi inicializado. Verifique as variáveis de ambiente do servidor.");
+  if (!isInitialized) {
+    initializeAdminSDK();
   }
-  return adminApp;
+  return adminApp!;
 }

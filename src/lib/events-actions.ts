@@ -1,10 +1,10 @@
 
 'use server';
 
-import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
+import { getAdminDb } from './firebase-admin';
 import { logAction } from './audit-log';
 import type { EventFormData, RepeatSettings, ReschedulingSuggestion } from './types';
-import { add, set } from 'date-fns';
+import { add } from 'date-fns';
 import { revalidatePath } from 'next/cache';
 
 const serializeEventData = (data: EventFormData) => {
@@ -23,9 +23,6 @@ const serializeEventData = (data: EventFormData) => {
 };
 
 export async function addEventAction(eventData: EventFormData, userEmail: string, repeatSettings?: RepeatSettings) {
-  if (!isAdminSDKInitialized()) {
-    throw new Error("O serviço de eventos está indisponível.");
-  }
   const db = getAdminDb();
   const batch = db.batch();
   const batchId = `add-${Date.now()}`;
@@ -73,9 +70,6 @@ export async function addEventAction(eventData: EventFormData, userEmail: string
 }
 
 export async function updateEventAction(eventId: string, eventData: EventFormData, userEmail: string) {
-  if (!isAdminSDKInitialized()) {
-    throw new Error("O serviço de eventos está indisponível.");
-  }
   const db = getAdminDb();
   const eventRef = db.collection('events').doc(eventId);
   
@@ -98,9 +92,6 @@ export async function updateEventAction(eventId: string, eventData: EventFormDat
 }
 
 export async function deleteEventAction(eventId: string, userEmail: string) {
-    if (!isAdminSDKInitialized()) {
-        throw new Error("O serviço de eventos está indisponível.");
-    }
     const db = getAdminDb();
     const eventRef = db.collection('events').doc(eventId);
     
@@ -126,9 +117,6 @@ export async function reallocateConflictingEvents(
     adminUserEmail: string
 ): Promise<{ success: boolean; message: string; updatedIds: string[] }> {
     
-    if (!isAdminSDKInitialized()) {
-       throw new Error("O serviço de reagendamento está indisponível.");
-    }
     const db = getAdminDb();
 
     if (!suggestions || suggestions.length === 0) {
