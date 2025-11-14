@@ -1,7 +1,6 @@
 
 'use server';
 
-import { addDoc, collection } from 'firebase/firestore';
 import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
 import type { AuditLogAction } from './types';
 
@@ -55,7 +54,8 @@ export const logAction = async ({
             logData.details = details;
         }
         
-        await addDoc(collection(db, 'audit_logs'), logData);
+        // Use a sintaxe do Admin SDK para adicionar o documento
+        await db.collection('audit_logs').add(logData);
 
     } catch (error) {
         console.error("Failed to write to audit log using Admin SDK.", error);
