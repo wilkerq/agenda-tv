@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ["https://6000-firebase-agenda-alego-openai-1758635925178.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"],
+      allowedOrigins: ["https://6000-firebase-agenda-news-room-1761221812511.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"],
       bodySizeLimit: '4.5mb',
     },
   },
