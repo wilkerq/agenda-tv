@@ -13,16 +13,9 @@ import { addDays, startOfDay, endOfDay, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Event } from '@/lib/types';
 import { logAction } from '@/lib/audit-log';
-// Admin SDK is no longer used for direct DB access in flows
-import { collection, getDocs, query, where, Timestamp, Firestore } from 'firebase/firestore';
+import { getAdminDb, isAdminSDKInitialized } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
-
-// This type can be used if we need to pass a DB instance to the flow in the future.
-// For now, we get it from an internal source that has access to the client SDK.
-interface FlowInput {
-    db: Firestore;
-    adminUserEmail: string;
-}
 
 const SendDailyAgendaOutputSchema = z.object({
   success: z.boolean(),
@@ -31,9 +24,8 @@ const SendDailyAgendaOutputSchema = z.object({
 });
 type SendDailyAgendaOutput = z.infer<typeof SendDailyAgendaOutputSchema>;
 
-// The input for this flow now requires the Firestore instance and the user email for logging.
+// The input for this flow now requires the user email for logging.
 const SendDailyAgendaInputSchema = z.object({
-    db: z.any().describe("The Firestore client instance."),
     adminUserEmail: z.string().describe("The email of the user triggering the action for audit purposes."),
 });
 type SendDailyAgendaInput = z.infer<typeof SendDailyAgendaInputSchema>;
@@ -49,15 +41,21 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     inputSchema: SendDailyAgendaInputSchema,
     outputSchema: SendDailyAgendaOutputSchema,
   },
-  async ({ db, adminUserEmail }) => {
-    // 1. Fetch all personnel from all relevant collections using the client SDK
+  async ({ adminUserEmail }) => {
+
+    if (!isAdminSDKInitialized()) {
+      throw new Error("O serviço de envio de agenda está indisponível. Credenciais de administrador do Firebase não foram configuradas no servidor.");
+    }
+    const db = getAdminDb();
+
+    // 1. Fetch all personnel from all relevant collections using the Admin SDK
     const personnelCollections = ['transmission_operators', 'cinematographic_reporters', 'production_personnel'];
     const allPersonnel: { name: string, phone?: string }[] = [];
     
     for (const coll of personnelCollections) {
-        const personnelCollectionRef = collection(db, coll);
+        const personnelCollectionRef = db.collection(coll);
         try {
-            const personnelSnapshot = await getDocs(personnelCollectionRef);
+            const personnelSnapshot = await personnelCollectionRef.get();
             personnelSnapshot.forEach(doc => {
                 const data = doc.data();
                 // Ensure no duplicates by name
@@ -85,7 +83,7 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
       return { success: true, messagesSent: 0, errors: [] };
     }
 
-    const eventsCollectionRef = collection(db, "events");
+    const eventsCollectionRef = db.collection("events");
     
     const fieldsToQuery = ["transmissionOperator", "cinematographicReporter", "reporter", "producer"];
     const allEventsForTomorrow: Event[] = [];
@@ -94,14 +92,12 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     try {
       for (const field of fieldsToQuery) {
           if (personnelNames.length > 0) {
-            const eventsQuery = query(
-                eventsCollectionRef,
-                where("date", ">=", Timestamp.fromDate(startOfTomorrow)),
-                where("date", "<=", Timestamp.fromDate(endOfTomorrow)),
-                where(field, "in", personnelNames)
-            );
+            const eventsQuery = eventsCollectionRef
+                .where("date", ">=", Timestamp.fromDate(startOfTomorrow))
+                .where("date", "<=", Timestamp.fromDate(endOfTomorrow))
+                .where(field, "in", personnelNames);
             
-            const eventsSnapshot = await getDocs(eventsQuery);
+            const eventsSnapshot = await eventsQuery.get();
             eventsSnapshot.docs.forEach(doc => {
                 if (!eventIds.has(doc.id)) {
                     eventIds.add(doc.id);

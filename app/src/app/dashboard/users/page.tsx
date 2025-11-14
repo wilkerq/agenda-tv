@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { collection, onSnapshot, query, doc, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, query } from "firebase/firestore";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -24,15 +24,10 @@ import { Loader2, Trash2, Edit, PlusCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError, useAuth } from '@/firebase';
-import { logAction } from "@/lib/audit-log";
+import { useUser, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { createUserAction, updateUserAction, deleteUserAction } from "@/lib/user-actions";
 import type { SecurityRuleContext } from "@/lib/types";
-import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
-
-// Helper to generate random password
-const generateTempPassword = () => {
-    return Math.random().toString(36).slice(-8) + 'A1!';
-}
+import { sendPasswordResetEmail } from "firebase/auth";
 
 const userRoles = ["admin", "editor", "viewer"] as const;
 
@@ -65,8 +60,6 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { user: adminUser } = useUser();
-  const db = useFirestore();
-  const auth = useAuth();
 
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserSchema),
@@ -74,7 +67,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
   });
 
   const onSubmit = async (values: CreateUserFormValues) => {
-    if (!adminUser?.email || !db || !auth) {
+    if (!adminUser?.email) {
       toast({
         title: "Erro de Autenticação",
         description: "Não foi possível identificar o administrador logado. Faça login novamente.",
@@ -84,77 +77,26 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
     }
     
     setIsSubmitting(true);
-
-    try {
-      // 1. Generate a temporary password
-      const tempPassword = generateTempPassword();
-
-      // 2. Create the user in Firebase Auth with the temp password
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, tempPassword);
-      const newUser = userCredential.user;
-
-      // 3. Set the user's display name
-      await updateProfile(newUser, { displayName: values.displayName });
-
-      // 4. Create the user document in Firestore with the selected role
-      const userDocRef = doc(db, "users", newUser.uid);
-      const newUserData = {
-        uid: newUser.uid,
-        email: values.email,
-        displayName: values.displayName,
-        role: values.role,
-        createdAt: new Date(),
-      };
-      
-      await setDoc(userDocRef, newUserData)
-        .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'create',
-                requestResourceData: newUserData,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError; // Propagate to be caught by the outer try-catch
-        });
-
-      // 5. Send password reset email, which acts as a "set your password" link
-      await sendPasswordResetEmail(auth, values.email);
-
-      // 6. Log the action
-      await logAction({
-          action: 'create-user',
-          collectionName: 'users',
-          documentId: newUser.uid,
-          userEmail: adminUser.email,
-          newData: {
-              createdUserEmail: values.email,
-              uid: newUser.uid,
-              role: values.role,
-          },
-      });
-
-      toast({
+    
+    const result = await createUserAction(values, adminUser.email);
+    
+    if (result.success) {
+       toast({
         title: "Usuário Criado com Sucesso!",
-        description: `Um e-mail foi enviado para ${values.email} para que o usuário defina sua própria senha.`,
+        description: `Um e-mail será enviado para ${values.email} para que o usuário defina sua própria senha.`,
         duration: 8000,
       });
       form.reset();
       onSuccess(); // Close the dialog
-
-    } catch (error: any) {
-      let errorMessage = "Ocorreu um erro desconhecido.";
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = "Este endereço de email já está em uso por outra conta.";
-      }
-      console.error("Falha ao criar usuário:", error.message);
-      toast({
+    } else {
+       toast({
         title: "Falha ao Criar Usuário",
-        description: errorMessage,
+        description: result.message,
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+
+    setIsSubmitting(false);
   };
 
   return (
@@ -212,7 +154,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
         />
         <DialogFooter>
           <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-          <Button type="submit" disabled={isSubmitting || !adminUser || !db}>
+          <Button type="submit" disabled={isSubmitting || !adminUser}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Criando..." : "Criar Usuário"}
           </Button>
@@ -270,49 +212,30 @@ export default function ManageUsersPage() {
   }, [usersQuery]);
 
   const handleEditUser = async (values: z.infer<typeof editUserSchema>) => {
-    if (!editingUser || !currentUser?.email || !db) return;
+    if (!editingUser || !currentUser?.email) return;
     setIsSubmitting(true);
-    try {
-      const userDocRef = doc(db, "users", editingUser.id);
-      // We don't update email here
-      const { email, ...updateData } = values; 
-      await updateDoc(userDocRef, updateData);
-
-      await logAction({
-        action: 'update',
-        collectionName: 'users',
-        documentId: editingUser.id,
-        userEmail: currentUser.email,
-        newData: updateData,
-        oldData: { displayName: editingUser.displayName, role: editingUser.role }
-      });
+    
+    const result = await updateUserAction(editingUser.id, values, currentUser.email);
+    
+    if (result.success) {
       toast({ title: "Sucesso!", description: "Usuário atualizado." });
       setEditingUser(null);
-    } catch (error) {
-       const docRef = doc(db, "users", editingUser.id);
-       const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'update', requestResourceData: values });
-       errorEmitter.emit('permission-error', permissionError);
-    } finally {
-      setIsSubmitting(false);
+    } else {
+        toast({ title: "Erro ao Atualizar", description: result.message, variant: "destructive" });
     }
+    
+    setIsSubmitting(false);
   };
 
   const handleDeleteUser = async (id: string, email: string) => {
-    if (!currentUser?.email || !db) return;
-    try {
-      await deleteDoc(doc(db, "users", id));
-      await logAction({
-        action: 'delete',
-        collectionName: 'users',
-        documentId: id,
-        userEmail: currentUser.email,
-        details: { deletedUserEmail: email }
-      });
-      toast({ title: "Sucesso!", description: "Usuário removido do Firestore. A conta de autenticação ainda pode precisar de remoção manual." });
-    } catch (error) {
-       const docRef = doc(db, "users", id);
-       const permissionError = new FirestorePermissionError({ path: docRef.path, operation: 'delete' });
-       errorEmitter.emit('permission-error', permissionError);
+    if (!currentUser?.email) return;
+    
+    const result = await deleteUserAction(id, email, currentUser.email);
+    
+    if (result.success) {
+      toast({ title: "Sucesso!", description: result.message });
+    } else {
+      toast({ title: "Erro ao Excluir", description: result.message, variant: "destructive" });
     }
   };
   
@@ -371,7 +294,7 @@ export default function ManageUsersPage() {
                 <DialogHeader>
                     <DialogTitle>Criar Novo Usuário</DialogTitle>
                     <DialogDescription>
-                        O novo usuário receberá um e-mail para definir sua própria senha.
+                        Um e-mail será enviado para que o novo usuário defina sua própria senha.
                     </DialogDescription>
                 </DialogHeader>
                 <CreateUserForm onSuccess={() => setIsCreateUserOpen(false)} />
@@ -476,7 +399,7 @@ export default function ManageUsersPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo. A conta de autenticação precisará ser removida manualmente no Console do Firebase. Esta ação não pode ser desfeita.
+                          Esta ação irá remover o usuário <strong>{user.displayName}</strong> do banco de dados do aplicativo e da autenticação. Esta ação não pode ser desfeita.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
