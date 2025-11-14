@@ -13,6 +13,7 @@ service cloud.firestore {
     }
 
     function getUserRole() {
+      // Retorna a role do usuário a partir do seu documento na coleção /users
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
@@ -29,11 +30,21 @@ service cloud.firestore {
     // 🔹 Coleção de Usuários (/users)
     // ======================================================
     match /users/{userId} {
-      // O próprio usuário pode ler e criar seu perfil. Admins também podem ler qualquer perfil.
+      // Leitura: O próprio usuário pode ler seu perfil, e admins podem ler qualquer perfil.
       allow read: if (request.auth.uid == userId) || isAdmin();
+      
+      // Criação: Qualquer usuário autenticado pode criar seu próprio documento de usuário.
+      // A role é geralmente definida via backend ou na criação inicial da conta.
       allow create: if isAuthenticated();
-      // Apenas admins podem atualizar ou deletar outros usuários.
+      
+      // Atualização e Exclusão: Apenas administradores podem atualizar ou deletar documentos de usuários.
       allow update, delete: if isAdmin();
+    }
+    
+    // Regra para listar a coleção de usuários
+    match /users {
+        // Listar: Apenas administradores podem listar todos os usuários.
+        allow list: if isAdmin();
     }
 
 
@@ -82,9 +93,10 @@ service cloud.firestore {
     // ======================================================
     // Esta regra se aplica a qualquer coleção não explicitamente listada acima.
     // Garante segurança máxima bloqueando acesso de usuários comuns.
-    match /{collection}/{docId} {
-      // Apenas administradores podem ler ou escrever.
-      allow read, write: if isAdmin();
+    match /{path=**}/documents/{document} {
+        allow read, write: if isAdmin();
     }
   }
 }
+
+    

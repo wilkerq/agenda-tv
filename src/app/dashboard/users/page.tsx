@@ -230,7 +230,8 @@ export default function ManageUsersPage() {
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
-  const { user: currentUser } = useUser();
+  const { user: currentUser, isUserLoading } = useUser();
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
 
   const form = useForm<z.infer<typeof editUserSchema>>({
     resolver: zodResolver(editUserSchema),
@@ -238,15 +239,38 @@ export default function ManageUsersPage() {
   });
 
   const usersQuery = useMemoFirebase(() => {
-    if (!db) return null;
+    // Only create query if user is an admin
+    if (!db || !userIsAdmin) return null;
     return query(collection(db, "users"));
-  }, [db]);
+  }, [db, userIsAdmin]);
 
+  // Effect to determine if the current user is an admin
+  useEffect(() => {
+    if (isUserLoading || !currentUser || !db) return;
+
+    const userDocRef = doc(db, 'users', currentUser.uid);
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().role === 'admin') {
+            setUserIsAdmin(true);
+        } else {
+            setUserIsAdmin(false);
+        }
+        setLoading(false); // Stop loading once role is determined
+    }, () => {
+        setUserIsAdmin(false);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+}, [currentUser, isUserLoading, db]);
+
+
+  // Effect to fetch all users if the current user is an admin
   useEffect(() => {
     if (!usersQuery) {
-        setLoading(false);
+        if(userIsAdmin) setLoading(false);
         return;
-    };
+    }
     
     setLoading(true);
     const unsubscribe = onSnapshot(usersQuery, (querySnapshot) => {
@@ -256,6 +280,7 @@ export default function ManageUsersPage() {
         fetchedUsers.push({ id: doc.id, ...data } as UserData);
       });
       
+      // Safe sorting
       const sortedUsers = fetchedUsers.sort((a, b) => {
         const nameA = a.displayName || a.email || '';
         const nameB = b.displayName || b.email || '';
@@ -274,7 +299,8 @@ export default function ManageUsersPage() {
     });
 
     return () => unsubscribe();
-  }, [usersQuery]);
+  }, [usersQuery, userIsAdmin]);
+
 
   const handleEditUser = async (values: z.infer<typeof editUserSchema>) => {
     if (!editingUser || !currentUser?.email || !db) return;
@@ -328,23 +354,12 @@ export default function ManageUsersPage() {
     form.reset({ displayName: user.displayName, email: user.email, role: user.role });
   };
 
-  if (!currentUser) {
+  if (loading || isUserLoading) {
     return (
-        <div className="flex justify-center items-center h-full">
+        <div className="flex justify-center items-center h-48">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
     );
-  }
-
-  // Simple role check on client, Firestore rules are the source of truth
-  const userIsAdmin = users.find(u => u.uid === currentUser.uid)?.role === 'admin';
-  
-  if (loading) {
-      return (
-          <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-      );
   }
 
   if (!userIsAdmin) {
