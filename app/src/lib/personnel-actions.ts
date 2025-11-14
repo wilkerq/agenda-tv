@@ -74,7 +74,7 @@ export async function deletePersonnelAction(collectionName: string, id: string, 
     const docRef = db.collection(collectionName).doc(id);
     try {
         const docSnap = await docRef.get();
-        const oldData = docSnap.exists() ? docSnap.data() : null;
+        const oldData = docSnap.exists ? docSnap.data() : null;
 
         await docRef.delete();
 
