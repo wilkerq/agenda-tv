@@ -172,7 +172,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
+          {/* <Button 
             variant="outline" 
             className="w-full bg-slate-700 border-slate-600 hover:bg-slate-600 text-white"
             onClick={handleGoogleLogin}
@@ -191,7 +191,7 @@ export default function LoginPage() {
                     Ou continue com
                 </span>
             </div>
-          </div>
+          </div> */}
 
           <form onSubmit={handleEmailLogin} className="grid gap-4">
             <div className="grid gap-2 text-left">
