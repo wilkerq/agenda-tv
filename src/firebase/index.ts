@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -30,21 +31,16 @@ export function initializeFirebase(): FirebaseServices {
     return firebaseServices;
   }
 
+  // Se nenhum aplicativo Firebase foi inicializado ainda, inicialize um.
+  // A função initializeApp é idempotente; se a configuração for a mesma,
+  // ela não criará uma nova instância.
+  // Fornecer a configuração localmente garante que funcione em todos os ambientes.
   if (getApps().length === 0) {
-    // A inicialização automática do App Hosting pode falhar em dev
-    // então temos um fallback para o firebaseConfig local.
-    try {
-      const app = initializeApp();
-      firebaseServices = getSdks(app);
-    } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Firebase auto-init failed, falling back to local config. This is normal in dev mode.', e);
-      }
-      const app = initializeApp(firebaseConfig);
-      firebaseServices = getSdks(app);
-    }
+    const app = initializeApp(firebaseConfig);
+    firebaseServices = getSdks(app);
   } else {
-    // Se já houver um app, apenas obtemos a instância.
+    // Se um aplicativo já existir (por exemplo, via auto-init do App Hosting),
+    // apenas obtenha a instância e os serviços.
     firebaseServices = getSdks(getApp());
   }
 
