@@ -48,7 +48,7 @@ export function suggestNextRole(params: {
 
   const eventDate = new Date(event.date);
   const shift = determineShiftFromDate(eventDate);
-  const dayEvents = allEvents.filter(e => e.id !== event.id && sameDay(new Date(e.date), eventDate)) as Event[];
+  const dayEvents = allEvents.filter(e => e.id !== event.id && sameDay(new Date(e.date), eventDate));
 
   // 1. Filtra candidatos que já estão ocupados
   const availablePool = pool.filter(p => !isPersonBusy(p.name, eventDate, dayEvents));

@@ -3,7 +3,7 @@
 // Funções utilitárias usadas pela engine
 // =============================
 import { addMinutes, subMinutes, isWithinInterval } from "date-fns";
-import type { Event, EventTurn } from "@/lib/types";
+import type { Event, EventTurn, EventInput } from "@/lib/types";
 import { ScheduleConfig } from "./schedule.config";
 
 /** Retorna true se duas datas forem no mesmo dia */
@@ -49,7 +49,7 @@ export const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
  * @param eventsToday A list of all other events happening on the same day.
  * @returns `true` if the person has a conflicting event, `false` otherwise.
  */
-export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: Event[]): boolean => {
+export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: EventInput[]): boolean => {
     const margin = ScheduleConfig.CONFLICT_MARGIN_MINUTES;
     const newEventDuration = (ScheduleConfig.DEFAULT_EVENT_DURATION * 60); // in minutes
 
@@ -73,7 +73,7 @@ export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: E
         }
 
         const existingEventDate = new Date(existingEvent.date);
-        const existingEventDuration = ScheduleConfig.DEFAULT_EVENT_DURATION * 60; // in minutes
+        const existingEventDuration = (existingEvent.durationHours || ScheduleConfig.DEFAULT_EVENT_DURATION) * 60; // in minutes
         
         // Define the time interval for the existing event.
         const existingEventInterval = {
