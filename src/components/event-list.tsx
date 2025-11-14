@@ -1,3 +1,4 @@
+
 import type { Event } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Edit, Trash2, CalendarSearch, User, MapPin, Clock, Tv, Youtube, Newspaper, Video, Mic, Clipboard, Plane, LogOut, LogIn, CalendarPlus } from "lucide-react";
@@ -159,23 +160,23 @@ export function EventList({ events, onDeleteEvent, onEditEvent }: EventListProps
             </TooltipProvider>
 
             <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <TooltipProvider>
-                  <Tooltip>
-                     <TooltipTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-8 w-8"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Excluir Evento</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Excluir Evento</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </AlertDialogTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Excluir Evento</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Excluir Evento</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
