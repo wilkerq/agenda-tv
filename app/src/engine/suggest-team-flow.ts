@@ -2,9 +2,9 @@
 'use server';
 
 import { suggestNextRole } from "./stepwise-scheduler";
-export type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
+export type { RoleKey, EventInput, Personnel } from "@/lib/types";
 import { isAdminSDKInitialized } from "@/lib/firebase-admin";
-import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
+import type { SuggestTeamFlowOutput } from "@/lib/types";
 
 
 // This is just an example wrapper. The UI will likely call this repeatedly.
@@ -36,10 +36,6 @@ export async function suggestSingleStep(params: {
 // This is a temporary measure for compatibility. Ideally, the form should be updated
 // to handle the step-by-step flow.
 export async function suggestTeam(input: any): Promise<SuggestTeamFlowOutput> {
-  // Verificação de inicialização do Admin SDK
-  if (!isAdminSDKInitialized()) {
-      throw new Error("O serviço de sugestão de equipe está indisponível. Credenciais de administrador do Firebase não foram configuradas no servidor.");
-  }
 
   const {
       name, date, time, location, transmissionTypes, departure, arrival,
