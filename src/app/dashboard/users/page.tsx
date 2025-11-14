@@ -126,7 +126,7 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
           collectionName: 'users',
           documentId: newUser.uid,
           userEmail: adminUser.email,
-          newData: {
+          details: {
               createdUserEmail: values.email,
               uid: newUser.uid,
               role: values.role,
@@ -255,7 +255,14 @@ export default function ManageUsersPage() {
         const data = doc.data();
         fetchedUsers.push({ id: doc.id, ...data } as UserData);
       });
-      setUsers(fetchedUsers.sort((a, b) => a.displayName.localeCompare(b.displayName)));
+      
+      const sortedUsers = fetchedUsers.sort((a, b) => {
+        const nameA = a.displayName || a.email || '';
+        const nameB = b.displayName || b.email || '';
+        return nameA.localeCompare(nameB);
+      });
+      
+      setUsers(sortedUsers);
       setLoading(false);
     }, (serverError) => {
       const permissionError = new FirestorePermissionError({
@@ -391,7 +398,7 @@ export default function ManageUsersPage() {
           <TableBody>
             {users.length > 0 ? users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.displayName}</TableCell>
+                <TableCell className="font-medium">{user.displayName || <span className="text-muted-foreground italic">Sem nome</span>}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell><Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge></TableCell>
                 <TableCell className="text-right">
@@ -500,3 +507,5 @@ export default function ManageUsersPage() {
     </Card>
   );
 }
+
+    
