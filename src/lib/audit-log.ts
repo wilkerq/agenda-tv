@@ -1,11 +1,10 @@
 
 'use server';
 
-import { addDoc, collection, Firestore } from 'firebase/firestore';
+import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
 import type { AuditLogAction } from './types';
 
 interface LogActionParams {
-  db: Firestore; // Client-side Firestore instance
   action: AuditLogAction;
   collectionName: string;
   documentId: string;
@@ -17,7 +16,6 @@ interface LogActionParams {
 }
 
 export const logAction = async ({
-    db, // Now expects the client 'db' instance
     action,
     collectionName,
     documentId,
@@ -28,8 +26,13 @@ export const logAction = async ({
     batchId
 }: LogActionParams) => {
     
-    // Uses the passed-in client Firestore instance
+    if (!isAdminSDKInitialized()) {
+        console.warn("Audit log skipped: Firebase Admin SDK not initialized.");
+        return;
+    }
+    
     try {
+        const db = getAdminDb();
         const logData: any = {
             action,
             collectionName,
@@ -51,12 +54,11 @@ export const logAction = async ({
             logData.details = details;
         }
         
-        // Writes to Firestore using the client SDK and the logged-in user's permissions
-        await addDoc(collection(db, 'audit_logs'), logData);
+        // Use a sintaxe do Admin SDK para adicionar o documento
+        await db.collection('audit_logs').add(logData);
 
     } catch (error) {
-        console.error("Failed to write to audit log using client SDK.", error);
-        // The error will be caught by the global permission error handler if it's a security rule issue.
-        throw error;
+        console.error("Failed to write to audit log using Admin SDK.", error);
+        // Do not re-throw, as audit logging failure should not crash the primary operation.
     }
 };

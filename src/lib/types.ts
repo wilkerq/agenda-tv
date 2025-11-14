@@ -18,8 +18,8 @@ export interface Event {
   cinematographicReporter?: string | null;
   reporter?: string | null;
   producer?: string | null;
-  status: EventStatus;
-  turn: EventTurn;
+  status?: EventStatus;
+  turn?: EventTurn;
   departure?: Date | null;
   arrival?: Date | null;
 }
@@ -233,3 +233,21 @@ export type SecurityRuleContext = {
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
   requestResourceData?: any;
 };
+
+
+// Tipos para stepwise-scheduler
+export interface Candidate {
+    id: string;
+    name: string;
+    reason?: string[];
+    conflictWarnings?: string[];
+    reschedulingSuggestions?: any[]; // Simplified for now
+    requiresReschedulePermission?: boolean;
+}
+
+export interface StepSuggestion {
+    allRolesDone?: boolean;
+    nextRole: RoleKey | null;
+    candidate: Candidate | null;
+    debug: any;
+}

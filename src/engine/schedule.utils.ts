@@ -3,7 +3,7 @@
 // Funções utilitárias usadas pela engine
 // =============================
 import { addHours, isWithinInterval, subHours } from "date-fns";
-import type { Event } from "@/lib/types";
+import type { Event, EventTurn } from "@/lib/types";
 import { ScheduleConfig } from "./schedule.config";
 
 /** Retorna true se duas datas forem no mesmo dia */
@@ -16,11 +16,11 @@ export function sameDay(a: Date, b: Date): boolean {
 }
 
 /** Retorna o turno aproximado (manhã/tarde/noite) com base na hora */
-export function determineShiftFromDate(date: Date): "morning" | "afternoon" | "night" {
+export function determineShiftFromDate(date: Date): EventTurn {
   const h = date.getHours();
-  if (h >= 6 && h < 12) return "morning";
-  if (h >= 12 && h < 18) return "afternoon";
-  return "night";
+  if (h >= 6 && h < 12) return "Manhã";
+  if (h >= 12 && h < 18) return "Tarde";
+  return "Noite";
 }
 
 /** Calcula diferença de horas entre duas datas */

@@ -183,7 +183,6 @@ const sendDailyAgendaToAllFlow = ai.defineFlow(
     };
 
     await logAction({
-        db, // Pass the db instance
         action: 'automatic-send',
         collectionName: 'system',
         documentId: `send-agenda-${format(new Date(), 'yyyy-MM-dd-HH-mm-ss')}`,

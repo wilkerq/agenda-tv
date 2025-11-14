@@ -36,7 +36,6 @@ export async function reallocateConflictingEvents(
             updatedEventIds.push(sug.conflictingEventId);
             
             await logAction({
-                db, // Pass db instance
                 action: 'reallocate',
                 collectionName: 'events',
                 documentId: sug.conflictingEventId,

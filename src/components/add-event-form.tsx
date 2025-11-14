@@ -35,11 +35,11 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel, SecurityRuleContext } from "@/lib/types";
+import type { TransmissionType, RepeatSettings, EventFormData, ReschedulingSuggestion, Personnel, Event, ProductionPersonnel, SecurityRuleContext, SuggestTeamFlowOutput } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "./ui/textarea";
-import { suggestTeam, type SuggestTeamFlowOutput } from "@/engine/suggest-team-flow";
+import { suggestTeam } from "@/engine/suggest-team-flow";
 import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle as AlertDialogTitleComponent } from "@/components/ui/alert-dialog";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";

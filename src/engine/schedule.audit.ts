@@ -6,7 +6,7 @@
 import { ScheduleConfig } from "./schedule.config";
 
 export type AuditEntry = {
-  timestamp: string;
+  timestamp?: string;
   eventId?: string;
   action: string;
   details?: any;

@@ -122,7 +122,6 @@ function CreateUserForm({ onSuccess }: { onSuccess: () => void }) {
 
       // 6. Log the action
       await logAction({
-          db,
           action: 'create-user',
           collectionName: 'users',
           documentId: newUser.uid,
@@ -280,7 +279,6 @@ export default function ManageUsersPage() {
       await updateDoc(userDocRef, updateData);
 
       await logAction({
-        db,
         action: 'update',
         collectionName: 'users',
         documentId: editingUser.id,
@@ -304,7 +302,6 @@ export default function ManageUsersPage() {
     try {
       await deleteDoc(doc(db, "users", id));
       await logAction({
-        db,
         action: 'delete',
         collectionName: 'users',
         documentId: id,

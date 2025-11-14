@@ -1,3 +1,4 @@
+
 /**
  * @deprecated This file is deprecated and its logic has been superseded by src/engine/stepwise-scheduler.ts.
  * It is kept for reference during the transition and will be removed in a future update.
@@ -34,7 +35,7 @@ export function suggestTeamLogic(params: {
         const available = pool.filter(person => {
             const personTurn = (person as any).turn; // 'turn' is the correct field
             const isTurnCompatible = !personTurn || personTurn === 'Geral' || personTurn === eventTurn;
-            const isBusy = isPersonBusy(person.name, eventDate, eventsToday);
+            const isBusy = isPersonBusy(person.name, eventDate, eventsToday as any);
             return isTurnCompatible && !isBusy;
         });
 

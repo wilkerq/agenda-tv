@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -165,7 +166,6 @@ export default function DashboardPage() {
         return addDoc(eventsCollectionRef, newEventData)
           .then(async (docRef) => {
             await logAction({
-                db,
                 action: 'create',
                 collectionName: 'events',
                 documentId: docRef.id,
@@ -195,7 +195,6 @@ export default function DashboardPage() {
             batch.set(newEventRef, newEventData);
 
             await logAction({ 
-                db,
                 action: 'create', 
                 collectionName: 'events', 
                 documentId: newEventRef.id, 
@@ -276,7 +275,6 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
                 arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
             };
             await logAction({
-                db,
                 action: 'delete',
                 collectionName: 'events',
                 documentId: eventId,
@@ -344,7 +342,6 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     updateDoc(eventRef, updatedData)
         .then(async () => {
             await logAction({
-                db,
                 action: 'update',
                 collectionName: 'events',
                 documentId: eventId,

@@ -32,7 +32,7 @@ export function CalendarEventCard({ event }: CalendarEventCardProps) {
     <div
       className={cn(
         "p-1 rounded-md text-xs border cursor-pointer",
-        statusColors[event.status]
+        event.status ? statusColors[event.status] : "bg-gray-500/20 text-gray-700 border-gray-500/50"
       )}
       style={{ borderLeft: `3px solid ${event.color}`}}
     >

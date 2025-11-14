@@ -97,13 +97,17 @@ export function EventDetailCard({ date, events }: EventDetailCardProps) {
                                     )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2">
-                                     <Badge className={cn("capitalize", statusColors[event.status])}>
-                                        {event.status}
-                                    </Badge>
-                                    <Badge variant="outline" className="flex items-center gap-1.5">
-                                        {turnIcons[event.turn]}
-                                        {event.turn}
-                                    </Badge>
+                                     {event.status && (
+                                        <Badge className={cn("capitalize", statusColors[event.status])}>
+                                            {event.status}
+                                        </Badge>
+                                     )}
+                                     {event.turn && (
+                                        <Badge variant="outline" className="flex items-center gap-1.5">
+                                            {turnIcons[event.turn]}
+                                            {event.turn}
+                                        </Badge>
+                                     )}
                                     {renderTransmissionBadge(event.transmission)}
                                 </div>
                             </div>
