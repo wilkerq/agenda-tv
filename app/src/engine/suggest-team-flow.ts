@@ -2,10 +2,7 @@
 'use server';
 
 import { suggestNextRole } from "./stepwise-scheduler";
-export type { RoleKey, EventInput, Personnel } from "@/lib/types";
-import { isAdminSDKInitialized } from "@/lib/firebase-admin";
-import type { SuggestTeamFlowOutput } from "@/lib/types";
-
+import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
 
 // This is just an example wrapper. The UI will likely call this repeatedly.
 export async function suggestSingleStep(params: {
