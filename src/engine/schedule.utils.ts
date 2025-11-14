@@ -2,7 +2,7 @@
 // schedule.utils.ts
 // Funções utilitárias usadas pela engine
 // =============================
-import { addHours, isWithinInterval, subHours } from "date-fns";
+import { addMinutes, subMinutes, isWithinInterval } from "date-fns";
 import type { Event, EventTurn } from "@/lib/types";
 import { ScheduleConfig } from "./schedule.config";
 
@@ -43,6 +43,7 @@ export const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
 
 /**
  * Checks if a person is busy with any other event at the same time.
+ * This is the core logic for conflict detection.
  * @param personName The name of the person to check.
  * @param eventDate The date and time of the new event.
  * @param eventsToday A list of all other events happening on the same day.
@@ -50,27 +51,38 @@ export const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
  */
 export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: Event[]): boolean => {
     const margin = ScheduleConfig.CONFLICT_MARGIN_MINUTES;
+    const newEventDuration = (ScheduleConfig.DEFAULT_EVENT_DURATION * 60); // in minutes
+
+    // Define the time interval for the new event, including the conflict margin.
     const newEventInterval = { 
-        start: subHours(eventDate, margin / 60), 
-        end: addHours(eventDate, ScheduleConfig.DEFAULT_EVENT_DURATION + margin / 60)
+        start: subMinutes(eventDate, margin), 
+        end: addMinutes(eventDate, newEventDuration + margin)
     };
 
-    for (const event of eventsToday) {
+    // Iterate through the existing events for the day.
+    for (const existingEvent of eventsToday) {
         const isAssigned =
-            event.transmissionOperator === personName ||
-            event.cinematographicReporter === personName ||
-            event.reporter === personName ||
-            event.producer === personName;
+            existingEvent.transmissionOperator === personName ||
+            existingEvent.cinematographicReporter === personName ||
+            existingEvent.reporter === personName ||
+            existingEvent.producer === personName;
 
-        if (!isAssigned) continue;
+        // If the person is not assigned to this existing event, skip it.
+        if (!isAssigned) {
+            continue;
+        }
 
-        const existingEventDate = new Date(event.date);
+        const existingEventDate = new Date(existingEvent.date);
+        const existingEventDuration = ScheduleConfig.DEFAULT_EVENT_DURATION * 60; // in minutes
+        
+        // Define the time interval for the existing event.
         const existingEventInterval = {
-            start: subHours(existingEventDate, margin / 60),
-            end: addHours(existingEventDate, ScheduleConfig.DEFAULT_EVENT_DURATION + margin / 60)
+            start: existingEventDate,
+            end: addMinutes(existingEventDate, existingEventDuration)
         };
         
-        // Check for overlap
+        // Check for overlap between the new event's interval and the existing event's interval.
+        // A conflict exists if the start of one event is before the end of the other, AND the end of one is after the start of the other.
         const startsBeforeEnd = newEventInterval.start < existingEventInterval.end;
         const endsAfterStart = newEventInterval.end > existingEventInterval.start;
 
@@ -78,6 +90,6 @@ export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: E
             return true; // Conflict found
         }
     }
-    return false; // No conflicts
-};
     
+    return false; // No conflicts found for this person
+};

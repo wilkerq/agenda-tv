@@ -1,6 +1,6 @@
 // src/engine/stepwise-scheduler.ts
-import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion } from "@/lib/types";
-import { sameDay, determineShiftFromDate } from "./schedule.utils";
+import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion, Event } from "@/lib/types";
+import { sameDay, determineShiftFromDate, isPersonBusy } from "./schedule.utils";
 import { ScheduleConfig } from "./schedule.config";
 import { logSuggestion } from "./schedule.audit";
 
@@ -46,9 +46,19 @@ export function suggestNextRole(params: {
   if (nextRole === "reporter") pool = pools.reporters;
   if (nextRole === "producer") pool = pools.producers;
 
-  // regra básica de filtro: disponibilidade por turno e carga diária (re-aproveitamos lógica simples)
-  const shift = determineShiftFromDate(event.date);
-  const dayEvents = allEvents.filter(e => sameDay(e.date, event.date));
+  const eventDate = new Date(event.date);
+  const shift = determineShiftFromDate(eventDate);
+  const dayEvents = allEvents.filter(e => e.id !== event.id && sameDay(new Date(e.date), eventDate)) as Event[];
+
+  // 1. Filtra candidatos que já estão ocupados
+  const availablePool = pool.filter(p => !isPersonBusy(p.name, eventDate, dayEvents));
+  debug.availableAfterConflictCheck = availablePool.map(p => p.name);
+
+  // Se não houver ninguém disponível, retorna sem candidato
+  if(availablePool.length === 0) {
+      return { nextRole, candidate: null, debug };
+  }
+
 
   function personAssignedHours(personId: string) {
     // soma duração dos eventos do mesmo dia onde a pessoa está alocada (por id)
@@ -73,23 +83,6 @@ export function suggestNextRole(params: {
     return total;
   }
 
-  // checa conflito de horário por margem
-  function hasTimeConflict(personId: string) {
-    const marginMs = ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000;
-    for (const ev of allEvents) {
-      if (!ev.id) continue;
-      if (
-        ev.transmissionOperator === personId ||
-        ev.cinematographicReporter === personId ||
-        ev.reporter === personId ||
-        ev.producer === personId
-      ) {
-        if (Math.abs(new Date(ev.date).getTime() - new Date(event.date).getTime()) < marginMs) return true;
-      }
-    }
-    return false;
-  }
-
   // função de heurística para rankear candidatos
   function rankCandidates(list: Personnel[]) {
     const scored = list.map(p => {
@@ -99,7 +92,7 @@ export function suggestNextRole(params: {
       // 1) turno compatível
       if (personTurn && personTurn !== 'Geral' && personTurn !== shift) {
           scoreObj.score += 50; // penalidade alta
-          scoreObj.reasons.push(`Turno mismatch: ${p.name}`);
+          scoreObj.reasons.push(`Turno incompatível: ${p.name} é do turno ${personTurn}`);
       } else {
           scoreObj.reasons.push("Turno ok");
       }
@@ -109,18 +102,12 @@ export function suggestNextRole(params: {
       const assigned = personAssignedHours(p.id);
       if (assigned + (event.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION) > ScheduleConfig.MAX_HOURS_PER_DAY) {
         scoreObj.score += 40;
-        scoreObj.reasons.push("Ultrapassa carga diária");
+        scoreObj.reasons.push("Excede carga horária diária");
       } else {
         scoreObj.reasons.push(`Carga atual ${assigned}h`);
       }
 
-      // 3) conflito do mesmo horário
-      if (hasTimeConflict(p.id)) {
-        scoreObj.score += 30;
-        scoreObj.reasons.push("Conflito de horário detectado");
-      }
-
-      // 4) fairness: quem trabalhou menos nos últimos N dias ganha pontos (simples: countAssignments)
+      // 3) fairness: quem trabalhou menos nos últimos N dias ganha pontos (simples: countAssignments)
       scoreObj.score += countAssignments(p, allEvents); // quanto maior, pior (mais trabalhou)
       debug.checked.push({ personId: p.id, score: scoreObj.score, reasons: scoreObj.reasons.slice() });
       return scoreObj;
@@ -131,7 +118,7 @@ export function suggestNextRole(params: {
     return scored;
   }
 
-  const ranked = rankCandidates(pool);
+  const ranked = rankCandidates(availablePool);
   if (ranked.length === 0) return { nextRole, candidate: null, debug };
 
   // candidato principal
@@ -145,33 +132,8 @@ export function suggestNextRole(params: {
     requiresReschedulePermission: false,
   };
 
-  // Se houver conflito de horário detectado, podemos criar sugestões de remanejamento (rescheduling)
-  if (top.reasons.some((r: string) => r.includes("Conflito de horário") || r.includes("Ultrapassa carga diária"))) {
-    // varrer eventos conflitantes e propor substitutos
-    const conflictingEvents = allEvents.filter(ev =>
-      (ev.transmissionOperator === top.p.id || ev.cinematographicReporter === top.p.id || ev.reporter === top.p.id || ev.producer === top.p.id)
-      && Math.abs(new Date(ev.date).getTime() - new Date(event.date).getTime()) < ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000
-    );
-
-    for (const ce of conflictingEvents) {
-      // escolher substituto para o evento conflitante a partir do mesmo pool (exceto o próprio)
-      const poolForRole = selectPoolForEventRole(ce, pools);
-      const replacement = findReplacement(poolForRole, ce, allEvents, top.p.id);
-      candidate.reschedulingSuggestions!.push({
-        conflictingEventId: ce.id,
-        conflictingEventTitle: ce.name,
-        personToMove: top.p.id,
-        suggestedReplacement: replacement ? replacement.name : null,
-        conflictingEventIsTravel: ce.transmissionTypes?.includes("viagem") ?? false,
-        role: Object.keys(ce).find(k => (ce as any)[k] === top.p.id)
-      });
-      if (ce.transmissionTypes?.includes("viagem")) {
-        // se outro evento é viagem, marque que precisa de permissão especial antes de alterar
-        candidate.requiresReschedulePermission = true;
-      }
-    }
-
-    candidate.conflictWarnings = top.reasons.filter((r: string) => r.includes("Conflito") || r.includes("Ultrapassa"));
+  if (top.score > 0) {
+      candidate.conflictWarnings = top.reasons.filter((r: string) => !r.includes("Turno ok"));
   }
 
   // registrar auditoria (não grava nada na DB ainda, só log)
