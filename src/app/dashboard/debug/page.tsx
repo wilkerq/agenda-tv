@@ -3,12 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 
 export default function DebugEnvPage() {
-    const projectId = process.env.FIREBASE_PROJECT_ID;
-    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    const privateKeyExists = !!process.env.FIREBASE_PRIVATE_KEY;
-    const privateKeyPreview = process.env.FIREBASE_PRIVATE_KEY 
-        ? process.env.FIREBASE_PRIVATE_KEY.substring(0, 30) + "..." 
-        : "Não definida";
+    const credentialsExist = !!process.env.FIREBASE_CREDENTIALS;
+    let projectId: string | undefined;
+    let clientEmail: string | undefined;
+    let parseError: string | null = null;
+
+    if (credentialsExist) {
+        try {
+            const creds = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
+            projectId = creds.project_id;
+            clientEmail = creds.client_email;
+        } catch (e: any) {
+            parseError = `Erro ao processar FIREBASE_CREDENTIALS: ${e.message}. Verifique se é um JSON válido.`;
+        }
+    }
 
     const renderStatus = (isDefined: boolean) => {
         return isDefined
@@ -21,42 +29,54 @@ export default function DebugEnvPage() {
             <CardHeader>
                 <CardTitle>Depuração de Variáveis de Ambiente do Servidor</CardTitle>
                 <CardDescription>
-                    Esta página verifica se as credenciais do Firebase Admin SDK estão disponíveis no ambiente do servidor.
-                    Estes valores vêm do seu arquivo `.env`.
+                    Esta página verifica se as credenciais do Firebase Admin SDK (variável `FIREBASE_CREDENTIALS`) estão disponíveis e são válidas no ambiente do servidor.
+                    Este valor vem do seu arquivo `.env`.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex justify-between items-center border p-4 rounded-md">
                     <div>
-                        <p className="font-semibold">FIREBASE_PROJECT_ID</p>
-                        <p className="text-sm text-muted-foreground font-mono">{projectId || "N/A"}</p>
+                        <p className="font-semibold">FIREBASE_CREDENTIALS</p>
+                        <p className="text-sm text-muted-foreground font-mono">
+                            {credentialsExist ? "Definida e sendo processada." : "Não definida."}
+                        </p>
                     </div>
-                    {renderStatus(!!projectId)}
+                    {renderStatus(credentialsExist)}
                 </div>
-                <div className="flex justify-between items-center border p-4 rounded-md">
-                     <div>
-                        <p className="font-semibold">FIREBASE_CLIENT_EMAIL</p>
-                        <p className="text-sm text-muted-foreground font-mono">{clientEmail || "N/A"}</p>
-                    </div>
-                    {renderStatus(!!clientEmail)}
-                </div>
-                 <div className="flex justify-between items-center border p-4 rounded-md">
-                     <div>
-                        <p className="font-semibold">FIREBASE_PRIVATE_KEY</p>
-                        <p className="text-sm text-muted-foreground font-mono break-all">{privateKeyPreview}</p>
-                    </div>
-                    {renderStatus(privateKeyExists)}
-                </div>
+
+                {credentialsExist && !parseError && (
+                    <>
+                        <div className="flex justify-between items-center border p-4 rounded-md">
+                            <div>
+                                <p className="font-semibold">Project ID (do JSON)</p>
+                                <p className="text-sm text-muted-foreground font-mono">{projectId || "Não encontrado no JSON"}</p>
+                            </div>
+                            {renderStatus(!!projectId)}
+                        </div>
+                        <div className="flex justify-between items-center border p-4 rounded-md">
+                            <div>
+                                <p className="font-semibold">Client Email (do JSON)</p>
+                                <p className="text-sm text-muted-foreground font-mono">{clientEmail || "Não encontrado no JSON"}</p>
+                            </div>
+                            {renderStatus(!!clientEmail)}
+                        </div>
+                    </>
+                )}
                 
-                 {!projectId || !clientEmail || !privateKeyExists ? (
+                {parseError ? (
+                     <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
+                        <h4 className="font-bold">Erro de Processamento</h4>
+                        <p>{parseError}</p>
+                    </div>
+                ) : !credentialsExist ? (
                      <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
                         <h4 className="font-bold">Ação Necessária</h4>
-                        <p>Uma ou mais variáveis de ambiente essenciais não estão definidas. A inicialização do Firebase Admin SDK falhará. Verifique se o seu arquivo `.env` está correto e se o servidor foi reiniciado após a alteração.</p>
+                        <p>A variável de ambiente `FIREBASE_CREDENTIALS` não está definida. A inicialização do Firebase Admin SDK falhará. Verifique se o seu arquivo `.env` está correto e contém a variável com o conteúdo do seu arquivo JSON de credenciais.</p>
                     </div>
                 ) : (
                     <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
                         <h4 className="font-bold">Tudo Certo!</h4>
-                        <p>Todas as variáveis de ambiente necessárias para o Firebase Admin SDK parecem estar definidas. Se o erro persistir, o problema pode estar no conteúdo das variáveis (ex: chave privada mal formatada).</p>
+                        <p>A variável `FIREBASE_CREDENTIALS` parece estar definida e foi processada como um JSON válido. Se a inicialização do Admin SDK ainda falhar, o problema pode estar no conteúdo das credenciais (ex: chave inválida).</p>
                     </div>
                 )}
 
