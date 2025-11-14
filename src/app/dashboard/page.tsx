@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
 import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { addEventAction, updateEventAction, deleteEventAction } from "@/lib/events-actions";
+import { addEventAction, updateEventAction, deleteEventAction, reallocateConflictingEvents } from "@/lib/events-actions";
 
 
 const getEventTurn = (date: Date): EventTurn => {
@@ -407,3 +407,5 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
+
+    
