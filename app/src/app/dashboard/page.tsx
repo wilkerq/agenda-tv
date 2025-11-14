@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { collection, onSnapshot, addDoc, doc, deleteDoc, Timestamp, orderBy, query, updateDoc, where, writeBatch, getDocs, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp, orderBy, query, where, getDocs } from "firebase/firestore";
 import type { Event, EventFormData, RepeatSettings, EventStatus, EventTurn, ReschedulingSuggestion, SecurityRuleContext } from "@/lib/types";
 import { AddEventForm } from "@/components/add-event-form";
 import { EditEventForm } from "@/components/edit-event-form";
@@ -13,16 +13,15 @@ import { useToast } from "@/hooks/use-toast";
 import { getRandomColor } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import { add, format, startOfDay, endOfDay, getHours, differenceInMinutes, isSameDay } from 'date-fns';
+import { format, isSameDay, getHours, differenceInMinutes, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { PlusCircle, Sparkles, Users, Loader2 } from "lucide-react";
+import { PlusCircle, Sparkles, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { AddEventFromImageForm } from "@/components/add-event-from-image-form";
-import { logAction } from "@/lib/audit-log";
 import { errorEmitter, FirestorePermissionError, useFirestore, useUser } from "@/firebase";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { reallocateConflictingEvents } from "@/lib/events-actions";
+import { addEventAction, updateEventAction, deleteEventAction, reallocateConflictingEventsAction } from "@/lib/events-actions";
 
 
 const getEventTurn = (date: Date): EventTurn => {
@@ -40,20 +39,6 @@ type PendingEvent = {
     data: EventFormData;
     repeatSettings?: RepeatSettings;
 }
-
-const serializeEventData = (data: EventFormData | Partial<EventFormData>) => {
-  const serialized: any = {};
-  for (const key in data) {
-    const value = (data as any)[key];
-    if (value instanceof Date) {
-      serialized[key] = value.toISOString();
-    } else if (value !== null && value !== undefined) {
-      serialized[key] = value;
-    }
-  }
-  return serialized;
-};
-
 
 export default function DashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -144,227 +129,69 @@ export default function DashboardPage() {
 
 
  const confirmAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    if (!user || !user.email || !db) {
+    if (!user || !user.email) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para adicionar um evento.", variant: "destructive" });
-        throw new Error("User not authenticated or db not available");
+        return;
     }
-
-    const userEmail = user.email;
-    const isTravel = eventData.transmission?.includes('viagem');
-    const eventsCollectionRef = collection(db, "events");
-
-    if (!repeatSettings || !repeatSettings.frequency || !repeatSettings.count) {
-        const newEventData: any = {
-            ...eventData,
-            date: Timestamp.fromDate(eventData.date),
-            color: isTravel ? '#dc2626' : getRandomColor(),
-        };
-
-        if (eventData.departure) newEventData.departure = Timestamp.fromDate(eventData.departure);
-        if (eventData.arrival) newEventData.arrival = Timestamp.fromDate(eventData.arrival);
-
-        return addDoc(eventsCollectionRef, newEventData)
-          .then(async (docRef) => {
-            await logAction({
-                action: 'create',
-                collectionName: 'events',
-                documentId: docRef.id,
-                userEmail: userEmail,
-                newData: serializeEventData(eventData),
-            });
-            toast({ title: "Sucesso!", description: 'O evento foi adicionado à agenda.' });
-          })
-          .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: eventsCollectionRef.path,
-                operation: 'create',
-                requestResourceData: newEventData,
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError; // Re-throw to be caught by the calling function
-          });
-
+    
+    const result = await addEventAction(eventData, user.email, repeatSettings);
+    if (result.success) {
+        toast({ title: "Sucesso!", description: result.message });
     } else {
-        const batch = writeBatch(db);
-        let currentDate = new Date(eventData.date);
-        const batchId = `recurring-${Date.now()}`;
-        
-        for (let i = 0; i < repeatSettings.count; i++) {
-            const newEventRef = doc(eventsCollectionRef);
-            const newEventData = { ...eventData, date: Timestamp.fromDate(currentDate), color: isTravel ? '#dc2626' : getRandomColor() };
-            batch.set(newEventRef, newEventData);
-
-            await logAction({ 
-                action: 'create', 
-                collectionName: 'events', 
-                documentId: newEventRef.id, 
-                userEmail: userEmail, 
-                newData: serializeEventData({...eventData, date: currentDate }), 
-                batchId 
-            });
-
-            if (repeatSettings.frequency === 'daily') currentDate = add(currentDate, { days: 1 });
-            else if (repeatSettings.frequency === 'weekly') currentDate = add(currentDate, { weeks: 1 });
-            else if (repeatSettings.frequency === 'monthly') currentDate = add(currentDate, { months: 1 });
-        }
-
-        return batch.commit()
-          .then(() => {
-            toast({ title: "Sucesso!", description: 'O evento e suas repetições foram adicionados.' });
-          })
-          .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({ path: eventsCollectionRef.path, operation: 'create', requestResourceData: { note: "Batch write for recurring events" } } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-            throw serverError;
-          });
+        toast({ title: "Erro ao Adicionar", description: result.message, variant: "destructive" });
     }
-}, [user, toast, db]);
+}, [user, toast]);
 
 const handleAddEvent = useCallback(async (eventData: EventFormData, repeatSettings?: RepeatSettings) => {
-    try {
-        // Only check for duplicates if it's not a recurring event being added
-        if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
-            const conflictingEvent = events.find(existingEvent =>
-                existingEvent.name.toLowerCase() === eventData.name.toLowerCase() &&
-                Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
-            );
+    if (!repeatSettings && selectedDate && isSameDay(eventData.date, selectedDate)) {
+        const conflictingEvent = events.find(existingEvent =>
+            existingEvent.name.toLowerCase() === eventData.name.toLowerCase() &&
+            Math.abs(differenceInMinutes(eventData.date, existingEvent.date)) < 120
+        );
 
-            if (conflictingEvent) {
-                setPendingEvent({ data: eventData, repeatSettings });
-                setIsConflictDialogOpen(true);
-                return; // Stop execution and wait for user confirmation
-            }
-        }
-        
-        // If no conflict, or if it's a recurring event, add it directly.
-        await confirmAddEvent(eventData, repeatSettings);
-    } catch (error) {
-        // Errors are now thrown by confirmAddEvent and handled by FirestorePermissionError listener
-        // You might want a generic fallback toast here if the error is not a permission error
-        if (!(error instanceof FirestorePermissionError)) {
-             toast({
-                title: "Erro ao Adicionar Evento",
-                description: "Não foi possível salvar o evento. Por favor, tente novamente.",
-                variant: "destructive"
-            });
+        if (conflictingEvent) {
+            setPendingEvent({ data: eventData, repeatSettings });
+            setIsConflictDialogOpen(true);
+            return;
         }
     }
+    
+    await confirmAddEvent(eventData, repeatSettings);
+
 }, [selectedDate, events, confirmAddEvent, toast]);
 
 
 const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (!user?.email || !db) {
+    if (!user?.email) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para excluir um evento.", variant: "destructive" });
         return;
     }
     
-    const eventRef = doc(db, "events", eventId);
-    const eventSnap = await getDoc(eventRef);
-    if (!eventSnap.exists()) {
-        toast({ title: "Erro", description: "Evento não encontrado para exclusão.", variant: "destructive" });
-        return;
+    const result = await deleteEventAction(eventId, user.email);
+
+    if (result.success) {
+        toast({ title: "Evento Excluído!", description: result.message });
+    } else {
+        toast({ title: "Erro ao Excluir", description: result.message, variant: "destructive" });
     }
-    const oldData = eventSnap.data();
 
-    deleteDoc(eventRef)
-        .then(async () => {
-            const serializableOldData = {
-                ...oldData,
-                date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
-                departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
-                arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-            };
-            await logAction({
-                action: 'delete',
-                collectionName: 'events',
-                documentId: eventId,
-                userEmail: user.email!,
-                oldData: serializableOldData,
-            });
-
-            toast({
-                title: "Evento Excluído!",
-                description: "O evento foi removido da agenda com sucesso.",
-            });
-        })
-        .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: eventRef.path,
-                operation: 'delete',
-            } satisfies SecurityRuleContext);
-            errorEmitter.emit('permission-error', permissionError);
-        });
-
-}, [toast, user, db]);
+}, [toast, user]);
 
   const handleEditEvent = useCallback(async (eventId: string, eventData: EventFormData) => {
-    if (!user || !user.email || !db) {
+    if (!user || !user.email) {
         toast({ title: "Erro de Autenticação", description: "Você precisa estar logado para editar um evento.", variant: "destructive" });
-        throw new Error("User not authenticated or db not available");
+        return;
     }
     
-    const eventRef = doc(db, "events", eventId);
-    const userEmail = user.email;
-    const isTravel = eventData.transmission?.includes('viagem');
-
-    const eventSnap = await getDoc(eventRef);
-    if (!eventSnap.exists()) {
-        throw new Error("Event not found");
-    }
+    const result = await updateEventAction(eventId, eventData, user.email);
     
-    const oldData = eventSnap.data();
-    const serializableOldData = {
-        ...oldData,
-        date: oldData.date ? (oldData.date as Timestamp).toDate().toISOString() : undefined,
-        departure: oldData.departure ? (oldData.departure as Timestamp).toDate().toISOString() : undefined,
-        arrival: oldData.arrival ? (oldData.arrival as Timestamp).toDate().toISOString() : undefined,
-    };
-
-
-    const updatedData: any = {
-        ...eventData,
-        date: Timestamp.fromDate(eventData.date),
-        color: isTravel ? '#dc2626' : oldData.color || getRandomColor(),
-    };
-    
-    if (eventData.departure) {
-        updatedData.departure = Timestamp.fromDate(eventData.departure);
+    if (result.success) {
+        toast({ title: "Sucesso!", description: "O evento foi atualizado." });
     } else {
-        updatedData.departure = null;
+        toast({ title: "Erro ao Atualizar", description: result.message, variant: "destructive" });
     }
 
-    if (eventData.arrival) {
-        updatedData.arrival = Timestamp.fromDate(eventData.arrival);
-    } else {
-        updatedData.arrival = null;
-    }
-    
-    updateDoc(eventRef, updatedData)
-        .then(async () => {
-            await logAction({
-                action: 'update',
-                collectionName: 'events',
-                documentId: eventId,
-                userEmail: userEmail,
-                oldData: serializableOldData,
-                newData: serializeEventData(eventData),
-            });
-            
-            toast({
-                title: "Sucesso!",
-                description: "O evento foi atualizado.",
-            });
-        })
-        .catch ((serverError) => {
-           const permissionError = new FirestorePermissionError({
-              path: eventRef.path,
-              operation: 'update',
-              requestResourceData: updatedData,
-           } satisfies SecurityRuleContext);
-           errorEmitter.emit('permission-error', permissionError);
-           throw serverError;
-        });
-  }, [toast, user, db]);
+  }, [toast, user]);
 
 
   const handleOpenEditModal = (event: Event) => {
@@ -390,11 +217,7 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
 
   const onConfirmConflict = async () => {
     if (pendingEvent) {
-      try {
         await confirmAddEvent(pendingEvent.data, pendingEvent.repeatSettings);
-      } catch (error) {
-        // Errors from confirmAddEvent are now emitted, so we don't need a toast here.
-      }
     }
     setIsConflictDialogOpen(false);
     setPendingEvent(null);
@@ -411,17 +234,14 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
   };
 
   const handleConfirmReallocation = async (suggestions: ReschedulingSuggestion[]) => {
-      if (!user?.email || !db) {
+      if (!user?.email) {
           toast({ title: "Erro de Autenticação", description: "Usuário não logado.", variant: "destructive" });
           return;
       }
       try {
-          const result = await reallocateConflictingEvents(db, suggestions, user.email);
+          const result = await reallocateConflictingEventsAction(suggestions, user.email);
           if (result.success) {
-              toast({
-                  title: "Sucesso!",
-                  description: result.message,
-              });
+              toast({ title: "Sucesso!", description: result.message });
           } else {
               throw new Error(result.message);
           }
@@ -567,3 +387,5 @@ const handleDeleteEvent = useCallback(async (eventId: string) => {
     </div>
   );
 }
+
+    
