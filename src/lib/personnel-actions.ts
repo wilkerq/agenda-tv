@@ -1,7 +1,7 @@
 
 'use server';
 
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, Firestore } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, Firestore, Timestamp } from "firebase/firestore";
 import { logAction } from "./audit-log";
 import { revalidatePath } from "next/cache";
 
@@ -10,11 +10,17 @@ const serializePersonnelData = (data: any) => {
   for (const key in data) {
     const value = data[key];
     if (value !== null && value !== undefined) {
-      serialized[key] = value;
+      // Convert Timestamps to ISO strings for logging consistency
+      if (value instanceof Timestamp) {
+        serialized[key] = value.toDate().toISOString();
+      } else {
+        serialized[key] = value;
+      }
     }
   }
   return serialized;
 };
+
 
 export async function addPersonnelAction(db: Firestore, collectionName: string, data: any, userEmail: string) {
     const collectionRef = collection(db, collectionName);

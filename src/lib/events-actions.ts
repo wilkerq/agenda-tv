@@ -6,6 +6,7 @@ import { logAction } from './audit-log';
 import type { EventFormData, RepeatSettings, ReschedulingSuggestion } from './types';
 import { add } from 'date-fns';
 import { revalidatePath } from 'next/cache';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const serializeEventData = (data: EventFormData) => {
   const serialized: any = {};
@@ -15,12 +16,30 @@ const serializeEventData = (data: EventFormData) => {
       serialized[key] = value;
     }
   }
-  // Firestore lida bem com datas, mas para auditoria, é bom ter um formato consistente
-  if (serialized.date) serialized.date = serialized.date.toISOString();
-  if (serialized.departure) serialized.departure = serialized.departure.toISOString();
-  if (serialized.arrival) serialized.arrival = serialized.arrival.toISOString();
+
+  // Convert Firestore Timestamps to JS Dates before calling toISOString
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Timestamp) return value.toDate();
+    if (value instanceof Date) return value;
+    try {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) return parsed;
+    } catch {}
+    return null;
+  };
+
+  const date = toDate(serialized.date);
+  const departure = toDate(serialized.departure);
+  const arrival = toDate(serialized.arrival);
+
+  if (date) serialized.date = date.toISOString();
+  if (departure) serialized.departure = departure.toISOString();
+  if (arrival) serialized.arrival = arrival.toISOString();
+  
   return serialized;
 };
+
 
 export async function addEventAction(eventData: EventFormData, userEmail: string, repeatSettings?: RepeatSettings) {
   const db = getAdminDb();
