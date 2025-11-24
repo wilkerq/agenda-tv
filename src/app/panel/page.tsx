@@ -78,7 +78,6 @@ export default function PanelPage() {
             <main className="flex-1 space-y-8">
                 <div className="text-center py-2">
                     <h1 className="text-3xl font-bold">Painel de Eventos - TV Alego</h1>
-                    <p className="text-base text-slate-400">Agenda da semana</p>
                 </div>
                 <PanelCalendar events={events} />
             </main>
