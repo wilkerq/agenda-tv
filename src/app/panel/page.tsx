@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { collection, onSnapshot, Timestamp, orderBy, query } from "firebase/firestore";
 import { Event, EventStatus, EventTurn, SecurityRuleContext } from "@/lib/types";
-import { getHours } from "date-fns";
+import { getHours, addHours } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { PanelCalendar } from "@/components/panel-calendar";
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
@@ -20,12 +20,24 @@ const getEventStatus = (date: Date): EventStatus => {
 };
 
 export default function PanelPage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const db = useFirestore();
+
+  // Atualiza a hora atual a cada minuto para re-renderizar e filtrar
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 1 minuto
+    return () => clearInterval(timer);
+  }, []);
+
 
   useEffect(() => {
     if (!db) return;
+    setLoading(true);
     const eventsCollectionRef = collection(db, "events");
     const q = query(eventsCollectionRef, orderBy("date", "asc"));
     
@@ -49,7 +61,7 @@ export default function PanelPage() {
           turn: getEventTurn(eventDate),
         };
       });
-      setEvents(eventsData);
+      setAllEvents(eventsData);
       setLoading(false);
     }, (serverError) => {
        const permissionError = new FirestorePermissionError({
@@ -62,6 +74,14 @@ export default function PanelPage() {
 
     return () => unsubscribeSnapshot();
   }, [db]);
+
+  // Filtra os eventos com base na hora atual
+  useEffect(() => {
+    const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+    const visibleEvents = allEvents.filter(event => event.date >= oneHourAgo);
+    setFilteredEvents(visibleEvents);
+  }, [allEvents, currentTime]);
+
 
   if (loading) {
     return (
@@ -79,7 +99,7 @@ export default function PanelPage() {
                 <div className="text-center py-2">
                     <h1 className="text-3xl font-bold">Painel de Eventos - TV Alego</h1>
                 </div>
-                <PanelCalendar events={events} />
+                <PanelCalendar events={filteredEvents} />
             </main>
         </div>
     </div>
