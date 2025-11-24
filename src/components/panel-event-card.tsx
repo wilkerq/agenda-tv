@@ -40,13 +40,31 @@ export function PanelEventCard({ event }: PanelEventCardProps) {
             <MapPin className="h-3 w-3 flex-shrink-0" />
             <span className="truncate text-xs">{event.location}</span>
         </div>
-        <div className="flex items-center gap-2 pt-1">
-            <User className="h-3 w-3 flex-shrink-0 text-cyan-400" />
-            <span className="truncate text-xs">{event.transmissionOperator || 'N/A'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-            <Video className="h-3 w-3 flex-shrink-0 text-amber-400" />
-            <span className="truncate text-xs">{event.cinematographicReporter || 'N/A'}</span>
+        <div className="space-y-1 pt-1 mt-1 border-t border-slate-700/50">
+            {event.transmissionOperator && (
+                <div className="flex items-center gap-2">
+                    <User className="h-3 w-3 flex-shrink-0 text-cyan-400" />
+                    <span className="truncate text-xs">{event.transmissionOperator}</span>
+                </div>
+            )}
+            {event.cinematographicReporter && (
+                <div className="flex items-center gap-2">
+                    <Video className="h-3 w-3 flex-shrink-0 text-amber-400" />
+                    <span className="truncate text-xs">{event.cinematographicReporter}</span>
+                </div>
+            )}
+            {event.reporter && (
+                <div className="flex items-center gap-2">
+                    <Mic className="h-3 w-3 flex-shrink-0 text-rose-400" />
+                    <span className="truncate text-xs">{event.reporter}</span>
+                </div>
+            )}
+            {event.producer && (
+                <div className="flex items-center gap-2">
+                    <Clipboard className="h-3 w-3 flex-shrink-0 text-lime-400" />
+                    <span className="truncate text-xs">{event.producer}</span>
+                </div>
+            )}
         </div>
       </div>
     </div>
