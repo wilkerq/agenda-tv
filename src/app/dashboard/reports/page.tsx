@@ -7,22 +7,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Activity, Bot, Loader2, Moon, Tv, Users, Youtube, FileDown } from "lucide-react";
+import { Activity, Bot, Loader2, Moon, Tv, Users, Youtube, FileDown, Plane, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import 'jspdf-autotable';
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 
-type OperatorReport = {
-  count: number;
-  nightCount: number;
-  events: Event[];
+type PersonnelReport = {
+    [name: string]: { count: number; events: Event[] };
 };
 
 type ReportData = {
-  [operator: string]: OperatorReport;
+    transmissionOperator: PersonnelReport;
+    cinematographicReporter: PersonnelReport;
+    reporter: PersonnelReport;
+    producer: PersonnelReport;
 };
 
 type LocationReport = {
@@ -43,11 +45,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 
 export default function ReportsPage() {
-  const [reportData, setReportData] = useState<ReportData>({});
-  const [totalEvents, setTotalEvents] = useState(0);
-  const [totalNightEvents, setTotalNightEvents] = useState(0);
-  const [locationReport, setLocationReport] = useState<LocationReport>({});
-  const [transmissionReport, setTransmissionReport] = useState<TransmissionReport>({ youtube: 0, tv: 0 });
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summary, setSummary] = useState<ReportSummaryOutput | null>(null);
@@ -85,49 +83,15 @@ export default function ReportsPage() {
           date: (data.date as Timestamp).toDate(),
           color: data.color,
           transmissionOperator: data.transmissionOperator,
+          cinematographicReporter: data.cinematographicReporter,
+          reporter: data.reporter,
+          producer: data.producer,
+          departure: data.departure ? (data.departure as Timestamp).toDate() : undefined,
+          arrival: data.arrival ? (data.arrival as Timestamp).toDate() : undefined,
         } as Event;
       });
-
-      const newReportData: ReportData = {};
-      const newLocationReport: LocationReport = {};
-      const newTransmissionReport: TransmissionReport = { youtube: 0, tv: 0 };
-      let nightEventsCount = 0;
-
-      eventsData.forEach(event => {
-        const operator = event.transmissionOperator;
-        if (operator) {
-          if (!newReportData[operator]) {
-            newReportData[operator] = { count: 0, nightCount: 0, events: [] };
-          }
-          newReportData[operator].count++;
-          newReportData[operator].events.push(event);
-          
-          if (event.date.getHours() >= 18) {
-            newReportData[operator].nightCount++;
-          }
-        }
-        
-        if (event.date.getHours() >= 18) {
-            nightEventsCount++;
-        }
-
-        if (event.location) {
-            newLocationReport[event.location] = (newLocationReport[event.location] || 0) + 1;
-        }
-
-        if (event.transmission.includes('youtube')) {
-            newTransmissionReport.youtube++;
-        } 
-        if (event.transmission.includes('tv')) {
-            newTransmissionReport.tv++;
-        }
-      });
       
-      setReportData(newReportData);
-      setTotalEvents(eventsData.length);
-      setTotalNightEvents(nightEventsCount);
-      setLocationReport(newLocationReport);
-      setTransmissionReport(newTransmissionReport);
+      setAllEvents(eventsData);
       setLoading(false);
       setSummary(null); // Reset summary when filters change
     }, (serverError) => {
@@ -142,19 +106,63 @@ export default function ReportsPage() {
     return () => unsubscribe();
   }, [selectedYear, selectedMonth, db]);
   
-  const sortedOperators = useMemo(() => Object.keys(reportData).sort((a, b) => reportData[b].count - reportData[a].count), [reportData]);
-  const sortedLocations = useMemo(() => Object.keys(locationReport).sort((a, b) => locationReport[b] - locationReport[a]), [locationReport]);
+  const reportData = useMemo(() => {
+    const data: ReportData = {
+        transmissionOperator: {},
+        cinematographicReporter: {},
+        reporter: {},
+        producer: {}
+    };
 
+    allEvents.forEach(event => {
+        const roles: (keyof ReportData)[] = ['transmissionOperator', 'cinematographicReporter', 'reporter', 'producer'];
+        roles.forEach(role => {
+            const personName = event[role];
+            if (personName) {
+                if (!data[role][personName]) {
+                    data[role][personName] = { count: 0, events: [] };
+                }
+                data[role][personName].count++;
+                data[role][personName].events.push(event);
+            }
+        });
+    });
+
+    return data;
+  }, [allEvents]);
+
+  const travelEvents = useMemo(() => allEvents.filter(e => e.transmission.includes('viagem')), [allEvents]);
+  
+  const totalNightEvents = useMemo(() => allEvents.filter(e => e.date.getHours() >= 18).length, [allEvents]);
+  
+  const totalPersonnel = useMemo(() => {
+    const personnel = new Set<string>();
+    Object.values(reportData).forEach(roleReport => {
+      Object.keys(roleReport).forEach(name => personnel.add(name));
+    });
+    return personnel.size;
+  }, [reportData]);
 
   const handleGenerateSummary = async () => {
     setIsSummaryLoading(true);
     setSummary(null);
+    
+    const locationReport = allEvents.reduce((acc, event) => {
+        if(event.location) acc[event.location] = (acc[event.location] || 0) + 1;
+        return acc;
+    }, {} as LocationReport);
+
+    const transmissionReport = allEvents.reduce((acc, event) => {
+        if(event.transmission.includes('youtube')) acc.youtube++;
+        if(event.transmission.includes('tv')) acc.tv++;
+        return acc;
+    }, { youtube: 0, tv: 0 } as TransmissionReport);
 
     const reportToSummarize: ReportDataInput = {
-        totalEvents,
+        totalEvents: allEvents.length,
         totalNightEvents,
-        reportData: sortedOperators.map(op => ({ nome: op, eventos: reportData[op].count })),
-        locationReport: sortedLocations.map(loc => ({ nome: loc, eventos: locationReport[loc] })),
+        reportData: Object.keys(reportData.transmissionOperator).map(op => ({ nome: op, eventos: reportData.transmissionOperator[op].count })),
+        locationReport: Object.entries(locationReport).map(([loc, count]) => ({ nome: loc, eventos: count })),
         transmissionReport: [
             { nome: 'YouTube', eventos: transmissionReport.youtube },
             { nome: 'TV Aberta', eventos: transmissionReport.tv },
@@ -191,44 +199,32 @@ export default function ReportsPage() {
     y += 10;
 
     doc.setFontSize(12);
-    doc.text(`Total de Eventos: ${totalEvents}`, margin, y);
-    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin + 70, y);
+    doc.text(`Total de Eventos: ${allEvents.length}`, margin, y);
     y += 7;
-    doc.text(`Transmissões (YouTube): ${transmissionReport.youtube}`, margin, y);
-    doc.text(`Transmissões (TV Aberta): ${transmissionReport.tv}`, margin + 70, y);
+    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin, y);
+    y += 7;
+    doc.text(`Viagens: ${travelEvents.length}`, margin, y);
     y += 10;
-
-    if (summary?.resumoNarrativo) {
-        doc.setFontSize(14);
-        doc.text("Resumo Analítico:", margin, y);
-        y += 7;
-        doc.setFontSize(10);
-        const splitSummary = doc.splitTextToSize(summary.resumoNarrativo.replace(/📊|🌙|🏆|📍|📡/g, ''), 180);
-        doc.text(splitSummary, margin, y);
-        y += (splitSummary.length * 5) + 10;
-    }
     
-    if (sortedOperators.length > 0) {
-      autoTable(doc, {
-          startY: y,
-          head: [['Op. de Transmissão', 'Eventos Totais', 'Eventos Noturnos']],
-          body: sortedOperators.map(op => [op, reportData[op].count, reportData[op].nightCount]),
-          theme: 'striped',
-      });
-      y = (doc as any).lastAutoTable.finalY + 10;
-    }
+    const addPersonnelTable = (title: string, data: PersonnelReport) => {
+      const sorted = Object.entries(data).sort(([, a], [, b]) => b.count - a.count);
+      if (sorted.length > 0) {
+        autoTable(doc, {
+            startY: y,
+            head: [[title, 'Eventos']],
+            body: sorted.map(([name, { count }]) => [name, count]),
+            theme: 'striped',
+        });
+        y = (doc as any).lastAutoTable.finalY + 10;
+      }
+    };
     
-    if (sortedLocations.length > 0) {
-      autoTable(doc, {
-          startY: y,
-          head: [['Local', 'Quantidade']],
-          body: sortedLocations.map(loc => [loc, locationReport[loc]]),
-          theme: 'striped',
-      });
-    }
+    addPersonnelTable("Produtividade: Op. de Transmissão", reportData.transmissionOperator);
+    addPersonnelTable("Produtividade: Rep. Cinematográficos", reportData.cinematographicReporter);
+    addPersonnelTable("Produtividade: Repórteres", reportData.reporter);
+    addPersonnelTable("Produtividade: Produtores", reportData.producer);
 
-
-    doc.save(`relatorio_eventos_${selectedMonth}_${selectedYear}.pdf`);
+    doc.save(`relatorio_${selectedMonth}_${selectedYear}.pdf`);
   };
   
   const reportTitle = useMemo(() => {
@@ -236,9 +232,40 @@ export default function ReportsPage() {
     return `${monthLabel} de ${selectedYear}`;
   }, [selectedMonth, selectedYear]);
 
+  const PersonnelReportTable = ({ data, title }: { data: PersonnelReport; title: string }) => {
+    const sortedData = useMemo(() => Object.entries(data).sort(([,a], [,b]) => b.count - a.count), [data]);
+    if (sortedData.length === 0) return <p className="text-muted-foreground text-sm">Nenhum dado para este período.</p>;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead className="text-center">Total de Eventos</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {sortedData.map(([name, { count }]) => (
+                            <TableRow key={name}>
+                                <TableCell className="font-medium">{name}</TableCell>
+                                <TableCell className="text-center">{count}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+  };
+
   return (
     <div id="report-content">
-      <div className="grid gap-6">
+      <div className="space-y-6">
         <Card>
             <CardHeader>
                 <CardTitle>Filtros do Relatório</CardTitle>
@@ -247,27 +274,23 @@ export default function ReportsPage() {
             <CardContent className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione o Mês" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger><SelectValue placeholder="Selecione o Mês" /></SelectTrigger>
+                        <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
                 <div className="flex-1">
                     <Select value={selectedYear} onValueChange={setSelectedYear}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione o Ano" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                        </SelectContent>
+                        <SelectTrigger><SelectValue placeholder="Selecione o Ano" /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                     </Select>
                 </div>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleExportPDF} disabled={loading || totalEvents === 0}>
+             <CardFooter className="gap-2">
+                <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || loading || allEvents.length === 0}>
+                    {isSummaryLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                    Gerar Resumo com IA
+                </Button>
+                <Button onClick={handleExportPDF} disabled={loading || allEvents.length === 0} variant="outline">
                     <FileDown className="mr-2 h-4 w-4" />
                     Salvar como PDF
                 </Button>
@@ -275,179 +298,71 @@ export default function ReportsPage() {
         </Card>
         
         {loading ? (
-          <div className="text-center p-8">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-              <p className="mt-4 text-muted-foreground">Carregando dados para {reportTitle}...</p>
-          </div>
+          <div className="text-center p-8"><Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" /><p className="mt-4 text-muted-foreground">Carregando dados...</p></div>
         ) : (
         <>
-        <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                Resumo Analítico
-              </CardTitle>
-              <CardDescription>Clique no botão para gerar uma análise dos dados do período selecionado.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isSummaryLoading && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span>Analisando dados e gerando insights...</span>
-                  </div>
-              )}
-              {summary?.resumoNarrativo && (
-                  <div className="prose prose-sm max-w-full text-foreground">
-                      <p>{summary.resumoNarrativo}</p>
-                  </div>
-              )}
-              {!isSummaryLoading && !summary && totalEvents === 0 && (
-                  <p className="text-muted-foreground">Nenhum dado para gerar resumo neste período.</p>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleGenerateSummary} disabled={isSummaryLoading || totalEvents === 0}>
-                {isSummaryLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Bot className="mr-2 h-4 w-4" />
-                )}
-                Gerar Resumo com IA
-              </Button>
-            </CardFooter>
-          </Card>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Eventos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalEvents}</div>
-              <p className="text-xs text-muted-foreground">Eventos em {reportTitle}.</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Eventos Noturnos</CardTitle>
-              <Moon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalNightEvents}</div>
-              <p className="text-xs text-muted-foreground">Eventos a partir das 18h.</p>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Transmissões (YouTube)</CardTitle>
-                  <Youtube className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{transmissionReport.youtube}</div>
-                  <p className="text-xs text-muted-foreground">Total de transmissões no YouTube.</p>
-              </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Transmissões (TV Aberta)</CardTitle>
-                  <Tv className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                  <div className="text-2xl font-bold">{transmissionReport.tv}</div>
-                  <p className="text-xs text-muted-foreground">Total de transmissões na TV Aberta.</p>
-              </CardContent>
-          </Card>
-        </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total de Eventos</CardTitle><Activity className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allEvents.length}</div><p className="text-xs text-muted-foreground">no período</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Eventos Noturnos</CardTitle><Moon className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalNightEvents}</div><p className="text-xs text-muted-foreground">a partir das 18h</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Viagens</CardTitle><Plane className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{travelEvents.length}</div><p className="text-xs text-muted-foreground">eventos marcados</p></CardContent></Card>
+                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Equipe Envolvida</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{totalPersonnel}</div><p className="text-xs text-muted-foreground">profissionais participaram</p></CardContent></Card>
+            </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Eventos por Op. de Transmissão</CardTitle>
-              <CardDescription>Eventos totais e noturnos por operador em {reportTitle}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Operador</TableHead>
-                    <TableHead className="text-center">Eventos Totais</TableHead>
-                    <TableHead className="text-center">Eventos Noturnos</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedOperators.length > 0 ? sortedOperators.map(operator => (
-                    <TableRow key={operator}>
-                      <TableCell className="font-medium">{operator}</TableCell>
-                      <TableCell className="text-center">{reportData[operator].count}</TableCell>
-                      <TableCell className="text-center">{reportData[operator].nightCount}</TableCell>
-                    </TableRow>
-                  )) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center text-muted-foreground">Nenhum evento encontrado.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Eventos por Local</CardTitle>
-              <CardDescription>Locais mais utilizados para eventos em {reportTitle}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                  <TableHeader>
-                      <TableRow>
-                          <TableHead>Local</TableHead>
-                          <TableHead className="text-center">Quantidade</TableHead>
-                      </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                      {sortedLocations.length > 0 ? sortedLocations.map(location => (
-                          <TableRow key={location}>
-                              <TableCell className="font-medium">{location}</TableCell>
-                              <TableCell className="text-center">{locationReport[location]}</TableCell>
-                          </TableRow>
-                      )) : (
-                        <TableRow>
-                              <TableCell colSpan={2} className="text-center text-muted-foreground">Nenhum evento encontrado.</TableCell>
-                          </TableRow>
-                      )}
-                  </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-
-        {sortedOperators.length > 0 && sortedOperators.map(operator => (
-          <Card key={operator}>
-            <CardHeader>
-              <CardTitle>Detalhes: {operator}</CardTitle>
-              <CardDescription>Lista de eventos de {operator} em {reportTitle}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Evento</TableHead>
-                    <TableHead>Local</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData[operator].events.map(event => (
-                    <TableRow key={event.id}>
-                      <TableCell>{event.name}</TableCell>
-                      <TableCell>{event.location}</TableCell>
-                      <TableCell>{format(event.date, "dd/MM/yyyy HH:mm", { locale: ptBR })}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ))}
+            {isSummaryLoading && (<div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /><span>Analisando dados...</span></div>)}
+            {summary?.resumoNarrativo && (<Card><CardHeader><CardTitle>Resumo Analítico</CardTitle></CardHeader><CardContent><p>{summary.resumoNarrativo}</p></CardContent></Card>)}
+            
+            <Tabs defaultValue="general">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="general">Geral</TabsTrigger>
+                    <TabsTrigger value="productivity">Produtividade</TabsTrigger>
+                    <TabsTrigger value="travels">Viagens</TabsTrigger>
+                </TabsList>
+                <TabsContent value="general" className="space-y-4">
+                    <Card>
+                        <CardHeader><CardTitle>Todos os Eventos ({allEvents.length})</CardTitle><CardDescription>Lista de todos os eventos registrados para {reportTitle}.</CardDescription></CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Evento</TableHead><TableHead>Local</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {allEvents.length > 0 ? allEvents.map(event => (
+                                        <TableRow key={event.id}><TableCell>{format(event.date, "dd/MM/yy HH:mm")}</TableCell><TableCell>{event.name}</TableCell><TableCell>{event.location}</TableCell></TableRow>
+                                    )) : <TableRow><TableCell colSpan={3} className="text-center h-24">Nenhum evento encontrado.</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="productivity" className="space-y-4">
+                     <div className="grid gap-6 md:grid-cols-2">
+                        <PersonnelReportTable data={reportData.transmissionOperator} title="Op. de Transmissão" />
+                        <PersonnelReportTable data={reportData.cinematographicReporter} title="Rep. Cinematográficos" />
+                        <PersonnelReportTable data={reportData.reporter} title="Repórteres" />
+                        <PersonnelReportTable data={reportData.producer} title="Produtores" />
+                    </div>
+                </TabsContent>
+                <TabsContent value="travels">
+                    <Card>
+                        <CardHeader><CardTitle>Eventos de Viagem ({travelEvents.length})</CardTitle><CardDescription>Lista de todos as viagens registradas para {reportTitle}.</CardDescription></CardHeader>
+                        <CardContent>
+                             <Table>
+                                <TableHeader><TableRow><TableHead>Evento</TableHead><TableHead>Saída</TableHead><TableHead>Chegada</TableHead><TableHead>Equipe</TableHead></TableRow></TableHeader>
+                                <TableBody>
+                                    {travelEvents.length > 0 ? travelEvents.map(event => (
+                                        <TableRow key={event.id}>
+                                            <TableCell>{event.name} ({event.location})</TableCell>
+                                            <TableCell>{event.departure ? format(event.departure, "dd/MM HH:mm") : 'N/A'}</TableCell>
+                                            <TableCell>{event.arrival ? format(event.arrival, "dd/MM HH:mm") : 'N/A'}</TableCell>
+                                            <TableCell className="text-xs">
+                                                {[event.transmissionOperator, event.cinematographicReporter, event.reporter, event.producer].filter(Boolean).join(', ')}
+                                            </TableCell>
+                                        </TableRow>
+                                    )) : <TableRow><TableCell colSpan={4} className="text-center h-24">Nenhuma viagem encontrada.</TableCell></TableRow>}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </>
         )}
       </div>
