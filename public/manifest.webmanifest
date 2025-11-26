@@ -2,10 +2,6 @@
   "name": "Agenda Alego",
   "short_name": "Agenda Alego",
   "description": "Sistema de gerenciamento de eventos da TV Assembleia Legislativa do Estado de Goiás.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#1e293b",
-  "theme_color": "#0f172a",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -17,5 +13,10 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#22c55e",
+  "background_color": "#1e293b",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait"
 }
