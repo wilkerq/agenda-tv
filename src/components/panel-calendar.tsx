@@ -3,12 +3,10 @@
 import { useState, useMemo } from 'react';
 import {
   format,
-  startOfWeek,
-  endOfWeek,
   eachDayOfInterval,
   isToday,
-  addWeeks,
-  subWeeks,
+  addDays,
+  subDays,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
@@ -25,12 +23,12 @@ type PanelCalendarProps = {
 export function PanelCalendar({ events, currentTime }: PanelCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
-  const end = endOfWeek(currentDate, { weekStartsOn: 1 }); // Sunday
+  const start = currentDate;
+  const end = addDays(currentDate, 6); // 7 dias no total
   const days = eachDayOfInterval({ start, end });
 
-  const prevWeek = () => setCurrentDate(subWeeks(currentDate, 1));
-  const nextWeek = () => setCurrentDate(addWeeks(currentDate, 1));
+  const prevWeek = () => setCurrentDate(subDays(currentDate, 7));
+  const nextWeek = () => setCurrentDate(addDays(currentDate, 7));
   const goToToday = () => setCurrentDate(new Date());
 
   const eventsByDate = useMemo(() => {
