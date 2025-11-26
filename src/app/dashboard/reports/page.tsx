@@ -48,7 +48,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 interface TvConfig {
     name: string;
     address: string;
-    logoUrl: string;
+    logoUrl: string; // Can be a Data URI
 }
 
 
@@ -221,41 +221,13 @@ const handleExportPDF = async () => {
          toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da TV para o PDF.", variant: "destructive"});
     }
 
-    // Função para carregar a imagem como base64
-    const getImageAsBase64 = (url: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.crossOrigin = "Anonymous"; // Essencial para carregar imagens de outro domínio
-            img.onload = () => {
-                const canvas = document.createElement("canvas");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext("2d");
-                if (ctx) {
-                    ctx.drawImage(img, 0, 0);
-                    const dataURL = canvas.toDataURL("image/png");
-                    resolve(dataURL);
-                } else {
-                    reject(new Error("Não foi possível obter o contexto do canvas."));
-                }
-            };
-            img.onerror = () => reject(new Error("Não foi possível carregar a imagem do logo."));
-            img.src = url;
-        });
-    };
-
-    let logoBase64: string | null = null;
-    if (tvConfig?.logoUrl) {
-        try {
-            logoBase64 = await getImageAsBase64(tvConfig.logoUrl);
-        } catch (e) {
-            console.error("Não foi possível carregar a imagem do logo para o PDF:", e);
-        }
-    }
-
     const addHeader = (data: any) => {
-        if (logoBase64 && tvConfig) {
-             doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20);
+        if (tvConfig?.logoUrl && tvConfig.logoUrl.startsWith("data:image")) {
+             try {
+                doc.addImage(tvConfig.logoUrl, 'PNG', margin, 5, 20, 20);
+             } catch(e) {
+                 console.error("Could not add logo to PDF:", e);
+             }
         }
         
         doc.setFontSize(14);
@@ -524,3 +496,5 @@ const handleExportPDF = async () => {
     </div>
   );
 }
+
+    
