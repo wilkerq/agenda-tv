@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit } from "lucide-react";
+import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit, Bug } from "lucide-react";
 import { useAtom } from "jotai";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +32,13 @@ const settingsLinks = [
     title: "Logs de Auditoria",
     description: "Visualize todas as ações realizadas no sistema.",
     icon: History,
+    isInternal: true,
+  },
+    {
+    href: "/dashboard/debug",
+    title: "Debug",
+    description: "Verifique variáveis de ambiente e o estado do servidor.",
+    icon: Bug,
     isInternal: true,
   },
   {
