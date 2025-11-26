@@ -26,43 +26,43 @@ export function PanelEventCard({ event }: PanelEventCardProps) {
       className="p-2 rounded-lg text-xs border-l-4 bg-slate-900/70"
       style={{ borderColor: event.color}}
     >
-      <div className="flex justify-between items-start mb-2">
-        <p className="font-bold text-sm text-white pr-2">{event.name}</p>
+      <div className="flex justify-between items-start mb-1">
+        <p className="font-bold text-xs text-white pr-2">{event.name}</p>
         {renderTransmissionIcon(event.transmission)}
       </div>
 
-      <div className="space-y-1 text-slate-300">
-        <div className="flex items-center gap-2">
+      <div className="space-y-1 text-slate-300 text-[11px]">
+        <div className="flex items-center gap-1.5">
             <Clock className="h-3 w-3 flex-shrink-0" />
             <span className="font-semibold">{format(event.date, 'HH:mm')}h</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
             <MapPin className="h-3 w-3 flex-shrink-0" />
-            <span className="truncate text-xs">{event.location}</span>
+            <span className="truncate">{event.location}</span>
         </div>
         <div className="space-y-1 pt-1 mt-1 border-t border-slate-700/50">
             {event.transmissionOperator && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <User className="h-3 w-3 flex-shrink-0 text-cyan-400" />
-                    <span className="truncate text-xs">{event.transmissionOperator}</span>
+                    <span className="truncate">{event.transmissionOperator}</span>
                 </div>
             )}
             {event.cinematographicReporter && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <Video className="h-3 w-3 flex-shrink-0 text-amber-400" />
-                    <span className="truncate text-xs">{event.cinematographicReporter}</span>
+                    <span className="truncate">{event.cinematographicReporter}</span>
                 </div>
             )}
             {event.reporter && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <Mic className="h-3 w-3 flex-shrink-0 text-rose-400" />
-                    <span className="truncate text-xs">{event.reporter}</span>
+                    <span className="truncate">{event.reporter}</span>
                 </div>
             )}
             {event.producer && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     <Clipboard className="h-3 w-3 flex-shrink-0 text-lime-400" />
-                    <span className="truncate text-xs">{event.producer}</span>
+                    <span className="truncate">{event.producer}</span>
                 </div>
             )}
         </div>
