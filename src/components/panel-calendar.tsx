@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -20,9 +19,10 @@ import { cn } from '@/lib/utils';
 
 type PanelCalendarProps = {
   events: Event[];
+  currentTime: Date;
 };
 
-export function PanelCalendar({ events }: PanelCalendarProps) {
+export function PanelCalendar({ events, currentTime }: PanelCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
@@ -88,7 +88,7 @@ export function PanelCalendar({ events }: PanelCalendarProps) {
                 <div className="mt-2 space-y-2 overflow-y-auto flex-1">
                   {dayEvents.length > 0 ? (
                     dayEvents.map(event => (
-                      <PanelEventCard key={event.id} event={event} />
+                      <PanelEventCard key={event.id} event={event} currentTime={currentTime} />
                     ))
                   ) : (
                      <div className="flex items-center justify-center h-full">

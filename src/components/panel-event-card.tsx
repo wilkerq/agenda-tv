@@ -1,11 +1,11 @@
-
 import { Event } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, addHours } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { User, Tv, Youtube, Newspaper, Video, Mic, Clipboard, MapPin, Clock, Plane } from 'lucide-react';
 
 type PanelEventCardProps = {
   event: Event;
+  currentTime: Date;
 };
 
 const renderTransmissionIcon = (transmission: Event['transmission']) => {
@@ -19,12 +19,18 @@ const renderTransmissionIcon = (transmission: Event['transmission']) => {
   );
 };
 
+export function PanelEventCard({ event, currentTime }: PanelEventCardProps) {
+  // Assume a 1-hour duration if not specified
+  const eventEndTime = addHours(event.date, 1);
+  const isLive = currentTime >= event.date && currentTime <= eventEndTime;
 
-export function PanelEventCard({ event }: PanelEventCardProps) {
   return (
     <div
-      className="p-2 rounded-lg text-xs border-l-4 bg-slate-900/70"
-      style={{ borderColor: event.color}}
+      className={cn(
+        "p-2 rounded-lg text-xs border-l-4 bg-slate-900/70 transition-all duration-300",
+        isLive && "animate-pulse border-primary ring-2 ring-primary/50"
+      )}
+      style={{ borderColor: isLive ? 'hsl(var(--primary))' : event.color}}
     >
       <div className="flex justify-between items-start mb-1">
         <p className="font-bold text-xs text-white pr-2">{event.name}</p>
@@ -53,7 +59,7 @@ export function PanelEventCard({ event }: PanelEventCardProps) {
                     <span className="truncate">{event.cinematographicReporter}</span>
                 </div>
             )}
-            {event.reporter && (
+             {event.reporter && (
                 <div className="flex items-center gap-1.5">
                     <Mic className="h-3 w-3 flex-shrink-0 text-rose-400" />
                     <span className="truncate">{event.reporter}</span>

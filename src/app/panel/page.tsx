@@ -109,7 +109,7 @@ export default function PanelPage() {
                 <div className="text-center py-2">
                     <h1 className="text-3xl font-bold">Painel de Eventos - TV Alego</h1>
                 </div>
-                <PanelCalendar events={filteredEvents} />
+                <PanelCalendar events={filteredEvents} currentTime={currentTime} />
             </main>
         </div>
     </div>
