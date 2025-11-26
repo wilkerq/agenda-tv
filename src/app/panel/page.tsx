@@ -34,6 +34,16 @@ export default function PanelPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // Adiciona auto-refresh da página a cada 2 horas
+  useEffect(() => {
+    const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+    const refreshTimer = setInterval(() => {
+        window.location.reload();
+    }, TWO_HOURS_IN_MS);
+    
+    return () => clearInterval(refreshTimer);
+  }, []);
+
 
   useEffect(() => {
     if (!db) return;
