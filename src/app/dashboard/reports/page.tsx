@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 import { tvConfig } from "@/lib/tv-config";
 
@@ -188,57 +188,94 @@ export default function ReportsPage() {
   
 const handleExportPDF = async () => {
     const { default: jsPDF } = await import("jspdf");
-    const autoTable = (await import("jspdf-autotable")).default;
+    const { default: autoTable } = await import("jspdf-autotable");
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 10;
+    const margin = 15;
     const monthLabel = months.find(m => m.value === selectedMonth)?.label || "";
 
-    const addHeader = () => {
-      if (tvConfig.logoUrl) {
-          try {
-              // Note: This relies on the image being accessible via CORS.
-              // If it fails, the PDF will be generated without the logo.
-              const img = new Image();
-              img.crossOrigin = 'Anonymous';
-              img.src = tvConfig.logoUrl;
-              // You can't await the load here, so we add it directly.
-              // jsPDF handles image fetching.
-              doc.addImage(img, 'PNG', margin, 5, 20, 20);
-          } catch (e) {
-              console.error("Could not add logo to PDF:", e);
-          }
-      }
-      
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(tvConfig.name, margin + 25, 12);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(tvConfig.address, margin + 25, 18);
-      
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
+    const addHeader = (data: any) => {
+        if (tvConfig.logoUrl) {
+            try {
+                doc.addImage(tvConfig.logoUrl, 'PNG', margin, 5, 20, 20);
+            } catch (e) {
+                console.error("Could not add logo to PDF:", e);
+            }
+        }
+        
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(tvConfig.name, margin + 25, 12);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(tvConfig.address, margin + 25, 18);
+        
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
     };
 
-    const addFooter = () => {
-      const pageCount = (doc as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
+    const addFooter = (data: any) => {
+        const pageCount = doc.getNumberOfPages();
         doc.setFontSize(8);
         doc.text(
-          `Página ${i} de ${pageCount}`,
+          `Página ${data.pageNumber} de ${pageCount}`,
           pageWidth - margin,
-          doc.internal.pageSize.getHeight() - margin,
+          doc.internal.pageSize.getHeight() - 10,
           { align: 'right' }
         );
-      }
     };
+
+    const generateLogicalSummary = (): string => {
+        const totalEvents = allEvents.length;
+        if (totalEvents === 0) {
+            return "Nenhum evento registrado no período selecionado.";
+        }
+        const allPersonnelProductivity: { name: string, count: number }[] = [];
+        Object.values(reportData).forEach(roleReport => {
+            Object.entries(roleReport).forEach(([name, data]) => {
+                const existing = allPersonnelProductivity.find(p => p.name === name);
+                if (existing) {
+                    existing.count += data.count;
+                } else {
+                    allPersonnelProductivity.push({ name, count: data.count });
+                }
+            });
+        });
+
+        const topPerformer = allPersonnelProductivity.sort((a,b) => b.count - a.count)[0];
+        
+        const locationReport = allEvents.reduce((acc, event) => {
+            if(event.location) acc[event.location] = (acc[event.location] || 0) + 1;
+            return acc;
+        }, {} as LocationReport);
+
+        const topLocation = Object.entries(locationReport).sort(([,a], [,b]) => b - a)[0];
+        
+        const nightPercentage = ((totalNightEvents / totalEvents) * 100).toFixed(1);
+
+        const summaryParts = [
+            `No período de ${monthLabel}/${selectedYear}, foram realizados ${totalEvents} eventos.`,
+            `${totalNightEvents} (${nightPercentage}%) ocorreram no período noturno.`,
+        ];
+
+        if (topPerformer) {
+            summaryParts.push(`O profissional mais produtivo foi ${topPerformer.name} com ${topPerformer.count} participações.`);
+        }
+        if (topLocation) {
+            summaryParts.push(`O local mais utilizado foi ${topLocation[0]} com ${topLocation[1]} eventos.`);
+        }
+        return summaryParts.join(' ');
+    };
+
+    autoTable(doc, {
+        didDrawPage: addHeader,
+        margin: { top: 40 },
+    });
     
-    let finalY = 40;
+    let finalY = (doc as any).lastAutoTable.finalY || 40;
 
     doc.setFontSize(12);
     doc.text(`Total de Eventos: ${allEvents.length}`, margin, finalY);
@@ -257,21 +294,36 @@ const handleExportPDF = async () => {
                 body: sorted.map(([name, { count }]) => [name, count]),
                 theme: 'striped',
                 headStyles: { fillColor: [41, 128, 185] },
-                didDrawPage: (data) => {
-                    addHeader();
-                }
+                didDrawPage: addHeader,
             });
             finalY = (doc as any).lastAutoTable.finalY + 10;
         }
     };
-
-    // First table call needs to set the startY
+    
     addPersonnelTable("Produtividade: Op. de Transmissão", reportData.transmissionOperator);
     addPersonnelTable("Produtividade: Rep. Cinematográficos", reportData.cinematographicReporter);
     addPersonnelTable("Produtividade: Repórteres", reportData.reporter);
     addPersonnelTable("Produtividade: Produtores", reportData.producer);
 
-    addFooter();
+    // Adicionar Resumo Lógico ao final
+    const logicalSummary = generateLogicalSummary();
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Analítico', margin, finalY);
+    finalY += 7;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const splitSummary = doc.splitTextToSize(logicalSummary, pageWidth - margin * 2);
+    doc.text(splitSummary, margin, finalY);
+    finalY += (splitSummary.length * 5) + 10;
+
+    // Adicionar rodapé em todas as páginas
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        addFooter({ pageNumber: i, pageCount });
+    }
+
     doc.save(`relatorio_${selectedMonth}_${selectedYear}.pdf`);
 };
 
@@ -418,5 +470,3 @@ const handleExportPDF = async () => {
     </div>
   );
 }
-
-    
