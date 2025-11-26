@@ -13,8 +13,10 @@ import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
+import { tvConfig } from "@/lib/tv-config";
 
 type PersonnelReport = {
     [name: string]: { count: number; events: Event[] };
@@ -184,48 +186,95 @@ export default function ReportsPage() {
     }
   };
   
-  const handleExportPDF = async () => {
+const handleExportPDF = async () => {
     const { default: jsPDF } = await import("jspdf");
     const autoTable = (await import("jspdf-autotable")).default;
 
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 10;
-    let y = margin;
-    
     const monthLabel = months.find(m => m.value === selectedMonth)?.label || "";
 
-    doc.setFontSize(18);
-    doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, margin, y);
-    y += 10;
+    const addHeader = () => {
+      if (tvConfig.logoUrl) {
+          try {
+              // Note: This relies on the image being accessible via CORS.
+              // If it fails, the PDF will be generated without the logo.
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              img.src = tvConfig.logoUrl;
+              // You can't await the load here, so we add it directly.
+              // jsPDF handles image fetching.
+              doc.addImage(img, 'PNG', margin, 5, 20, 20);
+          } catch (e) {
+              console.error("Could not add logo to PDF:", e);
+          }
+      }
+      
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(tvConfig.name, margin + 25, 12);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(tvConfig.address, margin + 25, 18);
+      
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
+    };
 
-    doc.setFontSize(12);
-    doc.text(`Total de Eventos: ${allEvents.length}`, margin, y);
-    y += 7;
-    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin, y);
-    y += 7;
-    doc.text(`Viagens: ${travelEvents.length}`, margin, y);
-    y += 10;
-    
-    const addPersonnelTable = (title: string, data: PersonnelReport) => {
-      const sorted = Object.entries(data).sort(([, a], [, b]) => b.count - a.count);
-      if (sorted.length > 0) {
-        autoTable(doc, {
-            startY: y,
-            head: [[title, 'Eventos']],
-            body: sorted.map(([name, { count }]) => [name, count]),
-            theme: 'striped',
-        });
-        y = (doc as any).lastAutoTable.finalY + 10;
+    const addFooter = () => {
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.text(
+          `Página ${i} de ${pageCount}`,
+          pageWidth - margin,
+          doc.internal.pageSize.getHeight() - margin,
+          { align: 'right' }
+        );
       }
     };
     
+    let finalY = 40;
+
+    doc.setFontSize(12);
+    doc.text(`Total de Eventos: ${allEvents.length}`, margin, finalY);
+    finalY += 7;
+    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin, finalY);
+    finalY += 7;
+    doc.text(`Viagens: ${travelEvents.length}`, margin, finalY);
+    finalY += 10;
+
+    const addPersonnelTable = (title: string, data: PersonnelReport) => {
+        const sorted = Object.entries(data).sort(([, a], [, b]) => b.count - a.count);
+        if (sorted.length > 0) {
+            autoTable(doc, {
+                startY: finalY,
+                head: [[title, 'Eventos']],
+                body: sorted.map(([name, { count }]) => [name, count]),
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] },
+                didDrawPage: (data) => {
+                    addHeader();
+                }
+            });
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        }
+    };
+
+    // First table call needs to set the startY
     addPersonnelTable("Produtividade: Op. de Transmissão", reportData.transmissionOperator);
     addPersonnelTable("Produtividade: Rep. Cinematográficos", reportData.cinematographicReporter);
     addPersonnelTable("Produtividade: Repórteres", reportData.reporter);
     addPersonnelTable("Produtividade: Produtores", reportData.producer);
 
+    addFooter();
     doc.save(`relatorio_${selectedMonth}_${selectedYear}.pdf`);
-  };
+};
+
   
   const reportTitle = useMemo(() => {
     const monthLabel = months.find(m => m.value === selectedMonth)?.label;
@@ -369,3 +418,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
