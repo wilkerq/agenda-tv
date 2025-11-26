@@ -1,6 +1,4 @@
 
-"use client";
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -8,45 +6,24 @@ import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Provider } from 'jotai';
-import { useEffect } from 'react';
 
-// A metadata estática pode ser movida para um objeto exportado,
-// mas para manter a compatibilidade com o hook useEffect, a manteremos aqui
-// com a observação de que o ideal é usar a API de metadados do Next.js.
-/*
 export const metadata: Metadata = {
   title: 'Agenda Alego',
   description: 'Sistema de gerenciamento de eventos da TV Assembleia Legislativa do Estado de Goiás.',
   manifest: '/manifest.webmanifest',
 };
-*/
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then(registration => console.log('Service Worker registrado com sucesso:', registration))
-        .catch(error => console.log('Falha ao registrar Service Worker:', error));
-    }
-  }, []);
-
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <title>Agenda Alego</title>
-        <meta name="description" content="Sistema de gerenciamento de eventos da TV Assembleia Legislativa do Estado de Goiás." />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        
-        {/* PWA Tags */}
-        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="application-name" content="Agenda Alego" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -54,7 +31,9 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#0f172a" />
+
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+
       </head>
       <body
         className={cn(
