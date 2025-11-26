@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -13,8 +14,6 @@ import { summarizeReports } from "@/ai/flows/summarize-reports-flow";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
 
 type PersonnelReport = {
@@ -200,8 +199,8 @@ const handleExportPDF = async () => {
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
 
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+    const docPDF = new jsPDF();
+    const pageWidth = docPDF.internal.pageSize.getWidth();
     const margin = 15;
     const monthLabel = months.find(m => m.value === selectedMonth)?.label || "";
 
@@ -223,32 +222,32 @@ const handleExportPDF = async () => {
     const addHeader = (data: any) => {
         if (tvConfig?.logoUrl && tvConfig.logoUrl.startsWith("data:image")) {
              try {
-                doc.addImage(tvConfig.logoUrl, 'PNG', margin, 5, 20, 20);
+                docPDF.addImage(tvConfig.logoUrl, 'PNG', margin, 5, 20, 20);
              } catch(e) {
                  console.error("Could not add logo to PDF:", e);
              }
         }
         
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(tvConfig?.name || "Relatório de Eventos", margin + 25, 12);
+        docPDF.setFontSize(14);
+        docPDF.setFont('helvetica', 'bold');
+        docPDF.text(tvConfig?.name || "Relatório de Eventos", margin + 25, 12);
         
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(tvConfig?.address || "", margin + 25, 18);
+        docPDF.setFontSize(10);
+        docPDF.setFont('helvetica', 'normal');
+        docPDF.text(tvConfig?.address || "", margin + 25, 18);
         
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
+        docPDF.setFontSize(18);
+        docPDF.setFont('helvetica', 'bold');
+        docPDF.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
     };
 
     const addFooter = (data: any) => {
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.text(
+        const pageCount = docPDF.getNumberOfPages();
+        docPDF.setFontSize(8);
+        docPDF.text(
           `Página ${data.pageNumber} de ${pageCount}`,
           pageWidth - margin,
-          doc.internal.pageSize.getHeight() - 10,
+          docPDF.internal.pageSize.getHeight() - 10,
           { align: 'right' }
         );
     };
@@ -295,25 +294,25 @@ const handleExportPDF = async () => {
         return summaryParts.join(' ');
     };
 
-    autoTable(doc, {
+    autoTable(docPDF, {
         didDrawPage: addHeader,
         margin: { top: 40 },
     });
     
-    let finalY = (doc as any).lastAutoTable.finalY || 40;
+    let finalY = (docPDF as any).lastAutoTable.finalY || 40;
 
-    doc.setFontSize(12);
-    doc.text(`Total de Eventos: ${allEvents.length}`, margin, finalY);
+    docPDF.setFontSize(12);
+    docPDF.text(`Total de Eventos: ${allEvents.length}`, margin, finalY);
     finalY += 7;
-    doc.text(`Eventos Noturnos: ${totalNightEvents}`, margin, finalY);
+    docPDF.text(`Eventos Noturnos: ${totalNightEvents}`, margin, finalY);
     finalY += 7;
-    doc.text(`Viagens: ${travelEvents.length}`, margin, finalY);
+    docPDF.text(`Viagens: ${travelEvents.length}`, margin, finalY);
     finalY += 10;
 
     const addPersonnelTable = (title: string, data: PersonnelReport) => {
         const sorted = Object.entries(data).sort(([, a], [, b]) => b.count - a.count);
         if (sorted.length > 0) {
-            autoTable(doc, {
+            autoTable(docPDF, {
                 startY: finalY,
                 head: [[title, 'Eventos']],
                 body: sorted.map(([name, { count }]) => [name, count]),
@@ -321,7 +320,7 @@ const handleExportPDF = async () => {
                 headStyles: { fillColor: [41, 128, 185] },
                 didDrawPage: addHeader,
             });
-            finalY = (doc as any).lastAutoTable.finalY + 10;
+            finalY = (docPDF as any).lastAutoTable.finalY + 10;
         }
     };
     
@@ -332,24 +331,24 @@ const handleExportPDF = async () => {
 
     // Adicionar Resumo Lógico ao final
     const logicalSummary = generateLogicalSummary();
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Resumo Analítico', margin, finalY);
+    docPDF.setFontSize(12);
+    docPDF.setFont('helvetica', 'bold');
+    docPDF.text('Resumo Analítico', margin, finalY);
     finalY += 7;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const splitSummary = doc.splitTextToSize(logicalSummary, pageWidth - margin * 2);
-    doc.text(splitSummary, margin, finalY);
+    docPDF.setFontSize(10);
+    docPDF.setFont('helvetica', 'normal');
+    const splitSummary = docPDF.splitTextToSize(logicalSummary, pageWidth - margin * 2);
+    docPDF.text(splitSummary, margin, finalY);
     finalY += (splitSummary.length * 5) + 10;
 
     // Adicionar rodapé em todas as páginas
-    const pageCount = doc.getNumberOfPages();
+    const pageCount = docPDF.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
+        docPDF.setPage(i);
         addFooter({ pageNumber: i, pageCount });
     }
 
-    doc.save(`relatorio_${selectedMonth}_${selectedYear}.pdf`);
+    docPDF.save(`relatorio_${selectedMonth}_${selectedYear}.pdf`);
 };
 
   
@@ -495,3 +494,4 @@ const handleExportPDF = async () => {
     </div>
   );
 }
+
