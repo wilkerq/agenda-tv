@@ -46,19 +46,7 @@ export function PanelCalendar({ events, currentTime }: PanelCalendarProps) {
   return (
     <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700">
       <div className="p-4 sm:p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className='flex items-center'>
-            <Button onClick={prevWeek} variant="ghost" size="icon">
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <Button onClick={nextWeek} variant="ghost" size="icon">
-              <ChevronRight className="h-6 w-6" />
-            </Button>
-          </div>
-          <Button onClick={goToToday} variant="outline">
-            <CalendarIcon className='mr-2 h-4 w-4' /> Hoje
-          </Button>
-        </div>
+        
 
         <div className="grid grid-cols-7 gap-2">
           {days.map(day => {
