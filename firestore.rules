@@ -47,6 +47,16 @@ service cloud.firestore {
         allow list: if isAdmin();
     }
 
+    // ======================================================
+    // 🔹 Coleção de Configurações (/config)
+    // ======================================================
+    match /config/tv {
+      // Leitura: Qualquer usuário autenticado pode ler as configs.
+      allow read: if isAuthenticated();
+      // Escrita: Apenas Admins e Editores podem alterar as configs.
+      allow write: if isEditor();
+    }
+
 
     // ======================================================
     // 🔹 Coleções públicas seguras
@@ -98,5 +108,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

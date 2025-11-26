@@ -28,6 +28,13 @@ const settingsLinks = [
     isInternal: true,
   },
   {
+    href: "/dashboard/tv-settings",
+    title: "Configurações da TV",
+    description: "Gerencie o nome, endereço e logo para os relatórios.",
+    icon: Wrench,
+    isInternal: true,
+  },
+  {
     href: "/dashboard/logs",
     title: "Logs de Auditoria",
     description: "Visualize todas as ações realizadas no sistema.",

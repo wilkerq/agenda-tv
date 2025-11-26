@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Event": {
@@ -40,6 +41,27 @@
         "location",
         "transmissionType"
       ]
+    },
+    "TvConfig": {
+      "title": "TV Configuration",
+      "type": "object",
+      "description": "Stores configuration data for the TV station, such as name, address, and logo URL.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the TV station."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the TV station."
+        },
+        "logoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The public URL for the TV station's logo."
+        }
+      },
+      "required": ["name", "address", "logoUrl"]
     }
   },
   "auth": {
@@ -66,8 +88,18 @@
             }
           ]
         }
+      },
+      {
+        "path": "/config/tv",
+        "definition": {
+          "entityName": "TvConfig",
+          "schema": {
+            "$ref": "#/backend/entities/TvConfig"
+          },
+          "description": "A single document that stores the global configuration for the TV station, such as its name, address, and logo URL for reports."
+        }
       }
     ],
-    "reasoning": "Given the application's core feature of displaying and managing events, with administrative capabilities to create events with details like name, date, location, and transmission type (YouTube or TV Aberta), the Firestore data structure should be optimized for efficient querying and administrative updates. Since there are no user-specific private events or collaborative features mentioned, a simple collection-based structure for storing events is appropriate. A single collection, `/events`, can hold all event documents. This design prioritizes simplicity and ease of querying for event display. There is no authorization implemented in this app, so we skip denormalization and membership maps. This structure supports required QAPs by storing all data in a single collection."
+    "reasoning": "Given the application's core feature of displaying and managing events, with administrative capabilities to create events with details like name, date, location, and transmission type (YouTube or TV Aberta), the Firestore data structure should be optimized for efficient querying and administrative updates. Since there are no user-specific private events or collaborative features mentioned, a simple collection-based structure for storing events is appropriate. A single collection, `/events`, can hold all event documents. A new singleton document at `/config/tv` is added to store global TV station settings, making them easily editable from a settings page. This design prioritizes simplicity and ease of querying for event display. There is no authorization implemented in this app, so we skip denormalization and membership maps. This structure supports required QAPs by storing all data in their respective collections."
   }
 }

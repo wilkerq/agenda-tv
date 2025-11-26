@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { collection, onSnapshot, orderBy, query, Timestamp, where } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query, Timestamp, where, doc, getDoc } from "firebase/firestore";
 import type { Event, ReportDataInput, ReportSummaryOutput, SecurityRuleContext } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
-import { tvConfig } from "@/lib/tv-config";
 
 type PersonnelReport = {
     [name: string]: { count: number; events: Event[] };
@@ -44,6 +44,12 @@ const months = Array.from({ length: 12 }, (_, i) => ({
   value: (i + 1).toString(),
   label: format(new Date(currentYear, i), "MMMM", { locale: ptBR }),
 }));
+
+interface TvConfig {
+    name: string;
+    address: string;
+    logoUrl: string;
+}
 
 
 export default function ReportsPage() {
@@ -187,6 +193,11 @@ export default function ReportsPage() {
   };
   
 const handleExportPDF = async () => {
+    if (!db) {
+        toast({ title: "Erro", description: "O serviço de banco de dados não está disponível.", variant: "destructive" });
+        return;
+    }
+
     const { default: jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
 
@@ -194,6 +205,21 @@ const handleExportPDF = async () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
     const monthLabel = months.find(m => m.value === selectedMonth)?.label || "";
+
+    // 1. Fetch TV Config from Firestore
+    let tvConfig: TvConfig | null = null;
+    try {
+        const configRef = doc(db, "config", "tv");
+        const configSnap = await getDoc(configRef);
+        if (configSnap.exists()) {
+            tvConfig = configSnap.data() as TvConfig;
+        } else {
+             toast({ title: "Aviso", description: "Configurações da TV não encontradas. O cabeçalho do PDF pode ficar incompleto."});
+        }
+    } catch (error) {
+         console.error("Erro ao buscar configurações da TV:", error);
+         toast({ title: "Erro de Configuração", description: "Não foi possível carregar as configurações da TV para o PDF.", variant: "destructive"});
+    }
 
     // Função para carregar a imagem como base64
     const getImageAsBase64 = (url: string): Promise<string> => {
@@ -219,7 +245,7 @@ const handleExportPDF = async () => {
     };
 
     let logoBase64: string | null = null;
-    if (tvConfig.logoUrl) {
+    if (tvConfig?.logoUrl) {
         try {
             logoBase64 = await getImageAsBase64(tvConfig.logoUrl);
         } catch (e) {
@@ -228,17 +254,17 @@ const handleExportPDF = async () => {
     }
 
     const addHeader = (data: any) => {
-        if (logoBase64) {
+        if (logoBase64 && tvConfig) {
              doc.addImage(logoBase64, 'PNG', margin, 5, 20, 20);
         }
         
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.text(tvConfig.name, margin + 25, 12);
+        doc.text(tvConfig?.name || "Relatório de Eventos", margin + 25, 12);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(tvConfig.address, margin + 25, 18);
+        doc.text(tvConfig?.address || "", margin + 25, 18);
         
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
