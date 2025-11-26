@@ -495,5 +495,3 @@ const handleExportPDF = async () => {
     </div>
   );
 }
-
-    
