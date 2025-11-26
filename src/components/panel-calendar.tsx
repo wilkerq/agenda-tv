@@ -51,9 +51,6 @@ export function PanelCalendar({ events, currentTime }: PanelCalendarProps) {
             <Button onClick={prevWeek} variant="ghost" size="icon">
               <ChevronLeft className="h-6 w-6" />
             </Button>
-            <h2 className="text-xl sm:text-2xl font-bold text-center w-64 capitalize">
-              {format(start, 'd MMM')} - {format(end, 'd MMM, yyyy', { locale: ptBR })}
-            </h2>
             <Button onClick={nextWeek} variant="ghost" size="icon">
               <ChevronRight className="h-6 w-6" />
             </Button>
