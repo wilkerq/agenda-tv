@@ -43,7 +43,7 @@ export default function TvSettingsPage() {
   });
 
   useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return; // Aguarda o usuário e o DB estarem disponíveis
     const fetchConfig = async () => {
       setIsLoading(true);
       const configRef = doc(db, "config", "tv");
@@ -64,7 +64,7 @@ export default function TvSettingsPage() {
       }
     };
     fetchConfig();
-  }, [db, form]);
+  }, [db, user, form]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,5 +237,3 @@ export default function TvSettingsPage() {
     </Card>
   );
 }
-
-    
