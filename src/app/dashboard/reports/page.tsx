@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -234,8 +233,13 @@ const handleExportPDF = async () => {
         
         docPDF.setFontSize(10);
         docPDF.setFont('helvetica', 'normal');
-        docPDF.text(tvConfig?.address || "", margin + 25, 18);
         
+        // CORREÇÃO: Usar splitTextToSize para quebrar a linha do endereço
+        if(tvConfig?.address) {
+            const addressLines = docPDF.splitTextToSize(tvConfig.address, pageWidth - (margin + 25) - margin);
+            docPDF.text(addressLines, margin + 25, 18);
+        }
+
         docPDF.setFontSize(18);
         docPDF.setFont('helvetica', 'bold');
         docPDF.text(`Relatório de Eventos - ${monthLabel}/${selectedYear}`, pageWidth / 2, 30, { align: 'center' });
@@ -494,4 +498,3 @@ const handleExportPDF = async () => {
     </div>
   );
 }
-
