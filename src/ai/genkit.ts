@@ -2,7 +2,6 @@
  * @fileOverview Initializes and configures the Genkit AI instance.
  * This file sets up the necessary plugins for the AI functionalities.
  */
-'use server';
 import { genkit } from 'genkit';
 import { ollama } from 'genkitx-ollama';
 
