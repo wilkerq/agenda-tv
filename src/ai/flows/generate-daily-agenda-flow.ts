@@ -23,7 +23,7 @@ export async function generateDailyAgenda(input: DailyAgendaInput): Promise<Dail
 
 const dailyAgendaPrompt = ai.definePrompt({
     name: 'generateDailyAgendaPrompt',
-    model: 'googleai/gemini-pro',
+    model: 'ollama/llama3',
     input: { schema: DailyAgendaInputSchema },
     output: { schema: DailyAgendaOutputSchema },
     prompt: `You are a helpful assistant for a TV station's production team. Your task is to generate a clear, organized, and friendly daily agenda message in Brazilian Portuguese.

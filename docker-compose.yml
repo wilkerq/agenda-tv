@@ -8,9 +8,27 @@ services:
       - "3050:3050"
     environment:
       - NODE_ENV=production
-    # Monta o volume para refletir as alterações de código em tempo real no modo de desenvolvimento, se necessário
-    # volumes:
-    #   - .:/app
-    #   - /app/node_modules
-    #   - /app/.next
+      - OLLAMA_HOST=http://ollama:11434
+    networks:
+      - agenda-alego-net
     command: npm run start
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: agenda-alego-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - agenda-alego-net
+
+volumes:
+  ollama-data: {}
+
+networks:
+  agenda-alego-net:
+    driver: bridge

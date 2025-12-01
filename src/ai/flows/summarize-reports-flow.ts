@@ -28,6 +28,7 @@ function encontrarDestaque(lista: ReportItem[]): ReportItem {
 // AI-powered summarization prompt
 const summarizePrompt = ai.definePrompt({
     name: 'summarizeReportsPrompt',
+    model: 'ollama/llama3',
     input: { schema: ReportDataInputSchema },
     output: { schema: ReportSummaryOutputSchema },
     prompt: `You are an expert data analyst for a TV station. Your task is to provide a concise, insightful, and narrative summary based on the provided event data. Your summary must be in Brazilian Portuguese.

@@ -19,7 +19,7 @@ import { z } from 'zod';
 
 const whatsAppPrompt = ai.definePrompt({
     name: 'whatsAppMessagePrompt',
-    model: 'googleai/gemini-pro',
+    model: 'ollama/llama3',
     input: { schema: WhatsAppMessageInputSchema },
     output: { schema: z.object({ message: z.string() }) }, // Output only the message
     prompt: `You are a helpful and friendly production assistant for a TV station. Your task is to generate a personalized WhatsApp message in Brazilian Portuguese to send to a team member with their schedule for the day.
