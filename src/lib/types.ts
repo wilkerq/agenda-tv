@@ -188,11 +188,24 @@ export type WhatsAppMessageOutput = z.infer<typeof WhatsAppMessageOutputSchema>;
 
 
 // AI-related Schemas for generate-daily-agenda flow
+export const EventForAgendaSchema = z.object({
+    time: z.string(),
+    name: z.string(),
+    location: z.string(),
+    operator: z.string().nullable(),
+    cineReporter: z.string().nullable(),
+    reporter: z.string().nullable(),
+    producer: z.string().nullable(),
+});
+
 export const DailyAgendaInputSchema = z.object({
   scheduleDate: z.string().describe("The date of the schedule (e.g., 'terça-feira, 13 de agosto de 2024')."),
-  events: z.array(z.string()).describe("A list of formatted event strings, each including time, name, and location."),
+  events: z.union([z.array(EventForAgendaSchema), z.array(z.string())]).describe("A list of event objects or pre-formatted strings."),
+  mode: z.enum(['ai', 'logic'])
 });
 export type DailyAgendaInput = z.infer<typeof DailyAgendaInputSchema>;
+export type OperationMode = DailyAgendaInput['mode'];
+
 
 export const DailyAgendaOutputSchema = z.object({
   message: z.string().describe("The full, friendly, and formatted WhatsApp message for the daily agenda."),

@@ -11,6 +11,7 @@ import {
     DailyAgendaOutput,
     DailyAgendaOutputSchema,
     OperationMode,
+    EventForAgendaSchema,
 } from '@/lib/types';
 import { ai } from '@/ai/genkit';
 import { format } from 'date-fns';
@@ -19,7 +20,9 @@ import { z } from 'zod';
 
 
 // Add the operation mode to the input schema
-const DailyAgendaFlowInputSchema = DailyAgendaInputSchema.extend({
+const DailyAgendaFlowInputSchema = z.object({
+    scheduleDate: z.string(),
+    events: z.union([z.array(EventForAgendaSchema), z.array(z.string())]),
     mode: z.enum(['ai', 'logic']),
 });
 type DailyAgendaFlowInput = z.infer<typeof DailyAgendaFlowInputSchema>;
@@ -33,23 +36,26 @@ export async function generateDailyAgenda(input: DailyAgendaFlowInput): Promise<
 const dailyAgendaPrompt = ai.definePrompt({
     name: 'generateDailyAgendaPrompt',
     model: 'ollama/llama3',
-    input: { schema: DailyAgendaInputSchema },
+    input: { schema: z.object({ scheduleDate: z.string(), events: z.array(EventForAgendaSchema) }) },
     output: { schema: DailyAgendaOutputSchema },
     prompt: `You are a helpful assistant for a TV station's production team. Your task is to generate a clear, organized, and friendly daily agenda message in Brazilian Portuguese.
 
-    The message should be formatted for easy readability on WhatsApp. Use bold for headers.
+    The message should be formatted for easy readability on WhatsApp. Use bold for headers and emojis to make it more engaging.
 
     - Start with the header "*PAUTA DO DIA* 🎬".
     - Add the full, formatted date provided in 'scheduleDate'.
-    - List all the events provided in the 'events' array. For each event, list the staff involved and event details.
+    - List all the events provided in the 'events' JSON array. For each event, list ALL staff involved (Op, Rep. Cine, Repórter, Prod) and the event details (name and location).
     
-    Example:
+    Example of a good output:
     *PAUTA DO DIA* 🎬
 
     *terça-feira, 13 de agosto de 2024*
 
-    • - Op: João da Silva / Rep. Cine: Maria Souza - Evento de Teste (Plenário Iris Rezende Machado)
-    • - Op: Carlos Pereira - Outro Evento (Auditório Francisco Gedda)
+    • *09:00h* - Evento de Teste (Plenário Iris Rezende Machado)
+      - Equipe: Op: João da Silva / Rep. Cine: Maria Souza
+    
+    • *14:00h* - Outro Evento (Auditório Francisco Gedda)
+      - Equipe: Op: Carlos Pereira
 
     ---
     Date for the agenda: {{{scheduleDate}}}
@@ -68,8 +74,8 @@ const generateDailyAgendaFlow = ai.defineFlow(
     
     if (input.mode === 'ai') {
         const { output } = await dailyAgendaPrompt({
-            ...input,
-            scheduleDate: formattedDate, // Pass the formatted date to the prompt
+            scheduleDate: formattedDate,
+            events: input.events as z.infer<typeof EventForAgendaSchema>[],
         });
         return output!;
 
