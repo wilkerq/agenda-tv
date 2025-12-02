@@ -1,31 +1,12 @@
-
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { Loader2, Server, CheckCircle, XCircle } from "lucide-react";
+import { checkOllamaStatus } from "@/lib/debug-actions";
 
 type AiStatus = 'checking' | 'online' | 'offline' | 'error';
-
-// This is a client-side component, but we can define a server action inside it.
-async function checkOllamaStatus(): Promise<{ status: AiStatus, url: string }> {
-    'use server';
-    // This URL must match the one in src/ai/genkit.ts
-    const OLLAMA_URL = 'http://170.254.10.34:11434'; 
-    try {
-        const response = await fetch(OLLAMA_URL, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
-        // Ollama usually responds with 200 OK on its base URL
-        if (response.ok) {
-            return { status: 'online', url: OLLAMA_URL };
-        }
-        return { status: 'offline', url: OLLAMA_URL };
-    } catch (error: any) {
-        console.error("[Debug Page] Error pinging Ollama:", error.message);
-        // Network errors (like ECONNREFUSED) mean the server is likely down or unreachable
-        return { status: 'error', url: OLLAMA_URL };
-    }
-}
 
 
 export default function DebugEnvPage() {

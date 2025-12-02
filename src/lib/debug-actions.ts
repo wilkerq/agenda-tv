@@ -1,0 +1,26 @@
+
+'use server';
+
+type AiStatus = 'checking' | 'online' | 'offline' | 'error';
+
+/**
+ * Checks the status of the Ollama server by sending a HEAD request.
+ * This is a Server Action and must be called from a Client Component.
+ */
+export async function checkOllamaStatus(): Promise<{ status: AiStatus, url: string }> {
+    // This URL must match the one in src/ai/genkit.ts
+    const OLLAMA_URL = 'http://170.254.10.34:11434'; 
+    try {
+        // Use fetch with a short timeout to avoid long waits
+        const response = await fetch(OLLAMA_URL, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+        // Ollama usually responds with 200 OK on its base URL
+        if (response.ok) {
+            return { status: 'online', url: OLLAMA_URL };
+        }
+        return { status: 'offline', url: OLLAMA_URL };
+    } catch (error: any) {
+        console.error("[Debug Action] Error pinging Ollama:", error.message);
+        // Network errors (like ECONNREFUSED) mean the server is likely down or unreachable
+        return { status: 'error', url: OLLAMA_URL };
+    }
+}
