@@ -38,15 +38,16 @@ const dailyAgendaPrompt = ai.definePrompt({
     model: 'ollama/llama3',
     input: { schema: z.object({ scheduleDate: z.string(), events: z.array(EventForAgendaSchema) }) },
     output: { schema: DailyAgendaOutputSchema },
-    prompt: `You are a helpful assistant for a TV station's production team. Your task is to generate a clear, organized, and friendly daily agenda message in Brazilian Portuguese.
+    prompt: `You are an expert production assistant for a TV station. Your task is to generate a clear, organized, and friendly daily agenda message in Brazilian Portuguese, formatted for WhatsApp.
 
-    The message should be formatted for easy readability on WhatsApp. Use bold for headers and emojis to make it more engaging.
+    - The header must be "*PAUTA DO DIA* 🎬".
+    - Include the full date provided in 'scheduleDate'.
+    - For each event in the 'events' JSON array, you must list:
+        - The event time.
+        - The event name and its location in parentheses.
+        - On a new line, indented, list ALL staff involved, using labels like "Op:", "Rep. Cine:", "Repórter:", and "Prod:". Group them under an "Equipe:" label.
 
-    - Start with the header "*PAUTA DO DIA* 🎬".
-    - Add the full, formatted date provided in 'scheduleDate'.
-    - List all the events provided in the 'events' JSON array. For each event, list ALL staff involved (Op, Rep. Cine, Repórter, Prod) and the event details (name and location).
-    
-    Example of a good output:
+    Here is a perfect example of the output format:
     *PAUTA DO DIA* 🎬
 
     *terça-feira, 13 de agosto de 2024*
@@ -55,11 +56,11 @@ const dailyAgendaPrompt = ai.definePrompt({
       - Equipe: Op: João da Silva / Rep. Cine: Maria Souza
     
     • *14:00h* - Outro Evento (Auditório Francisco Gedda)
-      - Equipe: Op: Carlos Pereira
+      - Equipe: Op: Carlos Pereira / Repórter: Ana Costa
 
     ---
-    Date for the agenda: {{{scheduleDate}}}
-    Events (in JSON format): {{json events}}
+    Agenda Date: {{{scheduleDate}}}
+    Events JSON: {{json events}}
     `
 });
 
