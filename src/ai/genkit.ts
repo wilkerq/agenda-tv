@@ -13,8 +13,8 @@ export const ai = genkit({
     ollama({
       // Define os modelos que o Genkit pode usar
       models: [
-        { name: 'llama3' }, 
-        { name: 'llava', type: 'generate' },
+        { name: 'ollama/llama3' }, 
+        { name: 'ollama/llava', type: 'generate' },
       ],
       
       // Usa a variável de ambiente definida no docker-compose ou fallback para localhost
