@@ -1,8 +1,8 @@
 services:
-  nodehtmlparser:
-    image: nodehtmlparser
+  genkitxollama:
+    image: genkitxollama
     build:
-      context: node_modules/node-html-parser
+      context: node_modules/genkitx-ollama
       dockerfile: ./Dockerfile
     environment:
       NODE_ENV: production
