@@ -38,13 +38,27 @@ export async function checkCredentialsStatus(): Promise<{
   clientEmail?: string;
   parseError?: string;
 }> {
-  const credentialsExist = !!process.env.FIREBASE_CREDENTIALS;
+  let credentialsStr = process.env.FIREBASE_CREDENTIALS;
+  const credentialsExist = !!credentialsStr;
+  
   if (!credentialsExist) {
     return { credentialsExist: false };
   }
 
   try {
-    const creds = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
+    // Check if it's a Base64 string
+    if (!credentialsStr.trim().startsWith('{')) {
+        try {
+            credentialsStr = Buffer.from(credentialsStr, 'base64').toString('utf-8');
+        } catch (e) {
+            return {
+                credentialsExist: true,
+                parseError: "A credencial parece estar codificada em Base64, mas falhou ao ser decodificada.",
+            };
+        }
+    }
+    
+    const creds = JSON.parse(credentialsStr);
     return {
       credentialsExist: true,
       projectId: creds.project_id,
@@ -53,7 +67,7 @@ export async function checkCredentialsStatus(): Promise<{
   } catch (e: any) {
     return {
       credentialsExist: true, // It exists but is malformed
-      parseError: `Erro ao processar FIREBASE_CREDENTIALS: ${e.message}. Verifique se é um JSON válido.`,
+      parseError: `Erro ao processar FIREBASE_CREDENTIALS: ${e.message}. Verifique se o conteúdo da variável (após decodificação, se aplicável) é um JSON válido.`,
     };
   }
 }
@@ -80,5 +94,3 @@ export async function checkFirestoreConnection(): Promise<{ status: Status }> {
     return { status: 'error' };
   }
 }
-
-    

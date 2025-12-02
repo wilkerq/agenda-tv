@@ -13,11 +13,22 @@ function initializeAdminSDK() {
     adminApp = getAdminAppInstance();
   } else {
     try {
-      const serviceAccountString = process.env.FIREBASE_CREDENTIALS;
+      let serviceAccountString = process.env.FIREBASE_CREDENTIALS;
       if (!serviceAccountString) {
         throw new Error("[Firebase Admin] Variável de ambiente FIREBASE_CREDENTIALS não está definida.");
       }
+
+      // Decodificar de Base64 se parecer ser uma string Base64
+      if (!serviceAccountString.trim().startsWith('{')) {
+          try {
+            serviceAccountString = Buffer.from(serviceAccountString, 'base64').toString('utf-8');
+          } catch (e) {
+            throw new Error("[Firebase Admin] Falha ao decodificar a credencial Base64.");
+          }
+      }
+      
       const serviceAccount: ServiceAccount = JSON.parse(serviceAccountString);
+
       adminApp = initializeApp({
         credential: cert(serviceAccount),
       });
