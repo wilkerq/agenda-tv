@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { Loader2, Server, CheckCircle, XCircle } from "lucide-react";
-import { checkOllamaStatus, checkCredentialsStatus } from "@/lib/debug-actions";
+import { checkOllamaStatus, checkCredentialsStatus, checkFirestoreConnection } from "@/lib/debug-actions";
 
-type AiStatus = 'checking' | 'online' | 'offline' | 'error';
+type Status = 'checking' | 'online' | 'offline' | 'error';
 type CredentialStatus = {
     credentialsExist: boolean;
     projectId?: string;
@@ -16,31 +16,28 @@ type CredentialStatus = {
 };
 
 export default function DebugEnvPage() {
-    const [aiStatus, setAiStatus] = useState<AiStatus>('checking');
+    const [aiStatus, setAiStatus] = useState<Status>('checking');
+    const [firestoreStatus, setFirestoreStatus] = useState<Status>('checking');
     const [ollamaUrl, setOllamaUrl] = useState('');
     const [credentialStatus, setCredentialStatus] = useState<CredentialStatus | null>(null);
 
     useEffect(() => {
         const performChecks = async () => {
-            const [ollamaResult, credsResult] = await Promise.all([
+            const [ollamaResult, credsResult, firestoreResult] = await Promise.all([
                 checkOllamaStatus(),
                 checkCredentialsStatus(),
+                checkFirestoreConnection(),
             ]);
             setAiStatus(ollamaResult.status);
             setOllamaUrl(ollamaResult.url);
             setCredentialStatus(credsResult);
+            setFirestoreStatus(firestoreResult.status);
         };
         performChecks();
     }, []);
 
-    const renderStatus = (isDefined: boolean) => {
-        return isDefined
-            ? <Badge variant="default" className="bg-green-600">Definida</Badge>
-            : <Badge variant="destructive">Não Definida</Badge>;
-    };
-    
-    const renderAiStatus = () => {
-        switch (aiStatus) {
+    const renderStatusBadge = (status: Status) => {
+        switch (status) {
             case 'checking':
                 return <Badge variant="secondary"><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Verificando...</Badge>;
             case 'online':
@@ -54,14 +51,73 @@ export default function DebugEnvPage() {
         }
     };
 
+    const renderCredsStatus = (isDefined: boolean) => {
+        return isDefined
+            ? <Badge variant="default" className="bg-green-600">Definida</Badge>
+            : <Badge variant="destructive">Não Definida</Badge>;
+    };
+
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Depuração de Variáveis de Ambiente do Servidor</CardTitle>
+                    <CardTitle>Depuração do Ambiente</CardTitle>
                     <CardDescription>
-                        Esta página verifica se as credenciais do Firebase Admin SDK (variável `FIREBASE_CREDENTIALS`) estão disponíveis e são válidas no ambiente do servidor.
-                        Este valor vem do seu arquivo `.env`.
+                        Esta página verifica as conexões com serviços externos e a configuração das variáveis de ambiente no servidor.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Firestore Status */}
+                    <div className="flex justify-between items-center border p-4 rounded-md">
+                        <div>
+                            <p className="font-semibold">Conexão com Cloud Firestore</p>
+                            <p className="text-sm text-muted-foreground font-mono">
+                                O servidor consegue se comunicar com o Firestore?
+                            </p>
+                        </div>
+                        {renderStatusBadge(firestoreStatus)}
+                    </div>
+                     {firestoreStatus === 'error' && (
+                        <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
+                            <h4 className="font-bold">Ação Necessária (Firestore)</h4>
+                            <p>O servidor não conseguiu se conectar ao Cloud Firestore. Isso geralmente indica um problema de rede ou firewall que está bloqueando o acesso aos serviços do Google Cloud. Verifique as políticas de rede de saída do seu ambiente.</p>
+                        </div>
+                    )}
+                    {firestoreStatus === 'online' && (
+                         <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
+                            <h4 className="font-bold">Firestore Conectado!</h4>
+                            <p>A aplicação no lado do servidor conseguiu se comunicar com o Firestore.</p>
+                        </div>
+                    )}
+                     {/* Ollama Status */}
+                    <div className="flex justify-between items-center border p-4 rounded-md">
+                        <div>
+                            <p className="font-semibold">Servidor de IA (Ollama)</p>
+                            <p className="text-sm text-muted-foreground font-mono">
+                                {ollamaUrl || 'Verificando...'}
+                            </p>
+                        </div>
+                        {renderStatusBadge(aiStatus)}
+                    </div>
+                     {aiStatus === 'error' && (
+                        <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
+                            <h4 className="font-bold">Ação Necessária (IA)</h4>
+                            <p>Não foi possível conectar ao servidor Ollama. Verifique se o endereço IP está correto, se o serviço Ollama está rodando e se não há um firewall bloqueando a conexão na porta 11434.</p>
+                        </div>
+                    )}
+                    {aiStatus === 'online' && (
+                         <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
+                            <h4 className="font-bold">Conexão de IA Ativa!</h4>
+                            <p>A aplicação conseguiu se comunicar com o servidor Ollama.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Credenciais do Servidor (Firebase Admin)</CardTitle>
+                    <CardDescription>
+                        Verifica se a variável `FIREBASE_CREDENTIALS` está disponível e válida no ambiente do servidor.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -78,7 +134,7 @@ export default function DebugEnvPage() {
                                         {credentialStatus.credentialsExist ? "Definida e sendo processada." : "Não definida."}
                                     </p>
                                 </div>
-                                {renderStatus(credentialStatus.credentialsExist)}
+                                {renderCredsStatus(credentialStatus.credentialsExist)}
                             </div>
 
                             {credentialStatus.credentialsExist && !credentialStatus.parseError && (
@@ -88,14 +144,14 @@ export default function DebugEnvPage() {
                                             <p className="font-semibold">Project ID (do JSON)</p>
                                             <p className="text-sm text-muted-foreground font-mono">{credentialStatus.projectId || "Não encontrado no JSON"}</p>
                                         </div>
-                                        {renderStatus(!!credentialStatus.projectId)}
+                                        {renderCredsStatus(!!credentialStatus.projectId)}
                                     </div>
                                     <div className="flex justify-between items-center border p-4 rounded-md">
                                         <div>
                                             <p className="font-semibold">Client Email (do JSON)</p>
                                             <p className="text-sm text-muted-foreground font-mono">{credentialStatus.clientEmail || "Não encontrado no JSON"}</p>
                                         </div>
-                                        {renderStatus(!!credentialStatus.clientEmail)}
+                                        {renderCredsStatus(!!credentialStatus.clientEmail)}
                                     </div>
                                 </>
                             )}
@@ -113,45 +169,15 @@ export default function DebugEnvPage() {
                             ) : (
                                 <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
                                     <h4 className="font-bold">Tudo Certo!</h4>
-                                    <p>A variável `FIREBASE_CREDENTIALS` parece estar definida e foi processada como um JSON válido. Se a inicialização do Admin SDK ainda falhar, o problema pode estar no conteúdo das credenciais (ex: chave inválida).</p>
+                                    <p>A variável `FIREBASE_CREDENTIALS` parece estar definida e foi processada como um JSON válido.</p>
                                 </div>
                             )}
                         </>
                     )}
                 </CardContent>
             </Card>
-
-            <Card>
-                 <CardHeader>
-                    <CardTitle>Status da Conexão de IA (Ollama)</CardTitle>
-                    <CardDescription>
-                       Verifica se o backend da aplicação consegue se comunicar com o servidor Ollama configurado.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center border p-4 rounded-md">
-                        <div>
-                            <p className="font-semibold">Servidor Ollama</p>
-                            <p className="text-sm text-muted-foreground font-mono">
-                                {ollamaUrl || 'Verificando...'}
-                            </p>
-                        </div>
-                        {renderAiStatus()}
-                    </div>
-                     {aiStatus === 'error' && (
-                        <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
-                            <h4 className="font-bold">Ação Necessária</h4>
-                            <p>Não foi possível conectar ao servidor Ollama. Verifique se o endereço IP está correto, se o serviço Ollama está rodando e se não há um firewall bloqueando a conexão na porta 11434.</p>
-                        </div>
-                    )}
-                    {aiStatus === 'online' && (
-                         <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
-                            <h4 className="font-bold">Conexão Ativa!</h4>
-                            <p>A aplicação conseguiu se comunicar com o servidor Ollama. As funcionalidades de IA devem estar operacionais.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
         </div>
     );
 }
+
+    

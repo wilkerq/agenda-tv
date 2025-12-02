@@ -1,13 +1,15 @@
 
 'use server';
 
-type AiStatus = 'checking' | 'online' | 'offline' | 'error';
+import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
+
+type Status = 'checking' | 'online' | 'offline' | 'error';
 
 /**
  * Checks the status of the Ollama server by sending a HEAD request.
  * This is a Server Action and must be called from a Client Component.
  */
-export async function checkOllamaStatus(): Promise<{ status: AiStatus, url: string }> {
+export async function checkOllamaStatus(): Promise<{ status: Status, url: string }> {
     // This URL must match the one in src/ai/genkit.ts
     const OLLAMA_URL = 'http://170.254.10.34:11434'; 
     try {
@@ -55,3 +57,28 @@ export async function checkCredentialsStatus(): Promise<{
     };
   }
 }
+
+/**
+ * Checks the connection to the Firestore backend from the server side.
+ * This helps diagnose if the server itself has network access to Firebase.
+ */
+export async function checkFirestoreConnection(): Promise<{ status: Status }> {
+  // First, check if the Admin SDK can even be initialized.
+  if (!isAdminSDKInitialized()) {
+    return { status: 'error' };
+  }
+  
+  try {
+    const db = getAdminDb();
+    // Attempt a simple and fast read operation.
+    // Reading the root collections metadata is a lightweight way to check connectivity.
+    await db.listCollections(); 
+    return { status: 'online' };
+  } catch (error: any) {
+    console.error("[Debug Action] Error connecting to Firestore:", error.message);
+    // Any error here suggests a problem with reaching the Firestore backend.
+    return { status: 'error' };
+  }
+}
+
+    
