@@ -10,14 +10,23 @@ import {
     DailyAgendaInputSchema,
     DailyAgendaOutput,
     DailyAgendaOutputSchema,
+    OperationMode,
 } from '@/lib/types';
 import { ai } from '@/ai/genkit';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getOperationMode } from '@/lib/state';
+import { z } from 'zod';
+
+
+// Add the operation mode to the input schema
+const DailyAgendaFlowInputSchema = DailyAgendaInputSchema.extend({
+    mode: z.enum(['ai', 'logic']),
+});
+type DailyAgendaFlowInput = z.infer<typeof DailyAgendaFlowInputSchema>;
+
 
 // Exported wrapper function
-export async function generateDailyAgenda(input: DailyAgendaInput): Promise<DailyAgendaOutput> {
+export async function generateDailyAgenda(input: DailyAgendaFlowInput): Promise<DailyAgendaOutput> {
     return generateDailyAgendaFlow(input);
 }
 
@@ -32,8 +41,7 @@ const dailyAgendaPrompt = ai.definePrompt({
 
     - Start with the header "*PAUTA DO DIA* 🎬".
     - Add the full, formatted date provided in 'scheduleDate'.
-    - List all the events provided in the 'events' array.
-    - Each event should be a bullet point.
+    - List all the events provided in the 'events' array. For each event, list the staff involved and event details.
     
     Example:
     *PAUTA DO DIA* 🎬
@@ -45,24 +53,20 @@ const dailyAgendaPrompt = ai.definePrompt({
 
     ---
     Date for the agenda: {{{scheduleDate}}}
-    Events:
-    {{#each events}}
-    - {{{this}}}
-    {{/each}}
+    Events (in JSON format): {{json events}}
     `
 });
 
 const generateDailyAgendaFlow = ai.defineFlow(
   {
     name: 'generateDailyAgendaFlow',
-    inputSchema: DailyAgendaInputSchema,
+    inputSchema: DailyAgendaFlowInputSchema,
     outputSchema: DailyAgendaOutputSchema,
   },
   async (input) => {
-    const mode = await getOperationMode();
     const formattedDate = format(new Date(input.scheduleDate), "PPPP", { locale: ptBR });
     
-    if (mode === 'ai') {
+    if (input.mode === 'ai') {
         const { output } = await dailyAgendaPrompt({
             ...input,
             scheduleDate: formattedDate, // Pass the formatted date to the prompt
@@ -72,7 +76,8 @@ const generateDailyAgendaFlow = ai.defineFlow(
     } else {
         // --- LOGIC MODE ---
         const header = `*PAUTA DO DIA* 🎬\n\n*${formattedDate}*\n\n`;
-        const eventList = input.events.map(e => `• ${e}`).join('\n');
+        // When using logic, the events are pre-formatted strings
+        const eventList = (input.events as unknown as string[]).map(e => `• ${e}`).join('\n');
         const message = header + eventList;
         
         return { message };

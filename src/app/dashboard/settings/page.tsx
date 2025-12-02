@@ -8,7 +8,7 @@ import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, Brain
 import { useAtom } from "jotai";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { setOperationMode, type OperationMode } from "@/lib/state";
+import { OperationMode } from "@/lib/state";
 import { atomWithStorage, createJSONStorage } from 'jotai/utils';
 import { cn } from "@/lib/utils";
 
@@ -65,7 +65,7 @@ const settingsLinks = [
 ];
 
 // Client-side atom with localStorage persistence
-const operationModeAtom = atomWithStorage<OperationMode>(
+export const operationModeAtom = atomWithStorage<OperationMode>(
     'operationMode', // Key for localStorage
     'logic',         // Default value
     createJSONStorage(() => localStorage)
@@ -78,8 +78,6 @@ export default function SettingsPage() {
   const handleModeChange = (checked: boolean) => {
     const newMode = checked ? 'ai' : 'logic';
     // Update client-side state, which is persisted to localStorage
-    setOperationMode(newMode);
-    // Asynchronously update server-side state (in-memory for this example)
     setOperationMode(newMode);
   };
 

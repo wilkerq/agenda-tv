@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -14,6 +15,8 @@ import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorEmitter, FirestorePermissionError, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { useAtom } from "jotai";
+import { operationModeAtom } from "../settings/page";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
@@ -22,6 +25,7 @@ export default function DailyAgendaPage() {
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
+  const [operationMode] = useAtom(operationModeAtom);
 
   // Set the initial date only on the client-side to prevent hydration errors.
   useEffect(() => {
@@ -54,7 +58,7 @@ export default function DailyAgendaPage() {
       }
   }, [fetchError, eventsQuery]);
 
-  const handleGenerateCompleteMessage = useCallback(async () => {
+  const handleGenerateMessage = useCallback(async (scope: 'complete' | 'operators') => {
     if (!selectedDate || !events || events.length === 0) {
         const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
         setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
@@ -63,24 +67,46 @@ export default function DailyAgendaPage() {
     
     setIsGeneratingMessage(true);
     try {
-        const eventStrings = events.map(e => {
-            const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
-            const cineReporter = e.cinematographicReporter ? `Rep. Cine: ${e.cinematographicReporter}` : '';
-            const reporter = e.reporter ? `Repórter: ${e.reporter}` : '';
-            const producer = e.producer ? `Prod: ${e.producer}` : '';
-            
-            const staff = [operator, cineReporter, reporter, producer].filter(Boolean).join(' / ');
-            return `- ${staff} - ${e.name} (${e.location})`;
-        });
+        let eventPayload;
+
+        if (operationMode === 'ai') {
+            // For AI mode, send structured data for better processing
+            eventPayload = events
+              .filter(e => scope === 'complete' || (scope === 'operators' && e.transmissionOperator))
+              .map(e => ({
+                time: format((e.date as unknown as Timestamp).toDate(), "HH:mm"),
+                name: e.name,
+                location: e.location,
+                operator: e.transmissionOperator || null,
+                cineReporter: e.cinematographicReporter || null,
+                reporter: e.reporter || null,
+                producer: e.producer || null,
+              }));
+        } else {
+            // For logic mode, send pre-formatted strings
+            const filteredEvents = scope === 'operators' ? events.filter(e => e.transmissionOperator) : events;
+
+            eventPayload = filteredEvents.map(e => {
+                const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
+                const cineReporter = e.cinematographicReporter ? `Rep. Cine: ${e.cinematographicReporter}` : '';
+                const reporter = e.reporter ? `Repórter: ${e.reporter}` : '';
+                const producer = e.producer ? `Prod: ${e.producer}` : '';
+                
+                const staff = [operator, cineReporter, reporter, producer].filter(Boolean).join(' / ');
+                return `- ${staff} - ${e.name} (${e.location})`;
+            });
+        }
         
         const result = await generateDailyAgenda({
             scheduleDate: selectedDate.toISOString(),
-            events: eventStrings,
+            events: eventPayload,
+            mode: operationMode, // Pass the selected mode to the flow
         });
+        
         setMessage(result.message);
          toast({
             title: "Pauta Gerada!",
-            description: "A pauta completa do dia foi criada. Verifique e compartilhe.",
+            description: `A pauta (${scope === 'complete' ? 'Completa' : 'Operadores'}) foi criada com sucesso.`,
         });
     } catch (error) {
          console.error("Error generating message: ", error);
@@ -92,44 +118,7 @@ export default function DailyAgendaPage() {
     } finally {
         setIsGeneratingMessage(false);
     }
-  }, [events, selectedDate, toast]);
-
-  const handleGenerateOperatorsMessage = useCallback(async () => {
-    if (!selectedDate || !events || events.length === 0) {
-        const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : '';
-        setMessage(`Nenhum evento encontrado para a data ${dateStr}.`);
-        return;
-    }
-    
-    setIsGeneratingMessage(true);
-    try {
-        const eventStrings = events
-            .filter(e => e.transmissionOperator) // Apenas eventos com operador
-            .map(e => {
-                const operator = `Op: ${e.transmissionOperator}`;
-                return `- ${operator} - ${e.name} (${e.location})`;
-            });
-        
-        const result = await generateDailyAgenda({
-            scheduleDate: selectedDate.toISOString(),
-            events: eventStrings,
-        });
-        setMessage(result.message);
-         toast({
-            title: "Pauta Gerada!",
-            description: "A pauta dos operadores foi criada com sucesso.",
-        });
-    } catch (error) {
-         console.error("Error generating message: ", error);
-         toast({
-            title: "Erro de IA",
-            description: "Não foi possível gerar a pauta. Verifique as configurações.",
-            variant: "destructive",
-        });
-    } finally {
-        setIsGeneratingMessage(false);
-    }
-  }, [events, selectedDate, toast]);
+  }, [events, selectedDate, toast, operationMode]);
 
 
   const handleShare = () => {
@@ -218,11 +207,11 @@ export default function DailyAgendaPage() {
             <CardContent>
                 <div className="space-y-4">
                     <div className="flex flex-wrap gap-2">
-                        <Button onClick={handleGenerateCompleteMessage} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} className="w-full sm:w-auto">
+                        <Button onClick={() => handleGenerateMessage('complete')} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} className="w-full sm:w-auto">
                             {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
                             Gerar Pauta (Completa)
                         </Button>
-                        <Button onClick={handleGenerateOperatorsMessage} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} variant="outline" className="w-full sm:w-auto">
+                        <Button onClick={() => handleGenerateMessage('operators')} disabled={isGeneratingMessage || isFetchingEvents || !events || events.length === 0} variant="outline" className="w-full sm:w-auto">
                             {isGeneratingMessage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
                             Gerar Pauta (Operadores)
                         </Button>
