@@ -14,19 +14,17 @@ interface FirebaseServices {
   messaging?: Messaging;
 }
 
-let firebaseServices: FirebaseServices | null = null;
+let firebaseServices: Omit<FirebaseServices, 'messaging'> | null = null;
 
-function getSdks(firebaseApp: FirebaseApp): FirebaseServices {
-  const isClient = typeof window !== 'undefined';
+function getSdks(firebaseApp: FirebaseApp): Omit<FirebaseServices, 'messaging'> {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    messaging: isClient ? getMessaging(firebaseApp) : undefined,
   };
 }
 
-export function initializeFirebase(): FirebaseServices {
+export function initializeFirebase(): Omit<FirebaseServices, 'messaging'> {
   if (firebaseServices) {
     return firebaseServices;
   }
