@@ -62,10 +62,8 @@ service cloud.firestore {
     // 🔹 Coleções públicas seguras
     // ======================================================
     match /events/{eventId} {
-      // Qualquer usuário (inclusive não autenticado) pode ler documentos individuais.
-      allow get: if true;
-      // Qualquer usuário pode listar a coleção de eventos.
-      allow list: if true;
+      // Qualquer usuário (inclusive não autenticado) pode ler.
+      allow read: if true;
       // Admins e Editores podem criar, atualizar ou excluir.
       allow write: if isEditor();
     }

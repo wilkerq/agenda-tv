@@ -4,8 +4,8 @@ WORKDIR /app
 
 # Copia package.json e lockfiles
 COPY package.json ./
-# O ideal seria copiar o package-lock.json também, mas ele não está presente
-# COPY package-lock.json ./ 
+# Descomentei a linha abaixo pois o arquivo existe e é importante para builds reprodutíveis
+COPY package-lock.json ./ 
 
 # Instala as dependências
 RUN npm install
@@ -34,15 +34,10 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copia os artefatos de build do estágio anterior
-COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+# Copia a pasta public para garantir que ícones e manifestos sejam servidos
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-
-# O diretório .next/standalone já contém as dependências necessárias (node_modules)
-# e o server.js otimizado, graças à configuração `output: 'standalone'` em next.config.ts.
-# Vamos copiar esse diretório otimizado.
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Muda o usuário para o usuário não-root criado
 USER nextjs
@@ -50,7 +45,5 @@ USER nextjs
 # Expõe a porta que a aplicação vai rodar
 EXPOSE 3050
 
-# Comando para iniciar a aplicação
-# O `npm run start` no docker-compose.yml irá sobrepor este CMD,
-# mas é uma boa prática tê-lo aqui para clareza.
+# Comando para iniciar a aplicação otimizada
 CMD ["node", "server.js"]

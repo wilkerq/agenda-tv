@@ -1,19 +1,20 @@
-
 'use server';
 
-import { googleAI } from '@genkit-ai/google-genai';
+import { ai } from '@/ai/genkit';
 
 /**
- * This is a SERVER-SIDE function that determines which AI model to use.
- * It's kept separate to prevent client-side components from importing server-only code.
- * @param modelType The type of model needed ('text' or 'vision').
- * @returns A Genkit model instance configured to use Gemini 1.5 Pro.
+ * Esta é uma função SERVER-SIDE que determina qual modelo de IA usar.
+ * Atualizada para usar os modelos Ollama configurados em @/ai/genkit para o ambiente Docker.
+ * @param modelType O tipo de modelo necessário ('text' ou 'vision').
+ * @returns Uma referência ao modelo Genkit.
  */
 export async function getModel(modelType: 'text' | 'vision' = 'text'): Promise<any> {
     
-  // Use Gemini Pro for text tasks and Gemini 1.5 Pro for vision.
-  const modelName = modelType === 'vision' ? 'gemini-1.5-pro-vision' : 'gemini-1.5-pro';
+  // Usa 'ollama/llama3' para texto e 'ollama/llava' para visão.
+  // Esses nomes correspondem aos definidos na configuração do seu genkit.ts e aos plugins instalados.
+  const modelName = modelType === 'vision' ? 'ollama/llava' : 'ollama/llama3';
   
-  // We reference the model through the centrally configured `ai` object.
-  return googleAI.model(modelName);
+  // Referencia o modelo através do objeto `ai` configurado centralmente.
+  // Isso evita a necessidade de importar pacotes de provedores específicos aqui.
+  return ai.model(modelName);
 }

@@ -5,7 +5,7 @@ import React, { DependencyList, createContext, useContext, ReactNode, useMemo, u
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { getMessaging, Messaging } from 'firebase/messaging';
+import { Messaging } from 'firebase/messaging';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -13,6 +13,7 @@ interface FirebaseProviderProps {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  messaging?: Messaging;
 }
 
 // Internal state for user authentication
@@ -64,14 +65,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firebaseApp,
   firestore,
   auth,
+  messaging
 }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
     isUserLoading: true, // Start loading until first auth event
     userError: null,
   });
-  const [messaging, setMessaging] = useState<Messaging | null>(null);
-
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
@@ -93,18 +93,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     return () => unsubscribe(); // Cleanup on unmount
   }, [auth]);
-
-  // Effect to initialize messaging only on the client-side and if supported
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && firebaseApp) {
-        try {
-            setMessaging(getMessaging(firebaseApp));
-        } catch (error) {
-            console.error("FirebaseProvider: Failed to initialize messaging", error);
-        }
-    }
-  }, [firebaseApp]);
-
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {

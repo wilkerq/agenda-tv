@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo, type ReactNode } from 'react';
@@ -12,13 +11,14 @@ interface FirebaseClientProviderProps {
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   // A inicialização agora é tratada de forma idempotente dentro de initializeFirebase.
   // Isso garante que, mesmo que o provedor seja renderizado novamente, o Firebase não será reinicializado.
-  const { firebaseApp, auth, firestore } = initializeFirebase();
+  const { firebaseApp, auth, firestore, messaging } = initializeFirebase();
 
   return (
     <FirebaseProvider
       firebaseApp={firebaseApp}
       auth={auth}
       firestore={firestore}
+      messaging={messaging}
     >
       {children}
     </FirebaseProvider>
