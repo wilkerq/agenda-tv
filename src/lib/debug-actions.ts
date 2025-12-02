@@ -24,3 +24,34 @@ export async function checkOllamaStatus(): Promise<{ status: AiStatus, url: stri
         return { status: 'error', url: OLLAMA_URL };
     }
 }
+
+
+/**
+ * Checks if the FIREBASE_CREDENTIALS environment variable is set on the server.
+ * This is a Server Action.
+ */
+export async function checkCredentialsStatus(): Promise<{
+  credentialsExist: boolean;
+  projectId?: string;
+  clientEmail?: string;
+  parseError?: string;
+}> {
+  const credentialsExist = !!process.env.FIREBASE_CREDENTIALS;
+  if (!credentialsExist) {
+    return { credentialsExist: false };
+  }
+
+  try {
+    const creds = JSON.parse(process.env.FIREBASE_CREDENTIALS!);
+    return {
+      credentialsExist: true,
+      projectId: creds.project_id,
+      clientEmail: creds.client_email,
+    };
+  } catch (e: any) {
+    return {
+      credentialsExist: true, // It exists but is malformed
+      parseError: `Erro ao processar FIREBASE_CREDENTIALS: ${e.message}. Verifique se é um JSON válido.`,
+    };
+  }
+}
