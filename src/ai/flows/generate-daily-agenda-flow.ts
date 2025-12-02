@@ -6,11 +6,8 @@
  * - generateDailyAgenda - A function that creates a message from a list of events for a specific day.
  */
 import { 
-    DailyAgendaInput,
-    DailyAgendaInputSchema,
     DailyAgendaOutput,
     DailyAgendaOutputSchema,
-    OperationMode,
     EventForAgendaSchema,
 } from '@/lib/types';
 import { ai } from '@/ai/genkit';
