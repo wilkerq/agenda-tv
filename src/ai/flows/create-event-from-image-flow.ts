@@ -21,7 +21,7 @@ export async function createEventFromImage(input: CreateEventFromImageInput): Pr
 
 const prompt = ai.definePrompt({
     name: 'createEventFromImagePrompt',
-    model: 'ollama/llava',
+    model: 'ollama/llama3',
     input: { schema: CreateEventFromImageInputSchema },
     output: { schema: CreateEventFromImageOutputSchema },
     prompt: `You are an expert event information extractor. Your task is to analyze an image (like a flyer or a screenshot) and extract the key details of an event.

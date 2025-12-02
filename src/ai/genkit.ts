@@ -18,7 +18,7 @@ export const ai = genkit({
       ],
       
       // Usa a variável de ambiente definida no docker-compose ou fallback para localhost
-      serverAddress: process.env.OLLAMA_HOST || 'http://localhost:11434',
+      serverAddress: 'http://170.254.10.34:11434',
     }),
   ],
 });
