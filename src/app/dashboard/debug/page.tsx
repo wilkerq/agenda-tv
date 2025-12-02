@@ -107,7 +107,7 @@ export default function DebugEnvPage() {
                     ) : !credentialsExist ? (
                         <div className="p-4 bg-destructive/10 border-l-4 border-destructive text-destructive-foreground rounded-md">
                             <h4 className="font-bold">Ação Necessária</h4>
-                            <p>A variável de ambiente `FIREBASE_CREDENTIALS` não está definida. A inicialização do Firebase Admin SDK falhará. Verifique se o seu arquivo `.env` está correto e contém a variável com o conteúdo do seu arquivo JSON de credenciais.</p>
+                            <p>A variável de ambiente `FIREBASE_CREDENTIALS` não está definida. A inicialização do Firebase Admin SDK falhará. Verifique se o seu arquivo `.env` está correto e contém a variável com o conteúdo do seu arquivo JSON de credenciais. **Após alterar o arquivo `.env`, você precisa reiniciar o servidor de desenvolvimento.**</p>
                         </div>
                     ) : (
                         <div className="p-4 bg-green-600/10 border-l-4 border-green-600 text-green-800 dark:text-green-300 rounded-md">
