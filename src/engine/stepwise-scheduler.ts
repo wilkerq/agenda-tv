@@ -1,12 +1,11 @@
-// src/engine/stepwise-scheduler.ts
-import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion, Event } from "@/lib/types";
+import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion } from "@/lib/types";
 import { sameDay, determineShiftFromDate, isPersonBusy } from "./schedule.utils";
 import { ScheduleConfig } from "./schedule.config";
 import { logSuggestion } from "./schedule.audit";
-
+import { addMinutes, differenceInMinutes } from "date-fns";
 
 /**
- * Ordem padrão de sugestão - você pode mudar aqui.
+ * Ordem padrão de sugestão.
  */
 const DEFAULT_ROLE_ORDER: RoleKey[] = [
   "transmissionOperator",
@@ -16,30 +15,29 @@ const DEFAULT_ROLE_ORDER: RoleKey[] = [
 ];
 
 /**
- * Função pública: sugere apenas o próximo papel NÃO preenchido.
- * - partialAllocations: objeto com keys (role->personId) já confirmadas no passo atual.
+ * Função principal de sugestão passo a passo.
  */
 export function suggestNextRole(params: {
   event: EventInput;
-  partialAllocations: Partial<Record<RoleKey, string>>; // ex: { transmissionOperator: "id1" }
+  partialAllocations: Partial<Record<RoleKey, string>>;
   pools: {
     transmissionOps: Personnel[];
     cinematographicReporters: Personnel[];
     reporters: Personnel[];
     producers: Personnel[];
   };
-  allEvents: EventInput[]; // eventos anteriores e futuros para checagem
+  allEvents: EventInput[];
 }): StepSuggestion {
   const { event, partialAllocations, pools, allEvents } = params;
   const debug: any = { checked: [] };
 
-  // acha próximo papel vazio pela ordem
+  // 1. Identificar próximo papel vazio
   const nextRole = DEFAULT_ROLE_ORDER.find(r => !(partialAllocations as any)[r]) ?? null;
   if (!nextRole) {
     return { allRolesDone: true, nextRole: null, candidate: null, debug };
   }
 
-  // seleciona pool de candidatos
+  // 2. Selecionar o pool correto
   let pool: Personnel[] = [];
   if (nextRole === "transmissionOperator") pool = pools.transmissionOps;
   if (nextRole === "cinematographicReporter") pool = pools.cinematographicReporters;
@@ -50,21 +48,49 @@ export function suggestNextRole(params: {
   const shift = determineShiftFromDate(eventDate);
   const dayEvents = allEvents.filter(e => e.id !== event.id && sameDay(new Date(e.date), eventDate));
 
-  // 1. Filtra candidatos que já estão ocupados
-  const availablePool = pool.filter(p => !isPersonBusy(p.name, eventDate, dayEvents));
+  // --- REGRA DE OPERADOR FIXO (Deputados Aqui) ---
+  if (nextRole === "transmissionOperator" && event.location === "Deputados Aqui") {
+      const fixedOpName = ScheduleConfig.FIXED_OPERATOR_DEPUTADOS_AQUI;
+      const fixedPerson = pool.find(p => p.name === fixedOpName);
+      
+      // Se a pessoa existe e não está ocupada (conflito direto de horário), force-a.
+      // Ignora regras de turno ou carga horária neste caso específico.
+      if (fixedPerson && !isPersonBusy(fixedPerson.name, eventDate, dayEvents)) {
+          logSuggestion(event.id ?? "temp", { action: "fixed_assignment", role: nextRole, person: fixedPerson.name });
+          return {
+              nextRole,
+              candidate: { id: fixedPerson.id, name: fixedPerson.name, reason: ["Operador Fixo (Deputados Aqui)"], conflictWarnings: [] },
+              debug
+          };
+      }
+  }
+
+  // 3. Filtragem Inicial (Conflito Direto de Horário & Viagem)
+  const availablePool = pool.filter(p => {
+      // a) Checa conflito de horário (overlap)
+      if (isPersonBusy(p.name, eventDate, dayEvents)) return false;
+
+      // b) Checa se a pessoa já está em uma VIAGEM no mesmo dia
+      const isOnTripToday = dayEvents.some(e => {
+          const isAssigned = Object.values(e).includes(p.name); // simplificação, ideal checar IDs
+          return isAssigned && e.transmissionTypes?.includes("viagem");
+      });
+      if (isOnTripToday) return false;
+
+      return true;
+  });
+
   debug.availableAfterConflictCheck = availablePool.map(p => p.name);
 
-  // Se não houver ninguém disponível, retorna sem candidato
   if(availablePool.length === 0) {
       return { nextRole, candidate: null, debug };
   }
 
-
+  // Helper para calcular horas já alocadas no dia
   function personAssignedHours(personId: string) {
-    // soma duração dos eventos do mesmo dia onde a pessoa está alocada (por id)
     let total = 0;
+    // Eventos já salvos no banco
     for (const ev of dayEvents) {
-      if (!ev) continue;
       if (
         ev.transmissionOperator === personId ||
         ev.cinematographicReporter === personId ||
@@ -74,7 +100,7 @@ export function suggestNextRole(params: {
         total += ev.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION;
       }
     }
-    // considerar partialAllocations (já confirmadas para este evento)
+    // Alocações parciais (neste form session)
     for (const roleKey of Object.keys(partialAllocations) as RoleKey[]) {
       if ((partialAllocations as any)[roleKey] === personId) {
         total += event.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION;
@@ -83,111 +109,114 @@ export function suggestNextRole(params: {
     return total;
   }
 
-  // função de heurística para rankear candidatos
+  // 4. Ranqueamento (Score)
+  // Menor score = Melhor candidato
   function rankCandidates(list: Personnel[]) {
     const scored = list.map(p => {
       const scoreObj: any = { p, score: 0, reasons: [] };
       const personTurn = p.turn;
 
-      // 1) turno compatível
+      // -- Critério A: Turno --
       if (personTurn && personTurn !== 'Geral' && personTurn !== shift) {
-          scoreObj.score += 50; // penalidade alta
-          scoreObj.reasons.push(`Turno incompatível: ${p.name} é do turno ${personTurn}`);
+          scoreObj.score += 50; 
+          scoreObj.reasons.push(`Turno incompatível (${personTurn})`);
       } else {
-          scoreObj.reasons.push("Turno ok");
+          scoreObj.reasons.push("Turno OK");
       }
 
-
-      // 2) carga diária
-      const assigned = personAssignedHours(p.id);
-      if (assigned + (event.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION) > ScheduleConfig.MAX_HOURS_PER_DAY) {
-        scoreObj.score += 40;
-        scoreObj.reasons.push("Excede carga horária diária");
-      } else {
-        scoreObj.reasons.push(`Carga atual ${assigned}h`);
+      // -- Critério B: Carga Horária Diária --
+      const currentLoad = personAssignedHours(p.id);
+      const newLoad = currentLoad + (event.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION);
+      
+      if (newLoad > ScheduleConfig.MAX_HOURS_PER_DAY) {
+        scoreObj.score += 100; // Penalidade altíssima para hora extra excessiva
+        scoreObj.reasons.push(`Estoura carga diária (${newLoad}h)`);
+      } else if (currentLoad > 0) {
+        scoreObj.score += (currentLoad * 5); // Penalidade leve para quem já trabalhou hoje (distribuir carga)
+        scoreObj.reasons.push(`Carga acumulada: ${currentLoad}h`);
       }
 
-      // 3) fairness: quem trabalhou menos nos últimos N dias ganha pontos (simples: countAssignments)
-      scoreObj.score += countAssignments(p, allEvents); // quanto maior, pior (mais trabalhou)
-      debug.checked.push({ personId: p.id, score: scoreObj.score, reasons: scoreObj.reasons.slice() });
+      // -- Critério C: Intervalo Mínimo (Back-to-back) --
+      // Verifica se há eventos terminando muito perto do início deste ou começando logo após
+      const bufferMinutes = 60; 
+      const hasTightSchedule = dayEvents.some(e => {
+          const isAssigned = Object.values(e).includes(p.name) || Object.values(e).includes(p.id);
+          if (!isAssigned) return false;
+          
+          const eStart = new Date(e.date);
+          const eEnd = addMinutes(eStart, (e.durationHours || 1) * 60);
+          const thisStart = eventDate;
+          const thisEnd = addMinutes(thisStart, (event.durationHours || 1) * 60);
+
+          const gapBefore = Math.abs(differenceInMinutes(thisStart, eEnd));
+          const gapAfter = Math.abs(differenceInMinutes(eStart, thisEnd));
+
+          return gapBefore < bufferMinutes || gapAfter < bufferMinutes;
+      });
+
+      if (hasTightSchedule) {
+          scoreObj.score += 20;
+          scoreObj.reasons.push("Horário apertado (<1h intervalo)");
+      }
+
+      // -- Critério D: Fairness (Janela de 30 dias) --
+      const monthlyLoad = countAssignments(p, allEvents);
+      scoreObj.score += monthlyLoad; // +1 ponto por evento no mês
+      // scoreObj.reasons.push(`Eventos/mês: ${monthlyLoad}`);
+
+      debug.checked.push({ personName: p.name, score: scoreObj.score, reasons: scoreObj.reasons });
       return scoreObj;
     });
 
-    // ordenar por score asc (menor score = melhor candidato)
-    scored.sort((a, b) => a.score - b.score);
+    // Ordenar: Menor score primeiro. Em caso de empate, aleatório (para não viciar no mesmo)
+    scored.sort((a, b) => {
+        if (a.score === b.score) return Math.random() - 0.5;
+        return a.score - b.score;
+    });
+    
     return scored;
   }
 
   const ranked = rankCandidates(availablePool);
+  
   if (ranked.length === 0) return { nextRole, candidate: null, debug };
 
-  // candidato principal
   const top = ranked[0];
+  
   const candidate: Candidate = {
     id: top.p.id,
     name: top.p.name,
     reason: top.reasons,
-    conflictWarnings: [],
-    reschedulingSuggestions: [],
+    conflictWarnings: top.score > 40 ? top.reasons : [], // Só avisa se o score for alto
     requiresReschedulePermission: false,
   };
 
-  if (top.score > 0) {
-      candidate.conflictWarnings = top.reasons.filter((r: string) => !r.includes("Turno ok"));
-  }
-
-  // registrar auditoria (não grava nada na DB ainda, só log)
   logSuggestion(event.id ?? "no-id", { nextRole, candidate, partialAllocations });
 
   return { nextRole, candidate, debug };
 }
 
-/** Conta alocações de uma pessoa em janela de FAIRNESS_WINDOW_DAYS (menor é melhor) */
+/** Conta quantas vezes a pessoa foi escalada nos últimos N dias */
 function countAssignments(p: Personnel, allEvents: EventInput[]) {
   const now = new Date();
-  const start = new Date(now);
-  start.setDate(now.getDate() - ScheduleConfig.FAIRNESS_WINDOW_DAYS);
-  const end = new Date(now);
-  end.setDate(now.getDate() + ScheduleConfig.FAIRNESS_WINDOW_DAYS);
+  const startWindow = new Date();
+  startWindow.setDate(now.getDate() - ScheduleConfig.FAIRNESS_WINDOW_DAYS); // ex: -30 dias
 
-  let c = 0;
+  let count = 0;
+  // Otimização: filtrar apenas eventos dentro da janela antes do loop
   for (const e of allEvents) {
-    if (new Date(e.date) < start || new Date(e.date) > end) continue;
-    if (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id) c++;
+    const d = new Date(e.date);
+    if (d < startWindow) continue;
+    
+    // Verifica ID ou Nome (para compatibilidade)
+    if (
+        e.transmissionOperator === p.id || e.transmissionOperator === p.name ||
+        e.cinematographicReporter === p.id || e.cinematographicReporter === p.name ||
+        e.reporter === p.id || e.reporter === p.name ||
+        e.producer === p.id || e.producer === p.name
+    ) {
+        count++;
+    }
   }
-  return c;
-}
-
-/** Seleciona pool baseado em quem está alocado no evento conflictante (aproximação) */
-function selectPoolForEventRole(ev: EventInput, pools: any): Personnel[] {
-  // se o evento tem transmissionOperator (id) então a role conflitante provavelmente é transmissionOperator, etc.
-  // aqui simplificamos: retorna o pool completo (poderia ser refinado)
-  return [...(pools.transmissionOps || []), ...(pools.cinematographicReporters || []), ...(pools.reporters || []), ...(pools.producers || [])];
-}
-
-/** Tenta encontrar um substituto para um evento, excluindo `excludeId` */
-function findReplacement(pool: Personnel[], ev: EventInput, allEvents: EventInput[], excludeId: string): Personnel | null {
-  // filtro básico usando as mesmas regras de disponibilidade
-  for (const p of pool) {
-    if (p.id === excludeId) continue;
-    // checar se p está disponível neste ev
-    // não fazemos ranking complexo aqui (UI pode pedir próximos 3 substitutos)
-    const assignedHours = allEvents.reduce((acc, e) => {
-      if (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id) {
-        if (sameDay(new Date(e.date), new Date(ev.date))) acc += e.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION;
-      }
-      return acc;
-    }, 0);
-    if (assignedHours + (ev.durationHours ?? ScheduleConfig.DEFAULT_EVENT_DURATION) > ScheduleConfig.MAX_HOURS_PER_DAY) continue;
-    // checar conflito de horário
-    const margin = ScheduleConfig.CONFLICT_MARGIN_MINUTES * 60 * 1000;
-    const hasConflict = allEvents.some(e => (
-      (e.transmissionOperator === p.id || e.cinematographicReporter === p.id || e.reporter === p.id || e.producer === p.id)
-      && Math.abs(new Date(e.date).getTime() - new Date(ev.date).getTime()) < margin
-    ));
-    if (hasConflict) continue;
-    // passou nos filtros
-    return p;
-  }
-  return null;
+  return count;
 }

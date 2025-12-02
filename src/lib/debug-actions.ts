@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminDb, isAdminSDKInitialized } from './firebase-admin';
@@ -10,8 +9,9 @@ type Status = 'checking' | 'online' | 'offline' | 'error';
  * This is a Server Action and must be called from a Client Component.
  */
 export async function checkOllamaStatus(): Promise<{ status: Status, url: string }> {
-    // This URL must match the one in src/ai/genkit.ts
-    const OLLAMA_URL = 'http://170.254.10.34:11434'; 
+    // Busca a URL do ambiente, igual ao genkit.ts
+    const OLLAMA_URL = process.env.OLLAMA_SERVER_ADDRESS || 'http://127.0.0.1:11434'; 
+    
     try {
         // Use fetch with a short timeout to avoid long waits
         const response = await fetch(OLLAMA_URL, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
