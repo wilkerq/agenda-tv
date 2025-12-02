@@ -19,7 +19,7 @@ export const ai = genkit({
       // Endereço do servidor Ollama. Se estiver a correr localmente, é este.
       // Se o seu backend estiver noutro container Docker na mesma rede,
       // pode usar 'http://ollama:11434'.
-      serverAddress: 'http://172.18.0.2:11434',
+      serverAddress: 'http://172.18.0.1:11434',
     }),
   ],
   // Opcional: para ver mais detalhes durante o desenvolvimento
