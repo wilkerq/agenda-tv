@@ -15,32 +15,6 @@ import {
 } from '@/lib/types';
 import { z } from 'zod';
 
-
-const whatsAppPrompt = ai.definePrompt({
-    name: 'whatsAppMessagePrompt',
-    model: 'ollama/llama3',
-    input: { schema: WhatsAppMessageInputSchema },
-    output: { schema: z.object({ message: z.string() }) }, // Output only the message
-    prompt: `You are a helpful and friendly production assistant for a TV station. Your task is to generate a personalized WhatsApp message in Brazilian Portuguese to send to a team member with their schedule for the day.
-
-    The message must be friendly, clear, and well-formatted for WhatsApp. Use bold for the person's name and other important parts.
-
-    - Start with a friendly greeting, like "Olá, *{{operatorName}}*! 👋".
-    - State that their schedule for the specified 'scheduleDate' is ready.
-    - List all the events under a "📅 Eventos:" header.
-    - Each event should be a bullet point.
-    - End with a polite closing, like "Qualquer dúvida, estou à disposição! Tenha um excelente dia! ✨".
-
-    ---
-    Recipient's Name: {{{operatorName}}}
-    Schedule Date: {{{scheduleDate}}}
-    Events:
-    {{#each events}}
-    - {{{this}}}
-    {{/each}}
-    `
-});
-
 // Exported wrapper function
 export async function generateWhatsAppMessage(input: WhatsAppMessageInput): Promise<WhatsAppMessageOutput> {
   return generateWhatsAppMessageFlow(input);
