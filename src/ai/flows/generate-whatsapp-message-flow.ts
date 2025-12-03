@@ -13,7 +13,6 @@ import {
     WhatsAppMessageOutput, 
     WhatsAppMessageOutputSchema 
 } from '@/lib/types';
-import { getOperationMode } from '@/lib/state';
 import { z } from 'zod';
 
 
@@ -54,29 +53,16 @@ const generateWhatsAppMessageFlow = ai.defineFlow(
     outputSchema: WhatsAppMessageOutputSchema,
   },
   async (input) => {
-    const mode = await getOperationMode();
     let message: string;
 
-    if (mode === 'ai') {
-        const { output } = await whatsAppPrompt(input);
-        message = output?.message || '';
-        if (!message) { // Fallback if AI fails
-             const greeting = `Olá, *${input.operatorName}*! 👋\n\n`;
-            const scheduleHeader = `Sua agenda para *${input.scheduleDate}* está pronta:\n\n`;
-            const eventsHeader = `📅 Eventos:\n`;
-            const eventList = input.events.map(e => `• ${e}`).join('\n');
-            const closing = `\n\nQualquer dúvida, estou à disposição! Tenha um excelente dia! ✨`;
-            message = greeting + scheduleHeader + eventsHeader + eventList + closing;
-        }
-    } else {
-        // --- LOGIC MODE ---
-        const greeting = `Olá, *${input.operatorName}*! 👋\n\n`;
-        const scheduleHeader = `Sua agenda para *${input.scheduleDate}* está pronta:\n\n`;
-        const eventsHeader = `📅 Eventos:\n`;
-        const eventList = input.events.map(e => `• ${e}`).join('\n');
-        const closing = `\n\nQualquer dúvida, estou à disposição! Tenha um excelente dia! ✨`;
-        message = greeting + scheduleHeader + eventsHeader + eventList + closing;
-    }
+    // --- LOGIC MODE ---
+    const greeting = `Olá, *${input.operatorName}*! 👋\n\n`;
+    const scheduleHeader = `Sua agenda para *${input.scheduleDate}* está pronta:\n\n`;
+    const eventsHeader = `📅 Eventos:\n`;
+    const eventList = input.events.map(e => `• ${e}`).join('\n');
+    const closing = `\n\nQualquer dúvida, estou à disposição! Tenha um excelente dia! ✨`;
+    message = greeting + scheduleHeader + eventsHeader + eventList + closing;
+    
 
     // Send the generated message to the n8n webhook
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
