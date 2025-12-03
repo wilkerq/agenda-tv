@@ -1,9 +1,11 @@
+
 // =============================
 // schedule.audit.ts
 // Responsável por logs e auditoria de decisões da Scheduling Engine
 // =============================
 
 import { ScheduleConfig } from "./schedule.config";
+import type { RoleKey, Candidate } from '@/lib/types';
 
 export type AuditEntry = {
   timestamp?: string;
@@ -19,7 +21,7 @@ export function logAudit(entry: AuditEntry) {
   };
 
   if (ScheduleConfig.DEBUG) {
-    console.log("[SCHEDULE AUDIT]", logEntry);
+    // console.log("[SCHEDULE AUDIT]", JSON.stringify(logEntry, null, 2));
   }
 
   // 🔸 Futuro: integração com Firestore
@@ -28,10 +30,19 @@ export function logAudit(entry: AuditEntry) {
   // await addDoc(collection(db, "logs_suggestions"), logEntry);
 }
 
-export function logSuggestion(eventId: string, suggestion: any) {
+export function logSuggestion(eventId: string, suggestion: {
+    nextRole: RoleKey | null;
+    candidate: Candidate | null;
+    partialAllocations: Partial<Record<RoleKey, string>>;
+}) {
   logAudit({
     eventId,
-    action: "suggestTeam",
-    details: suggestion,
+    action: "suggestTeam-step",
+    details: {
+        role: suggestion.nextRole,
+        suggestion: suggestion.candidate?.name,
+        reason: suggestion.candidate?.reason,
+        currentTeam: suggestion.partialAllocations,
+    },
   });
 }

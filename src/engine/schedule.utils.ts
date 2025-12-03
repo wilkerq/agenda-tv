@@ -1,23 +1,26 @@
+
 // =============================
 // schedule.utils.ts
 // Funções utilitárias usadas pela engine
 // =============================
-import { addMinutes, subMinutes, isWithinInterval } from "date-fns";
+import { addMinutes, subMinutes, isWithinInterval, isSameDay } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 import type { Event, EventTurn, EventInput } from "@/lib/types";
 import { ScheduleConfig } from "./schedule.config";
 
-/** Retorna true se duas datas forem no mesmo dia */
-export function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+const TIME_ZONE = "America/Sao_Paulo";
+
+/** Retorna true se duas datas forem no mesmo dia, considerando o fuso de SP */
+export function isSameDayInTimezone(dateLeft: Date, dateRight: Date): boolean {
+  const zonedLeft = utcToZonedTime(dateLeft, TIME_ZONE);
+  const zonedRight = utcToZonedTime(dateRight, TIME_ZONE);
+  return isSameDay(zonedLeft, zonedRight);
 }
 
-/** Retorna o turno aproximado (manhã/tarde/noite) com base na hora */
+/** Retorna o turno aproximado (manhã/tarde/noite) com base na hora em SP */
 export function determineShiftFromDate(date: Date): EventTurn {
-  const h = date.getHours();
+  const zonedDate = utcToZonedTime(date, TIME_ZONE);
+  const h = zonedDate.getHours();
   if (h >= 6 && h < 12) return "Manhã";
   if (h >= 12 && h < 18) return "Tarde";
   return "Noite";
@@ -35,7 +38,8 @@ export function diffHours(a: Date, b: Date): number {
  * @returns 'Manhã', 'Tarde', or 'Noite'.
  */
 export const getEventTurn = (date: Date): 'Manhã' | 'Tarde' | 'Noite' => {
-    const hour = date.getHours();
+    const zonedDate = utcToZonedTime(date, TIME_ZONE);
+    const hour = zonedDate.getHours();
     if (hour >= 6 && hour < 12) return 'Manhã';
     if (hour >= 12 && hour < 18) return 'Tarde';
     return 'Noite'; // 18:00 onwards
@@ -93,3 +97,4 @@ export const isPersonBusy = (personName: string, eventDate: Date, eventsToday: E
     
     return false; // No conflicts found for this person
 };
+

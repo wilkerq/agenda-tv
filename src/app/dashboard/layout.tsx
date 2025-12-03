@@ -19,7 +19,8 @@ import {
   History,
   Settings,
   UserPlus,
-  Bug
+  Bug,
+  CheckCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,7 @@ export default function DashboardLayout({
 
   const navLinks = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/approvals", label: "Aprovações", icon: CheckCheck },
     { href: "/dashboard/reports", label: "Relatórios", icon: LineChart },
     { href: "/dashboard/share", label: "Compartilhar Agenda", icon: Share2 },
     { href: "/dashboard/daily-agenda", label: "Pauta do Dia", icon: ListTodo },

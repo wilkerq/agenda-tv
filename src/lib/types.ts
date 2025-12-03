@@ -1,9 +1,10 @@
+
 import { z } from 'zod';
 
 export const transmissionTypes = ["youtube", "tv", "pauta", "viagem"] as const;
 export type TransmissionType = (typeof transmissionTypes)[number];
 
-export type EventStatus = "Agendado" | "Concluído" | "Cancelado";
+export type EventStatus = "Agendado" | "Concluído" | "Cancelado" | "Pendente" | "Alerta";
 export type EventTurn = "Manhã" | "Tarde" | "Noite";
 
 export interface Event {
@@ -22,6 +23,8 @@ export interface Event {
   turn?: EventTurn;
   departure?: Date | null;
   arrival?: Date | null;
+  externalId?: string | null;
+  origin?: 'manual' | 'n8n';
 }
 
 export type EventFormData = Omit<Event, "id" | "color" | "status" | "turn">;
@@ -227,7 +230,7 @@ export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
 
 
 // Audit Log Types
-export type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate';
+export type AuditLogAction = 'create' | 'update' | 'delete' | 'automatic-send' | 'create-user' | 'reallocate' | 'sync-approve' | 'sync-cancel-alert';
 
 export interface AuditLog {
     id: string;
@@ -264,3 +267,14 @@ export interface StepSuggestion {
     candidate: Candidate | null;
     debug: any;
 }
+
+
+export const ScrapedEventSchema = z.object({
+    externalId: z.string().describe("Unique ID from the source system (n8n, etc)."),
+    name: z.string().describe("The name/title of the event."),
+    date: z.string().describe("The date of the event in 'YYYY-MM-DD' format."),
+    time: z.string().describe("The time of the event in 'HH:mm' format."),
+    location: z.string().describe("The location/venue of the event."),
+    // Add other fields that might come from the scraper
+});
+export type ScrapedEvent = z.infer<typeof ScrapedEventSchema>;

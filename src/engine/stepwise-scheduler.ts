@@ -1,5 +1,6 @@
+
 import type { EventInput, Personnel, RoleKey, Candidate, StepSuggestion } from "@/lib/types";
-import { sameDay, determineShiftFromDate, isPersonBusy } from "./schedule.utils";
+import { isSameDayInTimezone, determineShiftFromDate, isPersonBusy } from "./schedule.utils";
 import { ScheduleConfig } from "./schedule.config";
 import { logSuggestion } from "./schedule.audit";
 import { addMinutes, differenceInMinutes } from "date-fns";
@@ -46,7 +47,7 @@ export function suggestNextRole(params: {
 
   const eventDate = new Date(event.date);
   const shift = determineShiftFromDate(eventDate);
-  const dayEvents = allEvents.filter(e => e.id !== event.id && sameDay(new Date(e.date), eventDate));
+  const dayEvents = allEvents.filter(e => e.id !== event.id && isSameDayInTimezone(new Date(e.date), eventDate));
 
   // --- REGRA DE OPERADOR FIXO (Deputados Aqui) ---
   if (nextRole === "transmissionOperator" && event.location === "Deputados Aqui") {
@@ -220,3 +221,4 @@ function countAssignments(p: Personnel, allEvents: EventInput[]) {
   }
   return count;
 }
+

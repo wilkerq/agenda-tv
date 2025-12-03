@@ -1,39 +1,11 @@
-// src/engine/suggest-team-flow.ts
+
 'use server';
 
 import { suggestNextRole } from "./stepwise-scheduler";
-import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel } from "@/lib/types";
+import type { RoleKey, EventInput, SuggestTeamFlowOutput, Personnel, ReschedulingSuggestion } from "@/lib/types";
+import { scheduleWithAI } from "@/ai/flows/ai-scheduler-flow";
 
-// This is just an example wrapper. The UI will likely call this repeatedly.
-export async function suggestSingleStep(params: {
-  event: EventInput;
-  partialAllocations: Partial<Record<RoleKey, string>>;
-  pools: {
-    transmissionOps: Personnel[];
-    cinematographicReporters: Personnel[];
-    reporters: Personnel[];
-    producers: Personnel[];
-  };
-  allEvents: EventInput[];
-}): Promise<any> { // Note: Changed to 'any' to accommodate StepSuggestion type
-  // prepara e chama o stepwise
-  const suggestion = suggestNextRole({
-    event: params.event,
-    partialAllocations: params.partialAllocations,
-    pools: params.pools,
-    allEvents: params.allEvents,
-  });
-
-  // opção: gravar um log temporário (audit) aqui — schedule.audit.logSuggestion
-  return suggestion;
-}
-
-
-// Keep the old function but adapt it to call the new stepwise scheduler
-// This is a temporary measure for compatibility. Ideally, the form should be updated
-// to handle the step-by-step flow.
 export async function suggestTeam(input: any): Promise<SuggestTeamFlowOutput> {
-
   const {
       name, date, time, location, transmissionTypes, departure, arrival,
       operators, cinematographicReporters, reporters, producers,
@@ -73,48 +45,70 @@ export async function suggestTeam(input: any): Promise<SuggestTeamFlowOutput> {
       producers: producers || [],
   };
 
-  // Simulate the full flow by calling the stepwise scheduler in a loop
+  // 1. Tentar com a lógica determinística primeiro
   let partialAllocations: Partial<Record<RoleKey, string>> = {};
   const finalSuggestion: SuggestTeamFlowOutput = {};
-  let finalReschedulingSuggestions: any[] = [];
+  let finalReschedulingSuggestions: ReschedulingSuggestion[] = [];
   
   const rolesToSuggest: RoleKey[] = ["transmissionOperator", "cinematographicReporter", "reporter", "producer"];
+  let logicFailed = false;
 
   for (const role of rolesToSuggest) {
-      if (partialAllocations[role]) continue; // Skip if already allocated in a previous step
+      if (partialAllocations[role]) continue;
 
       const stepResult = suggestNextRole({
           event,
-          partialAllocations, // Pass the current state of allocations
+          partialAllocations,
           pools,
           allEvents
       });
-
+      
       if (stepResult.candidate && stepResult.nextRole) {
-          const roleKey = stepResult.nextRole as RoleKey;
-          
-          // Update partialAllocations for the *next* iteration
+          const roleKey = stepResult.nextRole;
           partialAllocations[roleKey] = stepResult.candidate.id;
-          
-          // Populate the final suggestion object
           (finalSuggestion as any)[roleKey] = stepResult.candidate.name;
 
           if (stepResult.candidate.reschedulingSuggestions && stepResult.candidate.reschedulingSuggestions.length > 0) {
               finalReschedulingSuggestions = [...finalReschedulingSuggestions, ...stepResult.candidate.reschedulingSuggestions];
           }
+      } else {
+          // Se qualquer passo falhar em encontrar um candidato, marcamos para usar IA
+          logicFailed = true;
+          break; // Sai do loop para não continuar tentando
       }
   }
 
-  if (finalReschedulingSuggestions.length > 0) {
-      finalSuggestion.reschedulingSuggestions = finalReschedulingSuggestions.map(s => ({
-          ...s,
-          // Ensure role is correctly identified for reallocation
-          role: allEvents.find(e => e.id === s.conflictingEventId)?.transmissionOperator === s.personToMove ? 'transmissionOperator' :
-              allEvents.find(e => e.id === s.conflictingEventId)?.cinematographicReporter === s.personToMove ? 'cinematographicReporter' :
-              allEvents.find(e => e.id === s.conflictingEventId)?.reporter === s.personToMove ? 'reporter' : 'producer',
-      }));
+  // 2. Se a lógica determinística falhou, usar o fallback de IA
+  if (logicFailed) {
+      console.log("Lógica determinística falhou. Acionando fallback de IA...");
+      try {
+          const aiSuggestion = await scheduleWithAI({
+              event,
+              pools,
+              allEvents
+          });
+          // A IA retorna um objeto completo, então o usamos diretamente
+          // A IA não vai sugerir reescalonamento, ela vai tentar evitar o conflito
+          return {
+            transmissionOperator: aiSuggestion.transmissionOperator,
+            cinematographicReporter: aiSuggestion.cinematographicReporter,
+            reporter: aiSuggestion.reporter,
+            producer: aiSuggestion.producer,
+          };
+      } catch (aiError) {
+          console.error("Falha no fallback de IA:", aiError);
+          // Se a IA também falhar, retorna o que a lógica conseguiu fazer até agora
+          return {
+              ...finalSuggestion,
+              reschedulingSuggestions: finalReschedulingSuggestions.length > 0 ? finalReschedulingSuggestions : undefined,
+          };
+      }
   }
 
+  // 3. Se a lógica determinística funcionou, retorna a sugestão dela
+  if (finalReschedulingSuggestions.length > 0) {
+      finalSuggestion.reschedulingSuggestions = finalReschedulingSuggestions;
+  }
 
   return finalSuggestion;
 }
