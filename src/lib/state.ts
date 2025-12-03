@@ -14,6 +14,5 @@ export type OperationMode = 'logic' | 'ai';
 export const operationModeAtom = atomWithStorage<OperationMode>(
     'operationMode', // Key for localStorage
     'logic',         // Default value
-    // Use a JSON storage that's only available on the client-side.
     createJSONStorage(() => localStorage)
 );

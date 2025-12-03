@@ -15,8 +15,6 @@ import { Loader2, Share2, Bot, CalendarSearch, Users } from "lucide-react";
 import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorEmitter, FirestorePermissionError, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { useAtom } from "jotai";
-import { operationModeAtom } from "@/lib/state";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
@@ -25,7 +23,6 @@ export default function DailyAgendaPage() {
   const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
   const { toast } = useToast();
   const db = useFirestore();
-  const [operationMode] = useAtom(operationModeAtom);
 
   // Set the initial date only on the client-side to prevent hydration errors.
   useEffect(() => {
@@ -69,38 +66,23 @@ export default function DailyAgendaPage() {
     try {
         let eventPayload;
 
-        if (operationMode === 'ai') {
-            // For AI mode, send structured data for better processing
-            eventPayload = events
-              .filter(e => scope === 'complete' || (scope === 'operators' && e.transmissionOperator))
-              .map(e => ({
-                time: format((e.date as unknown as Timestamp).toDate(), "HH:mm"),
-                name: e.name,
-                location: e.location,
-                operator: e.transmissionOperator || null,
-                cineReporter: e.cinematographicReporter || null,
-                reporter: e.reporter || null,
-                producer: e.producer || null,
-              }));
-        } else {
-            // For logic mode, send pre-formatted strings
-            const filteredEvents = scope === 'operators' ? events.filter(e => e.transmissionOperator) : events;
+        // For logic mode, send pre-formatted strings
+        const filteredEvents = scope === 'operators' ? events.filter(e => e.transmissionOperator) : events;
 
-            eventPayload = filteredEvents.map(e => {
-                const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
-                const cineReporter = e.cinematographicReporter ? `Rep. Cine: ${e.cinematographicReporter}` : '';
-                const reporter = e.reporter ? `Repórter: ${e.reporter}` : '';
-                const producer = e.producer ? `Prod: ${e.producer}` : '';
-                
-                const staff = [operator, cineReporter, reporter, producer].filter(Boolean).join(' / ');
-                return `- ${staff} - ${e.name} (${e.location})`;
-            });
-        }
+        eventPayload = filteredEvents.map(e => {
+            const operator = e.transmissionOperator ? `Op: ${e.transmissionOperator}` : '';
+            const cineReporter = e.cinematographicReporter ? `Rep. Cine: ${e.cinematographicReporter}` : '';
+            const reporter = e.reporter ? `Repórter: ${e.reporter}` : '';
+            const producer = e.producer ? `Prod: ${e.producer}` : '';
+            
+            const staff = [operator, cineReporter, reporter, producer].filter(Boolean).join(' / ');
+            return `- ${staff} - ${e.name} (${e.location})`;
+        });
         
         const result = await generateDailyAgenda({
             scheduleDate: selectedDate.toISOString(),
             events: eventPayload,
-            mode: operationMode, // Pass the selected mode to the flow
+            mode: 'logic',
         });
         
         setMessage(result.message);
@@ -111,14 +93,14 @@ export default function DailyAgendaPage() {
     } catch (error) {
          console.error("Error generating message: ", error);
          toast({
-            title: "Erro de IA",
-            description: "Não foi possível gerar a pauta. Verifique as configurações e tente novamente.",
+            title: "Erro ao Gerar",
+            description: "Não foi possível gerar a pauta. Tente novamente.",
             variant: "destructive",
         });
     } finally {
         setIsGeneratingMessage(false);
     }
-  }, [events, selectedDate, toast, operationMode]);
+  }, [events, selectedDate, toast]);
 
 
   const handleShare = () => {

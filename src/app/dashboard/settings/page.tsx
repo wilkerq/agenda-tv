@@ -5,11 +5,6 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, History, UserPlus, Tv, Home, Wrench, Sparkles, BrainCircuit, Bug } from "lucide-react";
-import { useAtom } from "jotai";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { operationModeAtom } from "@/lib/state";
-import { cn } from "@/lib/utils";
 
 const settingsLinks = [
   {
@@ -64,15 +59,6 @@ const settingsLinks = [
 ];
 
 export default function SettingsPage() {
-  const [operationMode, setOperationMode] = useAtom(operationModeAtom);
-
-  const handleModeChange = (checked: boolean) => {
-    const newMode = checked ? 'ai' : 'logic';
-    // Update client-side state, which is persisted to localStorage
-    setOperationMode(newMode);
-  };
-
-
   return (
     <div className="space-y-6">
       <CardHeader className="p-0">
@@ -82,57 +68,6 @@ export default function SettingsPage() {
         </CardDescription>
       </CardHeader>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
-            Modo de Operação
-          </CardTitle>
-          <CardDescription>
-            Escolha se as operações como sugestão de equipe e resumo de relatórios devem usar Inteligência Artificial ou a lógica programada padrão. O modo "Lógica Padrão" é o recomendado.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4 rounded-md border p-4 transition-colors">
-            <div className={cn(
-                "flex-1 flex items-center gap-3 transition-opacity",
-                operationMode === 'logic' ? 'opacity-100' : 'opacity-50'
-              )}>
-              <BrainCircuit className={cn("h-6 w-6", operationMode === 'logic' && 'text-primary')} />
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  Lógica Padrão (Recomendado)
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Operações rápidas e previsíveis baseadas em regras.
-                </p>
-              </div>
-            </div>
-
-            <Switch
-              checked={operationMode === 'ai'}
-              onCheckedChange={handleModeChange}
-              aria-readonly
-            />
-
-            <div className={cn(
-                "flex-1 flex items-center justify-end gap-3 text-right transition-opacity",
-                operationMode === 'ai' ? 'opacity-100' : 'opacity-50'
-              )}>
-               <div className="space-y-1">
-                 <p className="text-sm font-medium leading-none">
-                  Inteligência Artificial
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Respostas dinâmicas (pode ser mais lento/caro).
-                </p>
-              </div>
-               <Sparkles className={cn("h-6 w-6", operationMode === 'ai' && 'text-primary')} />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {settingsLinks.map((link) => {
           const Icon = link.icon;

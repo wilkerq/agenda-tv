@@ -15,8 +15,6 @@ import {
     type ReportItem
 } from '@/lib/types';
 import { z } from 'zod';
-import { operationModeAtom } from '@/lib/state';
-import { useAtomValue } from 'jotai';
 
 // Helper function to find the standout item in a list
 function encontrarDestaque(lista: ReportItem[]): ReportItem {
