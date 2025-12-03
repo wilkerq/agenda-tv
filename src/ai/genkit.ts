@@ -1,3 +1,4 @@
+
   /**
    * @fileOverview Initializes and configures the Genkit AI instance.
    * This file sets up the necessary plugins for the AI functionalities.
@@ -13,8 +14,9 @@
       ollama({
         // Define os modelos que o Genkit pode usar
         models: [
-          { name: 'ollama/llama3' }, 
-          { name: 'ollama/llava', type: 'generate' },
+          { name: 'llama3:latest', type: 'generate' },
+          { name: 'gemma3:latest', type: 'generate' },
+          { name: 'llama3.2:1b', type: 'generate' },
         ],
         
         // Usa a variável de ambiente definida no .env ou docker-compose

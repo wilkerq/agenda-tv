@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -14,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { errorEmitter, FirestorePermissionError, useFirestore } from "@/firebase";
+import { useAtomValue } from "jotai";
+import { operationModeAtom } from "@/lib/state";
 
 type PersonnelReport = {
     [name: string]: { count: number; events: Event[] };
@@ -56,6 +59,7 @@ export default function ReportsPage() {
   const [summary, setSummary] = useState<ReportSummaryOutput | null>(null);
   const { toast } = useToast();
   const db = useFirestore();
+  const operationMode = useAtomValue(operationModeAtom);
 
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth() + 1).toString());
@@ -175,7 +179,7 @@ export default function ReportsPage() {
     };
 
     try {
-        const result = await summarizeReports(reportToSummarize);
+        const result = await summarizeReports(reportToSummarize, operationMode);
         setSummary(result);
     } catch (error) {
         console.error("Error generating summary: ", error);

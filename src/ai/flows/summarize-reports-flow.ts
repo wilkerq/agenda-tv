@@ -15,7 +15,8 @@ import {
     type ReportItem
 } from '@/lib/types';
 import { z } from 'zod';
-import { getOperationMode } from '@/lib/state';
+import { operationModeAtom } from '@/lib/state';
+import { useAtomValue } from 'jotai';
 
 // Helper function to find the standout item in a list
 function encontrarDestaque(lista: ReportItem[]): ReportItem {
@@ -28,7 +29,7 @@ function encontrarDestaque(lista: ReportItem[]): ReportItem {
 // AI-powered summarization prompt
 const summarizePrompt = ai.definePrompt({
     name: 'summarizeReportsPrompt',
-    model: 'ollama/llama3',
+    model: 'ollama/llama3:latest',
     input: { schema: ReportDataInputSchema },
     output: { schema: ReportSummaryOutputSchema },
     prompt: `You are an expert data analyst for a TV station. Your task is to provide a concise, insightful, and narrative summary based on the provided event data. Your summary must be in Brazilian Portuguese.
@@ -48,21 +49,24 @@ const summarizePrompt = ai.definePrompt({
 });
 
 // Main exported function
-export async function summarizeReports(input: ReportDataInput): Promise<ReportSummaryOutput> {
-    return summarizeReportsFlow(input);
+export async function summarizeReports(input: ReportDataInput, mode: 'ai' | 'logic'): Promise<ReportSummaryOutput> {
+    return summarizeReportsFlow({ ...input, mode });
 }
+
+const SummarizeReportsFlowInputSchema = ReportDataInputSchema.extend({
+    mode: z.enum(['ai', 'logic']),
+});
+
 
 // Genkit Flow Definition
 const summarizeReportsFlow = ai.defineFlow(
     {
         name: 'summarizeReportsFlow',
-        inputSchema: ReportDataInputSchema,
+        inputSchema: SummarizeReportsFlowInputSchema,
         outputSchema: ReportSummaryOutputSchema,
     },
     async (input) => {
-        const mode = await getOperationMode();
-
-        if (mode === 'ai') {
+        if (input.mode === 'ai') {
             // --- AI MODE ---
             const { output } = await summarizePrompt(input);
             return output!;

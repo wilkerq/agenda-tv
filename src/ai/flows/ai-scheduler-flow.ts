@@ -38,7 +38,7 @@ const AISchedulerOutputSchema = z.object({
 // Cria o prompt do Genkit
 const schedulePrompt = ai.definePrompt({
   name: 'aiSchedulerPrompt',
-  model: 'ollama/llama3',
+  model: 'ollama/llama3:latest',
   input: { schema: AISchedulerInputSchema },
   output: { schema: AISchedulerOutputSchema },
   prompt: `Você é um gerente de produção sênior para uma estação de TV, especialista em escalar equipes de forma eficiente. Sua tarefa é escalar a melhor equipe possível para um novo evento, considerando o turno, a carga de trabalho e a disponibilidade.

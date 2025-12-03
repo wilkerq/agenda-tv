@@ -32,7 +32,7 @@ export async function generateDailyAgenda(input: DailyAgendaFlowInput): Promise<
 
 const dailyAgendaPrompt = ai.definePrompt({
     name: 'generateDailyAgendaPrompt',
-    model: 'ollama/llama3',
+    model: 'ollama/llama3:latest',
     input: { schema: z.object({ scheduleDate: z.string(), events: z.array(EventForAgendaSchema) }) },
     output: { schema: DailyAgendaOutputSchema },
     prompt: `You are an expert production assistant for a TV station. Your task is to generate a clear, organized, and friendly daily agenda message in Brazilian Portuguese, formatted for WhatsApp.
