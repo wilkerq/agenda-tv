@@ -16,7 +16,7 @@ import { generateDailyAgenda } from "@/ai/flows/generate-daily-agenda-flow";
 import { Skeleton } from "@/components/ui/skeleton";
 import { errorEmitter, FirestorePermissionError, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { useAtom } from "jotai";
-import { operationModeAtom } from "../settings/page";
+import { operationModeAtom } from "@/lib/state";
 
 export default function DailyAgendaPage() {
   // Initialize state to undefined on the server, and set it on the client.
