@@ -21,22 +21,6 @@ services:
       - NEXT_PUBLIC_FIREBASE_APP_ID=${NEXT_PUBLIC_FIREBASE_APP_ID}
     networks:
       - agenda-alego-net
-    depends_on:
-      - ollama
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: agenda-alego-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - agenda-alego-net
-
-volumes:
-  ollama-data: {}
 
 networks:
   agenda-alego-net:

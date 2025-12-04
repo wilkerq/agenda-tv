@@ -2,7 +2,8 @@
 import { createOllama } from 'ollama-ai-provider';
 
 // Configura o provider do Ollama lendo a variável de ambiente.
-const ollamaServerAddress = process.env.OLLAMA_SERVER_ADDRESS || 'http://127.0.0.1:11434';
+// O fallback para 'host.docker.internal' é útil para cenários de desenvolvimento com Docker.
+const ollamaServerAddress = process.env.OLLAMA_SERVER_ADDRESS || 'http://host.docker.internal:11434';
 
 const ollama = createOllama({
     baseURL: ollamaServerAddress,

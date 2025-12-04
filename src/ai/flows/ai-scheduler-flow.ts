@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview AI-powered team scheduling using Vercel AI SDK.
