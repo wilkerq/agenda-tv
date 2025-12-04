@@ -4,17 +4,6 @@
 // Do not import anything here that depends on `ai` from `genkit.ts`
 // if it also needs to be imported by `genkit.ts` itself.
 
-// Flows will be imported for their side effects in this file.
-import "./flows/summarize-reports-flow";
-import "./flows/create-event-from-image-flow";
-import "./flows/generate-whatsapp-message-flow";
-import "./flows/generate-daily-agenda-flow";
-import "./flows/send-daily-agenda-to-all-flow";
-import "./flows/create-scraped-event-flow";
-import "./flows/ai-scheduler-flow";
-
-
-// Tools
-import "./tools/get-schedule-tool";
-
-    
+// OBS: Os fluxos foram removidos deste arquivo para evitar o carregamento antecipado
+// que estava causando um erro de inicialização no servidor.
+// O Next.js agora carregará cada fluxo sob demanda quando sua função wrapper for chamada.
