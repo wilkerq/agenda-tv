@@ -18,4 +18,4 @@ export const aiModel = ollama('llama3');
  * Modelo de visão computacional para análise de imagens.
  * Ultra-leve e otimizado para extração de dados de imagens.
  */
-export const
+export const aiVisionModel = ollama('moondream');
