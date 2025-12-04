@@ -1,51 +1,45 @@
-
 'use server';
 /**
- * @fileOverview A flow for creating an event from an image using AI.
+ * @fileOverview Server Action para criar um evento a partir de uma imagem usando IA com Vercel AI SDK.
  *
- * - createEventFromImage - A function that extracts event details from an image.
+ * - createEventFromImage - Uma função que extrai detalhes do evento de uma imagem.
  */
 
-import { ai } from '@/ai/genkit';
+import { generateObject } from 'ai';
+import { aiVisionModel } from '@/lib/ai';
 import { 
     CreateEventFromImageInput, 
     CreateEventFromImageInputSchema, 
     CreateEventFromImageOutput, 
     CreateEventFromImageOutputSchema 
 } from '@/lib/types';
-import { z } from 'zod';
 
 export async function createEventFromImage(input: CreateEventFromImageInput): Promise<CreateEventFromImageOutput> {
-    return createEventFromImageFlow(input);
+    // Validar a entrada com Zod
+    const validatedInput = CreateEventFromImageInputSchema.parse(input);
+
+    const { object } = await generateObject({
+        model: aiVisionModel,
+        schema: CreateEventFromImageOutputSchema,
+        messages: [{
+            role: 'user',
+            content: [
+                { 
+                    type: 'text', 
+                    text: `Você é um especialista em extrair informações de flyers e posts de eventos.
+                           Analise a imagem e extraia os seguintes dados no formato JSON:
+                           - name: O nome principal do evento.
+                           - location: O local ou endereço.
+                           - date: A data no formato YYYY-MM-DD. Assuma o ano corrente se não especificado.
+                           - time: A hora de início no formato HH:mm.`
+                },
+                { 
+                    type: 'image', 
+                    image: validatedInput.photoDataUri // O SDK aceita a string base64 data URI diretamente
+                }
+            ]
+        }]
+    });
+
+    return object;
 }
-
-const prompt = ai.definePrompt({
-    name: 'createEventFromImagePrompt',
-    model: 'ollama/llama3:latest',
-    input: { schema: CreateEventFromImageInputSchema },
-    output: { schema: CreateEventFromImageOutputSchema },
-    prompt: `You are an expert event information extractor. Your task is to analyze an image (like a flyer or a screenshot) and extract the key details of an event.
-
-    - Event Name (name): Extract the main title or name of the event.
-    - Location (location): Extract the venue or location.
-    - Date (date): Extract the full date and format it as 'YYYY-MM-DD'. If the year is not specified, assume the current year or the next logical year if the date has passed.
-    - Time (time): Extract the start time and format it as 'HH:mm'. If no time is found, this can be null.
-    - Transmission (transmission): Based on the context, determine if the event is likely to be broadcast on 'youtube' or 'tv'. If unsure, default to ['youtube']. If it's on both, return ['youtube', 'tv'].
-    
-    Analyze the following image and return the extracted information in a structured JSON format.
-    
-    Image: {{media url=photoDataUri}}`,
-});
-
-
-const createEventFromImageFlow = ai.defineFlow(
-    {
-        name: 'createEventFromImageFlow',
-        inputSchema: CreateEventFromImageInputSchema,
-        outputSchema: CreateEventFromImageOutputSchema,
-    },
-    async (input) => {
-       const { output } = await prompt(input);
-       return output!;
-    }
-);
