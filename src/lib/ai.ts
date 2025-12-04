@@ -1,3 +1,4 @@
+'use server';
 
 import { createOllama } from 'ollama-ai-provider';
 
