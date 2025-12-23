@@ -25,7 +25,9 @@ const serializeEventData = (data: EventFormData) => {
     try {
       const parsed = new Date(value);
       if (!isNaN(parsed.getTime())) return parsed;
-    } catch {}
+    } catch (error) {
+      console.error('[events-actions] Failed to parse date value:', value, error);
+    }
     return null;
   };
 
